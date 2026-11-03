@@ -14,7 +14,7 @@
 // Helper differenceColorClass/differenceLabel diekspor karena KasModule.tsx
 // (tabel riwayat) memakai format yang sama.
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Lock, Loader2, AlertTriangle, X } from "lucide-react";
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import type { CloseShiftResult } from "@/hooks/useShifts";
@@ -47,18 +47,33 @@ export function CloseShiftModal({
   cashMovementSummary,
 }: {
   onClose: () => void;
-  /** Kirim total kas fisik. Dilempar Error kalau gagal — pesannya ditampilkan di modal. */
-  onSubmit: (actualCash: number) => Promise<void>;
+  /**
+   * Kirim total kas fisik + catatan penutupan (opsional). Dilempar Error kalau
+   * gagal — pesannya ditampilkan di modal. Kalau pesannya memuat "alasan
+   * selisih" (server menolak karena ada selisih tanpa catatan), kolom catatan
+   * otomatis jadi wajib.
+   */
+  onSubmit: (actualCash: number, notes?: string) => Promise<void>;
   /**
    * ── TAMBAHAN (migration 040) ── Kas masuk/keluar yang SUDAH dicatat di shift
    * ini, hanya sebagai pengingat sebelum menghitung uang fisik. Sengaja TIDAK
    * menampilkan kas seharusnya — penutupan kas dibuat "buta".
    */
-  cashMovementSummary?: { cashIn: number; cashOut: number; activeCount: number };
+  cashMovementSummary?: {
+    cashIn: number;
+    cashOut: number;
+    activeCount: number;
+  };
 }) {
   const [counts, setCounts] = useState<Record<number, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // ── TAMBAHAN (migration 041) ── Catatan penutupan. Kolom ini wajib hanya
+  // setelah server bilang ada selisih; penutupan sengaja tetap "buta" (selisih
+  // tidak ditampilkan sebelum kasir mengirim hitungan).
+  const [notes, setNotes] = useState("");
+  const [notesRequired, setNotesRequired] = useState(false);
+  const notesRef = useRef<HTMLTextAreaElement>(null);
 
   const actualCash = useMemo(() => {
     return DENOMINATIONS.reduce((total, denom) => {
@@ -74,11 +89,36 @@ export function CloseShiftModal({
 
   const handleSubmit = async () => {
     setError(null);
+
+    if (notesRequired && notes.trim() === "") {
+      setError(
+        "Isi alasan selisih di kolom catatan, atau hitung ulang uang fisik.",
+      );
+      notesRef.current?.focus();
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await onSubmit(actualCash);
+      await onSubmit(actualCash, notes.trim() || undefined);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Gagal menutup shift.");
+      const message =
+        err instanceof Error ? err.message : "Gagal menutup shift.";
+      if (/alasan selisih/i.test(message)) {
+        // Server menolak: ada selisih tapi catatan kosong. Jangan bocorkan
+        // nominalnya — cukup minta hitung ulang atau isi alasan.
+        setNotesRequired(true);
+        setError(
+          "Uang fisik tidak sama dengan catatan sistem. Hitung ulang uangnya, atau isi alasan selisih di kolom catatan lalu tutup sesi lagi.",
+        );
+        setTimeout(() => notesRef.current?.focus(), 0);
+      } else if (/pesanan tahan/i.test(message)) {
+        setError(
+          `${message} Pesanan tahan bisa dilihat lewat tombol Pending di layar Kasir.`,
+        );
+      } else {
+        setError(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -157,6 +197,39 @@ export function CloseShiftModal({
           <span className="font-mono tabular-nums">
             {formatRupiah(actualCash)}
           </span>
+        </div>
+
+        <div className="mt-4">
+          <label
+            htmlFor="close-shift-notes"
+            className="mb-1 flex items-center justify-between text-xs font-medium text-zinc-600 dark:text-zinc-400"
+          >
+            <span>Catatan penutupan</span>
+            <span
+              className={notesRequired ? "text-lco-coral" : "text-zinc-400"}
+            >
+              {notesRequired ? "Wajib diisi" : "Opsional"}
+            </span>
+          </label>
+          <textarea
+            id="close-shift-notes"
+            ref={notesRef}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            maxLength={500}
+            rows={3}
+            disabled={isSubmitting}
+            placeholder={
+              notesRequired
+                ? "Tulis alasan selisih kas"
+                : "Kendala atau catatan serah terima (boleh dikosongkan)"
+            }
+            className={`w-full resize-none rounded-md border bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 dark:bg-zinc-950 transition-colors duration-150 ${
+              notesRequired
+                ? "border-lco-coral focus:border-lco-coral focus:ring-lco-coral"
+                : "border-zinc-300 focus:border-lco-teal focus:ring-lco-teal dark:border-zinc-700"
+            }`}
+          />
         </div>
 
         {error && (
@@ -276,6 +349,12 @@ export function CloseShiftSummaryModal({
             </span>
           </div>
         </div>
+        {result.notes && (
+          <div className="mt-3 rounded-md border border-zinc-200 dark:border-zinc-800 p-3 text-xs">
+            <p className="mb-1 text-zinc-500">Catatan penutupan</p>
+            <p className="whitespace-pre-wrap break-words">{result.notes}</p>
+          </div>
+        )}
         <button
           type="button"
           onClick={onDone}

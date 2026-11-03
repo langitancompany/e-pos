@@ -13,6 +13,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { DB_SCHEMA } from "@/lib/supabase/config";
 import { createClient as createSupabaseAdminClient, type SupabaseClient } from "@supabase/supabase-js";
 import { sanitizePermissions, type UserPermissions } from "@/lib/pos/permissionModules";
 
@@ -50,8 +51,9 @@ export async function authorizeAdminCaller(
           // Route ini tidak perlu menulis cookie balik — no-op.
         },
       },
+      db: { schema: DB_SCHEMA },
     },
-  );
+  ) as unknown as SupabaseClient;
 
   const {
     data: { user: caller },
@@ -89,7 +91,8 @@ export async function authorizeAdminCaller(
 
   const supabaseAdmin = createSupabaseAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
-  });
+    db: { schema: DB_SCHEMA },
+  }) as unknown as SupabaseClient;
 
   const { data: callerProfile } = await supabaseAdmin
     .from("profiles")

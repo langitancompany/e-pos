@@ -176,10 +176,8 @@ export default function KasirModule({
   // ── TAMBAHAN (migration 040) ── Catatan kas masuk/keluar untuk shift aktif.
   // `summary` hanya dipakai untuk pengingat di modal Tutup Sesi Kas — TIDAK
   // pernah menampilkan "kas seharusnya" (penutupan kas dibuat "buta").
-  const {
-    summary: cashSummary,
-    addMovement: addCashMovement,
-  } = useCashMovements(activeShift?.id ?? null);
+  const { summary: cashSummary, addMovement: addCashMovement } =
+    useCashMovements(activeShift?.id ?? null);
   const [isCashModalOpen, setIsCashModalOpen] = useState(false);
   const handleAddCashMovement = async (params: AddCashMovementParams) => {
     await addCashMovement(params);
@@ -189,11 +187,7 @@ export default function KasirModule({
   // ── PERUBAHAN (migration 036) ── `redeemPoints` tidak dipakai lagi di sini:
   // poin dipotong/ditambah SERVER di dalam create_transaction (atomik). Yang
   // tersisa cuma `refetch` untuk menyegarkan saldo poin di daftar pelanggan.
-  const {
-    customers,
-    refetch: refetchCustomers,
-    addCustomer,
-  } = useCustomers();
+  const { customers, refetch: refetchCustomers, addCustomer } = useCustomers();
   const {
     heldOrders,
     isLoading: isHeldOrdersLoading,
@@ -303,8 +297,8 @@ export default function KasirModule({
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const [closeResult, setCloseResult] = useState<CloseShiftResult | null>(null);
 
-  const handleCloseSession = async (actualCash: number) => {
-    const result = await closeShift(actualCash);
+  const handleCloseSession = async (actualCash: number, notes?: string) => {
+    const result = await closeShift(actualCash, notes);
     setIsStartingSession(false);
     setCloseResult(result);
     setIsCloseModalOpen(false);
@@ -588,7 +582,10 @@ export default function KasirModule({
     const existing = customers.find((c) => normalizePhone(c.phone) === key);
     if (existing) return existing.id;
     try {
-      const created = await addCustomer(name?.trim() || phone.trim(), phone.trim());
+      const created = await addCustomer(
+        name?.trim() || phone.trim(),
+        phone.trim(),
+      );
       return created.id;
     } catch (registerErr) {
       console.error("Gagal mendaftarkan pelanggan baru:", registerErr);

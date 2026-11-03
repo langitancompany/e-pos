@@ -3,6 +3,10 @@
 // app/components/laporan/LaporanModule.tsx
 // ── TAMBAHAN (T-08) ── Modul Laporan (PRD §17 Fase E, §4.5, §4.7).
 // Konsumen hooks/useReports.ts (data 3 sub-tab).
+// ── TAMBAHAN (adopsi dari Laporan Harian Kula POS) ── Tab Harian/Bulanan juga
+// memakai hooks/useSalesInsights.ts + HarianInsights.tsx: selisih persen KPI
+// terhadap periode sebelumnya, bauran metode bayar, produk terlaris, dan kas
+// keluar per kategori.
 //
 // Akses: **diasumsikan admin/supervisor saja** (sama seperti StokModule.tsx),
 // BUKAN dikutip langsung dari teks PRD — lihat catatan ASUMSI di header
@@ -42,6 +46,8 @@ import {
   X,
   Download,
   ChevronDown,
+  Activity,
+  RotateCcw,
 } from "lucide-react";
 import {
   useReports,
@@ -53,11 +59,26 @@ import {
 import { useAuth, hasPermission } from "@/hooks/useAuth";
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import { exportReportToExcel, exportReportToPdf } from "@/lib/pos/reportExport";
+import {
+  useSalesInsights,
+  type UseSalesInsightsResult,
+} from "@/hooks/useSalesInsights";
+import { useHourlyTraffic } from "@/hooks/useHourlyTraffic";
+import { useReturnsReport } from "@/hooks/useReturnsReport";
+import { TrafficTab } from "@/app/components/laporan/TrafficTab";
+import { ReturnsTab } from "@/app/components/laporan/ReturnsTab";
+import {
+  ComparisonCaption,
+  DeltaBadge,
+  HarianInsightsSection,
+} from "@/app/components/laporan/HarianInsights";
 
-type ReportTab = "harian" | "shift" | "piutang";
+type ReportTab = "harian" | "ramai" | "retur" | "shift" | "piutang";
 
 const TABS: { key: ReportTab; label: string; icon: typeof TrendingUp }[] = [
   { key: "harian", label: "Harian/Bulanan", icon: TrendingUp },
+  { key: "ramai", label: "Jam & Hari Ramai", icon: Activity },
+  { key: "retur", label: "Retur", icon: RotateCcw },
   { key: "shift", label: "Per Shift", icon: Users },
   { key: "piutang", label: "Piutang/Tempo", icon: Wallet },
 ];
@@ -354,10 +375,20 @@ function SettleReceivableModal({
 function HarianBulananTab({
   summary,
   daily,
+  insights,
 }: {
   summary: ReturnType<typeof useReports>["salesSummary"];
   daily: ReturnType<typeof useReports>["dailySales"];
+  insights: UseSalesInsightsResult;
 }) {
+  // Selisih KPI dibandingkan periode sebelumnya (hanya kalau datanya sudah ada).
+  const comparison = insights.data
+    ? {
+        current: insights.data.currentSummary,
+        previous: insights.data.previousSummary,
+      }
+    : null;
+
   return (
     <div>
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -368,6 +399,12 @@ function HarianBulananTab({
           <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
             {formatRupiah(summary.revenue)}
           </p>
+          {comparison && (
+            <DeltaBadge
+              current={comparison.current.revenue}
+              previous={comparison.previous.revenue}
+            />
+          )}
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
@@ -376,6 +413,12 @@ function HarianBulananTab({
           <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
             {summary.transactionCount}
           </p>
+          {comparison && (
+            <DeltaBadge
+              current={comparison.current.transactionCount}
+              previous={comparison.previous.transactionCount}
+            />
+          )}
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
@@ -384,6 +427,12 @@ function HarianBulananTab({
           <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
             {summary.itemsSold}
           </p>
+          {comparison && (
+            <DeltaBadge
+              current={comparison.current.itemsSold}
+              previous={comparison.previous.itemsSold}
+            />
+          )}
         </div>
         <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
@@ -392,8 +441,18 @@ function HarianBulananTab({
           <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
             {formatRupiah(summary.averageTicket)}
           </p>
+          {comparison && (
+            <DeltaBadge
+              current={comparison.current.averageTicket}
+              previous={comparison.previous.averageTicket}
+            />
+          )}
         </div>
       </div>
+
+      {insights.data && <ComparisonCaption data={insights.data} />}
+
+      <HarianInsightsSection insights={insights} />
 
       <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
         <table className="w-full text-left text-sm">
@@ -547,8 +606,8 @@ function PiutangTab({
       <div className="flex min-h-40 flex-col items-center justify-center rounded-xl border border-zinc-200 px-6 text-center dark:border-zinc-800">
         <Inbox className="mb-2 h-6 w-6 text-zinc-400" />
         <p className="text-sm text-zinc-500">
-          Tidak ada piutang — baik yang belum lunas maupun yang lunas 30
-          hari terakhir.
+          Tidak ada piutang — baik yang belum lunas maupun yang lunas 30 hari
+          terakhir.
         </p>
       </div>
     );
@@ -656,7 +715,23 @@ export default function LaporanModule() {
     settleReceivable,
   } = useReports();
 
+  // ── TAMBAHAN ── Wawasan penjualan untuk tab Harian/Bulanan. Hanya dimuat
+  // untuk user yang punya izin "laporan" (RLS tetap penjaga utamanya).
+  const insights = useSalesInsights(dateRange, {
+    enabled: hasPermission(user, "laporan"),
+  });
+
   const [activeTab, setActiveTab] = useState<ReportTab>("harian");
+
+  // ── TAMBAHAN ── Data tab Jam & Hari Ramai dan Retur: baru diambil saat
+  // tabnya dibuka, dan hanya untuk user yang punya izin "laporan".
+  const canLoadReports = hasPermission(user, "laporan");
+  const traffic = useHourlyTraffic(dateRange, {
+    enabled: canLoadReports && activeTab === "ramai",
+  });
+  const returnsReport = useReturnsReport(dateRange, {
+    enabled: canLoadReports && activeTab === "retur",
+  });
 
   // ── TAMBAHAN (T-08 lanjutan) ── State & ref untuk export Excel/PDF.
   // `reportContentRef` sengaja ditaruh cuma di sekeliling KONTEN TAB AKTIF
@@ -869,8 +944,14 @@ export default function LaporanModule() {
       ) : (
         <div ref={reportContentRef} className="p-1">
           {activeTab === "harian" && (
-            <HarianBulananTab summary={salesSummary} daily={dailySales} />
+            <HarianBulananTab
+              summary={salesSummary}
+              daily={dailySales}
+              insights={insights}
+            />
           )}
+          {activeTab === "ramai" && <TrafficTab traffic={traffic} />}
+          {activeTab === "retur" && <ReturnsTab returns={returnsReport} />}
           {activeTab === "shift" && <PerShiftTab shifts={shifts} />}
           {activeTab === "piutang" && (
             <PiutangTab receivables={receivables} onSettle={settleReceivable} />

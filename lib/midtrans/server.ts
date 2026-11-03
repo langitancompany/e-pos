@@ -17,6 +17,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY  sudah dipakai route create-user
 
 import { createServerClient } from "@supabase/ssr";
+import { DB_SCHEMA } from "@/lib/supabase/config";
 import {
   createClient as createSupabaseAdminClient,
   type SupabaseClient,
@@ -193,7 +194,8 @@ export function getAdminClient(): SupabaseClient {
   }
   return createSupabaseAdminClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
-  });
+    db: { schema: DB_SCHEMA },
+  }) as unknown as SupabaseClient;
 }
 
 export function jsonError(message: string, status: number) {
@@ -218,6 +220,7 @@ function buildUserClient(request: NextRequest): SupabaseClient {
           // Route ini tidak menulis cookie balik — no-op.
         },
       },
+      db: { schema: DB_SCHEMA },
     },
   ) as unknown as SupabaseClient;
 }

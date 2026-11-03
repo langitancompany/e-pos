@@ -12,6 +12,9 @@
 // - closeShift(): WAJIB lewat RPC `close_shift` (migration 008) — `expected_cash`
 //   dihitung server-side dari data payments/transactions asli, client cuma kirim
 //   `actual_cash` (hasil hitung fisik pecahan uang). Lihat Aturan Main #5 PRD.
+//   ── TAMBAHAN (migration 041) ── Client boleh menambah `notes` (alasan selisih /
+//   catatan serah terima). Server menolak selisih <> 0 tanpa catatan, dan menolak
+//   penutupan selama masih ada pesanan tahan / pembayaran digital pending.
 
 "use client";
 
@@ -50,6 +53,10 @@ export interface CloseShiftResult {
   expected_cash: number;
   actual_cash: number;
   difference: number;
+  /** ── TAMBAHAN (migration 041) ── Catatan penutupan yang tersimpan; null kalau tidak diisi. */
+  notes: string | null;
+  /** ── TAMBAHAN (041) ── User yang menutup sesi (bisa supervisor, bukan pemilik sesi). */
+  closed_by: string | null;
 }
 
 interface UseShiftsResult {
@@ -69,8 +76,10 @@ interface UseShiftsResult {
   /**
    * Tutup shift yang sedang aktif. `actualCash` = hasil hitung fisik pecahan uang
    * kasir. Selisih (`difference`) dihitung oleh RPC `close_shift`, bukan di sini.
+   * `notes` (opsional) = alasan selisih / catatan serah terima; WAJIB kalau ada
+   * selisih (server yang menolak, pesannya memuat kata "alasan selisih").
    */
-  closeShift: (actualCash: number) => Promise<CloseShiftResult>;
+  closeShift: (actualCash: number, notes?: string) => Promise<CloseShiftResult>;
 }
 
 export function useShifts(): UseShiftsResult {
@@ -176,7 +185,7 @@ export function useShifts(): UseShiftsResult {
   );
 
   const closeShift = useCallback(
-    async (actualCash: number): Promise<CloseShiftResult> => {
+    async (actualCash: number, notes?: string): Promise<CloseShiftResult> => {
       if (!activeShift) {
         throw new Error("Tidak ada shift aktif untuk ditutup.");
       }
@@ -185,9 +194,13 @@ export function useShifts(): UseShiftsResult {
         throw new Error("Nominal kas fisik tidak boleh negatif.");
       }
 
+      // p_notes hanya dikirim kalau ada isinya, supaya tetap jalan di database
+      // yang belum menjalankan migration 041 (fungsi lama tidak punya p_notes).
+      const trimmedNotes = notes?.trim() ?? "";
       const { data, error: rpcError } = await supabase.rpc("close_shift", {
         p_shift_id: activeShift.id,
         p_actual_cash: actualCash,
+        ...(trimmedNotes ? { p_notes: trimmedNotes } : {}),
       });
 
       if (rpcError) {
@@ -213,6 +226,9 @@ export function useShifts(): UseShiftsResult {
         expected_cash: Number(data.expected_cash ?? 0),
         actual_cash: Number(data.actual_cash ?? 0),
         difference: Number(data.difference ?? 0),
+        // Server sebelum migration 041 tidak mengirim 2 field berikut -> null.
+        notes: typeof data.notes === "string" ? data.notes : null,
+        closed_by: typeof data.closed_by === "string" ? data.closed_by : null,
       };
     },
     [activeShift, refetch],

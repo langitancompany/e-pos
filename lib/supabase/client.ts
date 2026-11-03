@@ -1,5 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { DB_SCHEMA } from "./config";
 
 /**
  * ── KOREKSI (bug: "selalu rendering" / risiko rate limit auth) ──
@@ -35,8 +36,9 @@ export function createClient(): SupabaseClient {
   if (!cachedClient) {
     cachedClient = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { db: { schema: DB_SCHEMA } },
+    ) as unknown as SupabaseClient;
   }
   return cachedClient;
 }
