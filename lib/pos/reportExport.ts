@@ -105,8 +105,15 @@ function formatDateTimeForSheet(value: string | null): string {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export interface ReportExcelPayload {
-  /** Label rentang tanggal yang SEDANG ditampilkan di UI, mis. "18 Sep 2026 — 18 Sep 2026". */
-  dateRangeLabel: string;
+  /**
+   * ── REVISI (rentang per tab) ── Tiap tab Laporan punya rentang sendiri, jadi
+   * tiap sheet diberi label rentangnya masing-masing, mis. "18 Sep 2026 — 18 Sep 2026".
+   * `salesRangeLabel` berlaku untuk Ringkasan & Harian-Bulanan, `shiftRangeLabel`
+   * untuk Per Shift, `receivablesRangeLabel` untuk Piutang-Tempo (tanpa rentang).
+   */
+  salesRangeLabel: string;
+  shiftRangeLabel: string;
+  receivablesRangeLabel: string;
   summary: SalesSummary;
   daily: DailySalesPoint[];
   shifts: ShiftReportRow[];
@@ -115,22 +122,32 @@ export interface ReportExcelPayload {
 
 /**
  * Export 1 file Excel (`.xlsx`) berisi 4 sheet: Ringkasan, Harian-Bulanan,
- * Per Shift, Piutang-Tempo. Memicu unduhan langsung di browser lewat
+ * Per Shift, Piutang-Tempo. Rentang tiap sheet dicatat di sheet Ringkasan.
+ * Memicu unduhan langsung di browser lewat
  * `XLSX.writeFile` (tidak butuh server — semua diproses di client, sama
  * seperti pola export lain yang sudah ada di ekosistem Langitan.co).
  *
  * Sengaja SATU file 4 sheet, bukan 4 file terpisah — pemilik toko biasanya
- * mau lihat semuanya sekaligus per rentang tanggal yang sama, bukan
- * download-download berkali-kali.
+ * mau lihat semuanya sekaligus, bukan download-download berkali-kali.
  */
 export function exportReportToExcel(payload: ReportExcelPayload): void {
-  const { dateRangeLabel, summary, daily, shifts, receivables } = payload;
+  const {
+    salesRangeLabel,
+    shiftRangeLabel,
+    receivablesRangeLabel,
+    summary,
+    daily,
+    shifts,
+    receivables,
+  } = payload;
   const wb = XLSX.utils.book_new();
 
   // ── Sheet 1: Ringkasan ──
   const ringkasanRows: (string | number)[][] = [
     ["Laporan LCO POS"],
-    ["Rentang Tanggal", dateRangeLabel],
+    ["Rentang Harian-Bulanan", salesRangeLabel],
+    ["Rentang Per Shift", shiftRangeLabel],
+    ["Cakupan Piutang-Tempo", receivablesRangeLabel],
     ["Diekspor Pada", formatDateTimeForSheet(new Date().toISOString())],
     [],
     ["Omzet", summary.revenue],
@@ -139,7 +156,7 @@ export function exportReportToExcel(payload: ReportExcelPayload): void {
     ["Rata-rata / Transaksi", summary.averageTicket],
   ];
   const wsRingkasan = XLSX.utils.aoa_to_sheet(ringkasanRows);
-  wsRingkasan["!cols"] = [{ wch: 24 }, { wch: 28 }];
+  wsRingkasan["!cols"] = [{ wch: 24 }, { wch: 52 }];
   XLSX.utils.book_append_sheet(wb, wsRingkasan, "Ringkasan");
 
   // ── Sheet 2: Harian/Bulanan ──

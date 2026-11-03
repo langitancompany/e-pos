@@ -29,6 +29,14 @@
 //    filter Laporan sedang di "bulan ini" — kalau ikut difilter rentang, piutang
 //    lama berisiko "hilang dari radar" begitu bulan berganti.
 //
+// ── REVISI (rentang tanggal per tab) ──
+// Hook ini TIDAK lagi memegang satu rentang tanggal global. Pemanggil
+// (LaporanModule.tsx) memberi rentang terpisah untuk Harian/Bulanan
+// (`salesRange`) dan Per Shift (`shiftRange`), yang state-nya dipegang oleh
+// hooks/useReportDateRange.ts. Tiap bagian (penjualan, shift, piutang) punya
+// efek, status loading, dan error sendiri — mengganti rentang di satu tab
+// tidak memicu fetch ulang tab lain. Piutang tetap tanpa rentang (catatan #2).
+//
 // ── Keputusan desain lain ──
 // - **Agregasi Harian/Bulanan dilakukan di client**, pola sama persis seperti
 //   useDashboard.ts (T-06): rentang tanggal laporan toko masih kecil, dan ini
@@ -55,7 +63,7 @@
 
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 // ── TAMBAHAN (migration 040) ── total kas masuk/keluar per shift untuk tab Per Shift.
 import { fetchCashTotalsByShift } from "@/hooks/useCashMovements";
@@ -261,19 +269,26 @@ interface RawTransactionLite {
 
 // ── Hasil hook ───────────────────────────────────────────────────────────────
 
-interface UseReportsResult {
-  dateRange: DateRange;
-  preset: ReportDatePreset;
-  setPreset: (preset: ReportDatePreset, customRange?: DateRange) => void;
+export interface UseReportsOptions {
+  /** Rentang untuk tab Harian/Bulanan. */
+  salesRange: DateRange;
+  /** Rentang untuk tab Per Shift. */
+  shiftRange: DateRange;
+}
 
+interface UseReportsResult {
   salesSummary: SalesSummary;
   dailySales: DailySalesPoint[];
-  shifts: ShiftReportRow[];
-  receivables: ReceivableRow[];
+  isSalesLoading: boolean;
+  salesError: string | null;
 
-  isLoading: boolean;
-  error: string | null;
-  refetch: () => void;
+  shifts: ShiftReportRow[];
+  isShiftsLoading: boolean;
+  shiftsError: string | null;
+
+  receivables: ReceivableRow[];
+  isReceivablesLoading: boolean;
+  receivablesError: string | null;
 
   /** Menandai satu payment TEMPO lunas lewat RPC `settle_receivable` (migration 012). */
   settleReceivable: (paymentId: string) => Promise<void>;
@@ -281,41 +296,54 @@ interface UseReportsResult {
 
 const RECEIVABLES_SETTLED_LOOKBACK_DAYS = 30;
 
-export function useReports(): UseReportsResult {
-  const [preset, setPresetState] = useState<ReportDatePreset>("this_month");
-  const [dateRange, setDateRangeState] = useState<DateRange>(() => presetToRange("this_month"));
+export function useReports({
+  salesRange,
+  shiftRange,
+}: UseReportsOptions): UseReportsResult {
+  // Dependency efek pakai epoch ms (bukan objek Date) supaya identitas objek
+  // rentang yang berubah tanpa perubahan nilai tidak memicu fetch ulang.
+  const salesStartMs = salesRange.start.getTime();
+  const salesEndMs = salesRange.end.getTime();
+  const shiftStartMs = shiftRange.start.getTime();
+  const shiftEndMs = shiftRange.end.getTime();
 
   const [salesSummary, setSalesSummary] = useState<SalesSummary>(emptySummary);
   const [dailySales, setDailySales] = useState<DailySalesPoint[]>([]);
+  const [isSalesLoading, setIsSalesLoading] = useState(true);
+  const [salesError, setSalesError] = useState<string | null>(null);
+
   const [shifts, setShifts] = useState<ShiftReportRow[]>([]);
+  const [isShiftsLoading, setIsShiftsLoading] = useState(true);
+  const [shiftsError, setShiftsError] = useState<string | null>(null);
+
   const [receivables, setReceivables] = useState<ReceivableRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [reloadToken, setReloadToken] = useState(0);
+  const [isReceivablesLoading, setIsReceivablesLoading] = useState(true);
+  const [receivablesError, setReceivablesError] = useState<string | null>(null);
+  const [receivablesReloadToken, setReceivablesReloadToken] = useState(0);
 
-  const refetch = useCallback(() => setReloadToken((t) => t + 1), []);
+  const refetchReceivables = useCallback(
+    () => setReceivablesReloadToken((t) => t + 1),
+    [],
+  );
 
-  const setPreset = useCallback((next: ReportDatePreset, customRange?: DateRange) => {
-    setPresetState(next);
-    setDateRangeState(presetToRange(next, customRange));
-  }, []);
-
+  // ── 1. Harian/Bulanan — mengikuti `salesRange` ───────────────────────────
   useEffect(() => {
     let isCancelled = false;
+    const rangeStart = new Date(salesStartMs);
+    const rangeEnd = new Date(salesEndMs);
 
     async function load() {
-      setIsLoading(true);
-      setError(null);
+      setIsSalesLoading(true);
+      setSalesError(null);
 
       try {
-        // ── 1. Transaksi dalam rentang (untuk Harian/Bulanan) ────────────────
         const { data: trxData, error: trxError } = await supabase
           .from("transactions")
           .select("id, total, status, created_at, related_transaction_id")
           .in("status", ["PAID", "RETURN"])
           .is("deleted_at", null)
-          .gte("created_at", dateRange.start.toISOString())
-          .lte("created_at", dateRange.end.toISOString())
+          .gte("created_at", rangeStart.toISOString())
+          .lte("created_at", rangeEnd.toISOString())
           .order("created_at", { ascending: true });
 
         if (trxError) throw new Error(trxError.message);
@@ -337,11 +365,10 @@ export function useReports(): UseReportsResult {
 
         if (isCancelled) return;
 
-        // ── 2. Agregasi Harian/Bulanan ────────────────────────────────────────
         const dailyMap = new Map<string, DailySalesPoint>();
         for (
-          let cursor = startOfDay(dateRange.start);
-          cursor <= dateRange.end;
+          let cursor = startOfDay(rangeStart);
+          cursor <= rangeEnd;
           cursor = addDays(cursor, 1)
         ) {
           dailyMap.set(dateKey(cursor), {
@@ -386,14 +413,43 @@ export function useReports(): UseReportsResult {
             ? Math.round(summaryAcc.revenue / summaryAcc.transactionCount)
             : 0;
 
-        // ── 3. Shift dalam rentang (SEMUA kasir, untuk Per Shift) ────────────
+        setSalesSummary(summaryAcc);
+        setDailySales(Array.from(dailyMap.values()));
+        setIsSalesLoading(false);
+      } catch (err) {
+        if (isCancelled) return;
+        console.error("useReports (penjualan) load error:", err);
+        setSalesError(
+          err instanceof Error ? err.message : "Gagal memuat data penjualan.",
+        );
+        setIsSalesLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      isCancelled = true;
+    };
+  }, [salesStartMs, salesEndMs]);
+
+  // ── 2. Per Shift — mengikuti `shiftRange` ────────────────────────────────
+  useEffect(() => {
+    let isCancelled = false;
+    const rangeStart = new Date(shiftStartMs);
+    const rangeEnd = new Date(shiftEndMs);
+
+    async function load() {
+      setIsShiftsLoading(true);
+      setShiftsError(null);
+
+      try {
         const { data: shiftData, error: shiftError } = await supabase
           .from("shift_sessions")
           .select(
             "id, cashier_id, opened_at, closed_at, status, opening_cash, expected_cash, actual_cash, difference",
           )
-          .gte("opened_at", dateRange.start.toISOString())
-          .lte("opened_at", dateRange.end.toISOString())
+          .gte("opened_at", rangeStart.toISOString())
+          .lte("opened_at", rangeEnd.toISOString())
           .order("opened_at", { ascending: false });
 
         if (shiftError) throw new Error(shiftError.message);
@@ -412,8 +468,8 @@ export function useReports(): UseReportsResult {
           }
         }
 
-        // ── TAMBAHAN (040) ── Kegagalan memuat kas masuk/keluar TIDAK menggagalkan
-        // seluruh laporan: kolomnya jadi "-" saja.
+        // ── TAMBAHAN (040) ── Kegagalan memuat kas masuk/keluar TIDAK
+        // menggagalkan seluruh laporan: kolomnya jadi "-" saja.
         let cashTotals: Awaited<ReturnType<typeof fetchCashTotalsByShift>> | null =
           null;
         try {
@@ -421,6 +477,8 @@ export function useReports(): UseReportsResult {
         } catch (cashError) {
           console.error("useReports: gagal memuat kas masuk/keluar:", cashError);
         }
+
+        if (isCancelled) return;
 
         const shiftRows: ShiftReportRow[] = rawShifts.map((s) => ({
           id: s.id,
@@ -437,12 +495,37 @@ export function useReports(): UseReportsResult {
           cash_out: cashTotals ? (cashTotals[s.id]?.cashOut ?? 0) : null,
         }));
 
+        setShifts(shiftRows);
+        setIsShiftsLoading(false);
+      } catch (err) {
         if (isCancelled) return;
+        console.error("useReports (shift) load error:", err);
+        setShiftsError(
+          err instanceof Error ? err.message : "Gagal memuat data shift.",
+        );
+        setIsShiftsLoading(false);
+      }
+    }
 
-        // ── 4. Piutang/Tempo — TIDAK ikut filter rentang, lihat catatan #2 di
-        //      header file ini. Ambil: semua yang belum lunas, + yang lunas
-        //      dalam N hari terakhir supaya riwayat pelunasan tetap kelihatan.
-        const lookback = addDays(startOfDay(new Date()), -RECEIVABLES_SETTLED_LOOKBACK_DAYS);
+    void load();
+    return () => {
+      isCancelled = true;
+    };
+  }, [shiftStartMs, shiftEndMs]);
+
+  // ── 3. Piutang/Tempo — TANPA rentang, lihat catatan #2 di header ─────────
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function load() {
+      setIsReceivablesLoading(true);
+      setReceivablesError(null);
+
+      try {
+        const lookback = addDays(
+          startOfDay(new Date()),
+          -RECEIVABLES_SETTLED_LOOKBACK_DAYS,
+        );
 
         const { data: paymentData, error: paymentError } = await supabase
           .from("payments")
@@ -468,6 +551,8 @@ export function useReports(): UseReportsResult {
           }
         }
 
+        if (isCancelled) return;
+
         const receivableRows: ReceivableRow[] = rawPayments.map((p) => {
           const trx = trxLiteById.get(p.transaction_id);
           return {
@@ -484,27 +569,23 @@ export function useReports(): UseReportsResult {
           };
         });
 
-        if (isCancelled) return;
-
-        setSalesSummary(summaryAcc);
-        setDailySales(Array.from(dailyMap.values()));
-        setShifts(shiftRows);
         setReceivables(receivableRows);
-        setIsLoading(false);
+        setIsReceivablesLoading(false);
       } catch (err) {
         if (isCancelled) return;
-        console.error("useReports load error:", err);
-        setError(err instanceof Error ? err.message : "Gagal memuat data laporan.");
-        setIsLoading(false);
+        console.error("useReports (piutang) load error:", err);
+        setReceivablesError(
+          err instanceof Error ? err.message : "Gagal memuat data piutang.",
+        );
+        setIsReceivablesLoading(false);
       }
     }
 
-    load();
-
+    void load();
     return () => {
       isCancelled = true;
     };
-  }, [dateRange, reloadToken]);
+  }, [receivablesReloadToken]);
 
   const settleReceivable = useCallback(
     async (paymentId: string) => {
@@ -521,30 +602,22 @@ export function useReports(): UseReportsResult {
         throw new Error("Piutang gagal ditandai lunas.");
       }
 
-      refetch();
+      refetchReceivables();
     },
-    [refetch],
-  );
-
-  // Memo supaya identitas objek dateRange tidak berubah tiap render kalau
-  // preset-nya tidak berubah (mencegah re-fetch tak perlu di komponen konsumen
-  // yang mungkin taruh dateRange di dependency array useEffect sendiri).
-  const memoDateRange = useMemo(
-    () => dateRange,
-    [dateRange.start.getTime(), dateRange.end.getTime()],
+    [refetchReceivables],
   );
 
   return {
-    dateRange: memoDateRange,
-    preset,
-    setPreset,
     salesSummary,
     dailySales,
+    isSalesLoading,
+    salesError,
     shifts,
+    isShiftsLoading,
+    shiftsError,
     receivables,
-    isLoading,
-    error,
-    refetch,
+    isReceivablesLoading,
+    receivablesError,
     settleReceivable,
   };
 }

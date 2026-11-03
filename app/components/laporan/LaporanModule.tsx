@@ -25,6 +25,13 @@
 //   kasir buka menu ini, yang menahan cuma layar blokir di bawah, sama
 //   seperti pola StokModule.tsx sebelum T-10.
 //
+// ── REVISI (rentang tanggal per tab) ── Tidak ada lagi filter tanggal global.
+// Tab Harian/Bulanan, Jam & Hari Ramai, Retur, dan Per Shift masing-masing
+// punya filter rentang sendiri (DateRangeFilter.tsx) di dalam tab-nya, dengan
+// state terpisah dari hooks/useReportDateRange.ts. Tab Piutang/Tempo memang
+// tidak memakai rentang (lihat catatan #2 di hooks/useReports.ts).
+// Bar tab memakai gaya "segmented control" yang sama dengan Stok & Pengaturan.
+//
 // Export Excel/PDF (lib/pos/reportExport.ts) SUDAH tersambung di sini lewat
 // dropdown "Export" — lihat `handleExportExcel`/`handleExportPdf` di
 // komponen utama. `reportContentRef` sengaja hanya membungkus konten TAB
@@ -40,7 +47,6 @@ import {
   TrendingUp,
   Users,
   Wallet,
-  CalendarDays,
   CheckCircle2,
   Clock,
   X,
@@ -51,11 +57,10 @@ import {
 } from "lucide-react";
 import {
   useReports,
-  type ReportDatePreset,
-  type DateRange,
   type ReceivableRow,
   type ReceivableStatus,
 } from "@/hooks/useReports";
+import { useReportDateRange } from "@/hooks/useReportDateRange";
 import { useAuth, hasPermission } from "@/hooks/useAuth";
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import { exportReportToExcel, exportReportToPdf } from "@/lib/pos/reportExport";
@@ -68,10 +73,18 @@ import { useReturnsReport } from "@/hooks/useReturnsReport";
 import { TrafficTab } from "@/app/components/laporan/TrafficTab";
 import { ReturnsTab } from "@/app/components/laporan/ReturnsTab";
 import {
+  DateRangeFilter,
+  formatRangeLabel,
+} from "@/app/components/laporan/DateRangeFilter";
+import {
   ComparisonCaption,
   DeltaBadge,
   HarianInsightsSection,
 } from "@/app/components/laporan/HarianInsights";
+
+// Piutang tidak memakai rentang tanggal; label ini dipakai di judul PDF & Excel.
+const PIUTANG_RANGE_LABEL =
+  "Semua piutang belum lunas + yang lunas 30 hari terakhir";
 
 type ReportTab = "harian" | "ramai" | "retur" | "shift" | "piutang";
 
@@ -81,15 +94,6 @@ const TABS: { key: ReportTab; label: string; icon: typeof TrendingUp }[] = [
   { key: "retur", label: "Retur", icon: RotateCcw },
   { key: "shift", label: "Per Shift", icon: Users },
   { key: "piutang", label: "Piutang/Tempo", icon: Wallet },
-];
-
-const PRESETS: { key: ReportDatePreset; label: string }[] = [
-  { key: "today", label: "Hari Ini" },
-  { key: "7d", label: "7 Hari" },
-  { key: "30d", label: "30 Hari" },
-  { key: "this_month", label: "Bulan Ini" },
-  { key: "last_month", label: "Bulan Lalu" },
-  { key: "custom", label: "Custom" },
 ];
 
 // ── Util tampilan ────────────────────────────────────────────────────────────
@@ -111,21 +115,6 @@ function formatDateOnly(value: string | null): string {
   return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(
     new Date(year, month - 1, day),
   );
-}
-
-/** Input `<input type="date">` → Date lokal (BUKAN `new Date(string)`, lihat catatan di atas). */
-function parseDateInputValue(value: string): Date | null {
-  if (!value) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
-}
-
-function toDateInputValue(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
 }
 
 function differenceColorClass(difference: number | null): string {
@@ -160,106 +149,6 @@ const RECEIVABLE_BADGE: Record<
       "bg-lco-mustard/20 text-zinc-700 dark:text-lco-mustard border-lco-mustard/40",
   },
 };
-
-// --------------------------------------------------------
-// Filter tanggal (preset + custom)
-// --------------------------------------------------------
-
-function DateFilterBar({
-  preset,
-  dateRange,
-  onChange,
-}: {
-  preset: ReportDatePreset;
-  dateRange: DateRange;
-  onChange: (preset: ReportDatePreset, customRange?: DateRange) => void;
-}) {
-  const [customStart, setCustomStart] = useState(
-    toDateInputValue(dateRange.start),
-  );
-  const [customEnd, setCustomEnd] = useState(toDateInputValue(dateRange.end));
-  const [customError, setCustomError] = useState<string | null>(null);
-
-  const applyCustom = () => {
-    const start = parseDateInputValue(customStart);
-    const end = parseDateInputValue(customEnd);
-
-    if (!start || !end) {
-      setCustomError("Isi tanggal awal dan akhir.");
-      return;
-    }
-    if (start > end) {
-      setCustomError("Tanggal awal tidak boleh setelah tanggal akhir.");
-      return;
-    }
-    setCustomError(null);
-    onChange("custom", { start, end });
-  };
-
-  return (
-    <div className="mb-5 flex flex-col gap-3">
-      <div className="flex flex-wrap gap-2">
-        {PRESETS.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            onClick={() => p.key !== "custom" && onChange(p.key)}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
-              preset === p.key
-                ? "border-lco-teal bg-lco-teal/10 text-lco-teal"
-                : "border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-900"
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      {preset === "custom" && (
-        <div className="flex flex-wrap items-end gap-2 rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-          <div>
-            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-              Dari
-            </label>
-            <input
-              type="date"
-              value={customStart}
-              onChange={(e) => setCustomStart(e.target.value)}
-              className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs font-mono tabular-nums focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-              Sampai
-            </label>
-            <input
-              type="date"
-              value={customEnd}
-              onChange={(e) => setCustomEnd(e.target.value)}
-              className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-xs font-mono tabular-nums focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={applyCustom}
-            className="rounded-md bg-lco-green px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover"
-          >
-            Terapkan
-          </button>
-          {customError && (
-            <p className="w-full text-xs text-lco-coral">{customError}</p>
-          )}
-        </div>
-      )}
-
-      <p className="flex items-center gap-1.5 text-xs text-zinc-400">
-        <CalendarDays className="h-3.5 w-3.5" />
-        {formatDateOnly(toDateInputValue(dateRange.start))} —{" "}
-        {formatDateOnly(toDateInputValue(dateRange.end))}
-      </p>
-    </div>
-  );
-}
 
 // --------------------------------------------------------
 // Modal: Tandai Lunas
@@ -702,22 +591,35 @@ function PiutangTab({
 
 export default function LaporanModule() {
   const { user, isLoading: isAuthLoading } = useAuth();
+
+  // ── REVISI ── Satu rentang tanggal PER TAB. State hidup di sini (bukan di
+  // komponen tab) supaya pilihan tiap tab tidak hilang saat pindah tab.
+  const harianRange = useReportDateRange("this_month");
+  const ramaiRange = useReportDateRange("this_month");
+  const returRange = useReportDateRange("this_month");
+  const shiftRange = useReportDateRange("this_month");
+
   const {
-    dateRange,
-    preset,
-    setPreset,
     salesSummary,
     dailySales,
+    isSalesLoading,
+    salesError,
     shifts,
+    isShiftsLoading,
+    shiftsError,
     receivables,
-    isLoading,
-    error,
+    isReceivablesLoading,
+    receivablesError,
     settleReceivable,
-  } = useReports();
+  } = useReports({
+    salesRange: harianRange.dateRange,
+    shiftRange: shiftRange.dateRange,
+  });
 
-  // ── TAMBAHAN ── Wawasan penjualan untuk tab Harian/Bulanan. Hanya dimuat
-  // untuk user yang punya izin "laporan" (RLS tetap penjaga utamanya).
-  const insights = useSalesInsights(dateRange, {
+  // ── TAMBAHAN ── Wawasan penjualan untuk tab Harian/Bulanan (rentang tab
+  // Harian). Hanya dimuat untuk user yang punya izin "laporan" (RLS tetap
+  // penjaga utamanya).
+  const insights = useSalesInsights(harianRange.dateRange, {
     enabled: hasPermission(user, "laporan"),
   });
 
@@ -726,43 +628,46 @@ export default function LaporanModule() {
   // ── TAMBAHAN ── Data tab Jam & Hari Ramai dan Retur: baru diambil saat
   // tabnya dibuka, dan hanya untuk user yang punya izin "laporan".
   const canLoadReports = hasPermission(user, "laporan");
-  const traffic = useHourlyTraffic(dateRange, {
+  const traffic = useHourlyTraffic(ramaiRange.dateRange, {
     enabled: canLoadReports && activeTab === "ramai",
   });
-  const returnsReport = useReturnsReport(dateRange, {
+  const returnsReport = useReturnsReport(returRange.dateRange, {
     enabled: canLoadReports && activeTab === "retur",
   });
 
   // ── TAMBAHAN (T-08 lanjutan) ── State & ref untuk export Excel/PDF.
   // `reportContentRef` sengaja ditaruh cuma di sekeliling KONTEN TAB AKTIF
-  // (bukan seluruh halaman termasuk filter tanggal/tombol tab) — supaya PDF
-  // yang dihasilkan cuma berisi data laporan, bukan ikut nangkap UI kontrol
-  // yang tidak relevan buat diarsipkan. Lihat lib/pos/reportExport.ts untuk
-  // kenapa Excel & PDF punya sumber data yang beda (data mentah vs snapshot
-  // visual DOM).
+  // (bukan filter tanggal/tombol tab) — supaya PDF yang dihasilkan cuma
+  // berisi data laporan. Lihat lib/pos/reportExport.ts untuk kenapa Excel &
+  // PDF punya sumber data yang beda (data mentah vs snapshot visual DOM).
   const reportContentRef = useRef<HTMLDivElement>(null);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  // Dipakai baik untuk isi sel "Rentang Tanggal" di Excel maupun judul di PDF —
-  // format sama persis dengan yang tampil di bawah DateFilterBar (lihat
-  // `formatDateOnly`/`toDateInputValue` di komponen itu), supaya orang yang
-  // baca file Excel/PDF tidak bingung membandingkannya dengan tampilan layar.
-  const dateRangeLabel = useMemo(
-    () =>
-      `${formatDateOnly(toDateInputValue(dateRange.start))} — ${formatDateOnly(
-        toDateInputValue(dateRange.end),
-      )}`,
-    [dateRange],
-  );
+  // Rentang tiap tab sebagai label — format sama dengan yang tampil di
+  // DateRangeFilter, supaya isi file Excel/PDF mudah dicocokkan dengan layar.
+  const harianRangeLabel = formatRangeLabel(harianRange.dateRange);
+  const shiftRangeLabel = formatRangeLabel(shiftRange.dateRange);
+  const activeRangeLabel =
+    activeTab === "harian"
+      ? harianRangeLabel
+      : activeTab === "ramai"
+        ? formatRangeLabel(ramaiRange.dateRange)
+        : activeTab === "retur"
+          ? formatRangeLabel(returRange.dateRange)
+          : activeTab === "shift"
+            ? shiftRangeLabel
+            : PIUTANG_RANGE_LABEL;
 
   const handleExportExcel = () => {
     setIsExportMenuOpen(false);
     setExportError(null);
     try {
       exportReportToExcel({
-        dateRangeLabel,
+        salesRangeLabel: harianRangeLabel,
+        shiftRangeLabel,
+        receivablesRangeLabel: PIUTANG_RANGE_LABEL,
         summary: salesSummary,
         daily: dailySales,
         shifts,
@@ -795,7 +700,7 @@ export default function LaporanModule() {
         TABS.find((tab) => tab.key === activeTab)?.label ?? "Laporan";
       await exportReportToPdf(reportContentRef.current, {
         title: `Laporan ${tabLabel}`,
-        dateRangeLabel,
+        dateRangeLabel: activeRangeLabel,
       });
     } catch (err) {
       setExportError(
@@ -831,6 +736,38 @@ export default function LaporanModule() {
     );
   }
 
+  // Rentang, loading, dan error milik tab yang sedang aktif. `null` berarti
+  // tab itu tidak punya filter tanggal (Piutang) atau mengurus loading/error-nya
+  // sendiri (Jam & Hari Ramai, Retur — lihat TrafficTab/ReturnsTab).
+  const activeRange =
+    activeTab === "harian"
+      ? harianRange
+      : activeTab === "ramai"
+        ? ramaiRange
+        : activeTab === "retur"
+          ? returRange
+          : activeTab === "shift"
+            ? shiftRange
+            : null;
+
+  const activeLoading =
+    activeTab === "harian"
+      ? isSalesLoading
+      : activeTab === "shift"
+        ? isShiftsLoading
+        : activeTab === "piutang"
+          ? isReceivablesLoading
+          : false;
+
+  const activeError =
+    activeTab === "harian"
+      ? salesError
+      : activeTab === "shift"
+        ? shiftsError
+        : activeTab === "piutang"
+          ? receivablesError
+          : null;
+
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-zinc-100 p-4 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 md:p-6">
       <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-start">
@@ -840,17 +777,16 @@ export default function LaporanModule() {
           </p>
           <h2 className="text-xl font-semibold tracking-tight">Laporan</h2>
           <p className="mt-1 text-xs text-zinc-500">
-            Omzet, riwayat shift, dan piutang tempo — pilih rentang tanggal di
-            bawah.
+            Omzet, jam ramai, retur, riwayat shift, dan piutang tempo — tiap
+            tab punya rentang tanggalnya sendiri.
           </p>
         </div>
 
         {/* Export Excel/PDF (T-08 lanjutan) — dropdown, bukan tombol tunggal,
             karena dua format ini sumber datanya beda (lihat catatan di
-            lib/pos/reportExport.ts): Excel = data mentah SEMUA sub-tab
-            sekaligus, PDF = snapshot visual tab yang SEDANG aktif saja. Kalau
-            digabung jadi satu tombol, orang bisa salah kira PDF juga berisi
-            semua sub-tab. */}
+            lib/pos/reportExport.ts): Excel = data mentah Harian, Per Shift &
+            Piutang sekaligus (tiap sheet memakai rentang tab-nya), PDF =
+            snapshot visual tab yang SEDANG aktif saja. */}
         <div className="relative">
           <button
             type="button"
@@ -872,13 +808,13 @@ export default function LaporanModule() {
           </button>
 
           {isExportMenuOpen && (
-            <div className="absolute right-0 z-10 mt-2 w-56 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
+            <div className="absolute right-0 z-10 mt-2 w-60 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950">
               <button
                 type="button"
                 onClick={handleExportExcel}
                 className="block w-full px-4 py-2.5 text-left text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900"
               >
-                Excel (.xlsx) — semua sub-tab
+                Excel (.xlsx) — Harian, Shift &amp; Piutang
               </button>
               <button
                 type="button"
@@ -900,25 +836,21 @@ export default function LaporanModule() {
         </div>
       )}
 
-      <DateFilterBar
-        preset={preset}
-        dateRange={dateRange}
-        onChange={setPreset}
-      />
-
-      <div className="mb-4 flex gap-1 border-b border-zinc-200 dark:border-zinc-800">
+      {/* Tab switcher — gaya "segmented control" yang sama dengan menu Stok &
+          Pengaturan: kontainer beruas, tab aktif dapat latar putih + shadow. */}
+      <div className="mb-4 inline-flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-zinc-200/70 p-1 dark:bg-zinc-900">
         {TABS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}
             type="button"
             onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-xs font-semibold transition-colors duration-150 ${
+            className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors duration-150 ${
               activeTab === key
-                ? "border-lco-teal text-lco-teal"
-                : "border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                ? "bg-white text-lco-green shadow-sm dark:bg-zinc-800 dark:text-lco-teal"
+                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
             }`}
           >
-            <Icon className="h-3.5 w-3.5" />
+            <Icon className="h-4 w-4" />
             {label}
             {key === "piutang" && receivablesUnsettledCount > 0 && (
               <span className="rounded-full bg-lco-coral px-1.5 text-[10px] font-bold text-white">
@@ -929,34 +861,53 @@ export default function LaporanModule() {
         ))}
       </div>
 
-      {error && (
+      {/* Filter rentang waktu — milik tab yang sedang aktif. Piutang tidak
+          punya rentang, jadi diganti catatan singkat. Filter sengaja di luar
+          `reportContentRef` supaya tidak ikut ter-snapshot ke PDF. */}
+      {activeRange ? (
+        <DateRangeFilter
+          preset={activeRange.preset}
+          dateRange={activeRange.dateRange}
+          onChange={activeRange.setPreset}
+        />
+      ) : (
+        <p className="mb-4 flex items-start gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950">
+          <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          Piutang tidak mengikuti rentang tanggal: yang ditampilkan semua
+          piutang belum lunas, ditambah yang lunas dalam 30 hari terakhir.
+        </p>
+      )}
+
+      {activeError && (
         <div className="mb-4 flex items-start gap-3 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-4 text-sm text-lco-coral">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          {error}
+          {activeError}
         </div>
       )}
 
-      {isLoading ? (
+      {activeLoading ? (
         <div className="flex min-h-40 items-center justify-center gap-2 text-sm text-zinc-500">
           <Loader2 className="h-4 w-4 animate-spin" />
           Memuat data laporan...
         </div>
       ) : (
-        <div ref={reportContentRef} className="p-1">
-          {activeTab === "harian" && (
-            <HarianBulananTab
-              summary={salesSummary}
-              daily={dailySales}
-              insights={insights}
-            />
-          )}
-          {activeTab === "ramai" && <TrafficTab traffic={traffic} />}
-          {activeTab === "retur" && <ReturnsTab returns={returnsReport} />}
-          {activeTab === "shift" && <PerShiftTab shifts={shifts} />}
-          {activeTab === "piutang" && (
-            <PiutangTab receivables={receivables} onSettle={settleReceivable} />
-          )}
-        </div>
+        !activeError && (
+          <div ref={reportContentRef} className="p-1">
+            {activeTab === "harian" && (
+              <HarianBulananTab
+                summary={salesSummary}
+                daily={dailySales}
+                insights={insights}
+              />
+            )}
+            {activeTab === "ramai" && <TrafficTab traffic={traffic} />}
+            {activeTab === "retur" && <ReturnsTab returns={returnsReport} />}
+            {activeTab === "shift" && <PerShiftTab shifts={shifts} />}
+            {activeTab === "piutang" && (
+              <PiutangTab receivables={receivables} onSettle={settleReceivable} />
+            )}
+          </div>
+        )
       )}
     </div>
   );
