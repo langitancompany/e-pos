@@ -53,6 +53,7 @@ import { formatRupiah } from "@/lib/pos/cartLogic";
 import type { CartItem } from "@/lib/pos/types";
 import type { Customer } from "@/hooks/useCustomers";
 import type { ProductWithCategory } from "@/hooks/useProducts";
+import IconButton from "@/app/components/ui/IconButton";
 
 interface KasirModulePCProps {
   cashierName: string;
@@ -855,15 +856,17 @@ export default function KasirModulePC({
                       <td className={`${cell} pr-4`}>
                         <div className="flex items-center justify-center gap-2.5 text-zinc-400">
                           <Pencil className="h-3 w-3" />
-                          <button
+                          <IconButton
                             onClick={(e) => {
                               e.stopPropagation();
                               onRemoveFromCart(item.product.id);
                             }}
-                            className="transition-colors duration-150 hover:text-lco-coral"
+                            aria-label="Hapus dari keranjang"
+                            tone="danger"
+                            size="sm"
                           >
                             <Trash2 className="h-3 w-3" />
-                          </button>
+                          </IconButton>
                         </div>
                       </td>
                     </tr>

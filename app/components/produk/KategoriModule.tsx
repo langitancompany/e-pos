@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { Category } from "@/lib/pos/types";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
+import IconButton from "@/app/components/ui/IconButton";
 
 const supabase = createClient();
 
@@ -315,23 +316,28 @@ export default function KategoriModule() {
 
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-1">
-                        <button
+                        <IconButton
                           type="button"
                           onClick={() => openEditForm(category)}
-                          className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+                          aria-label="Edit kategori"
+                          variant="soft"
+                          size="lg"
                           title="Edit kategori"
                         >
                           <Pencil size={17} />
-                        </button>
+                        </IconButton>
 
-                        <button
+                        <IconButton
                           type="button"
                           onClick={() => handleDelete(category)}
-                          className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-lco-coral/10 hover:text-lco-coral"
+                          aria-label="Hapus kategori"
+                          variant="soft"
+                          tone="danger"
+                          size="lg"
                           title="Hapus kategori"
                         >
                           <Trash2 size={17} />
-                        </button>
+                        </IconButton>
                       </div>
                     </td>
                   </tr>
@@ -358,14 +364,16 @@ export default function KategoriModule() {
               </p>
             </div>
 
-            <button
+            <IconButton
               type="button"
               onClick={closeForm}
               disabled={saving}
-              className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-900"
+              aria-label="Tutup"
+              variant="soft"
+              size="lg"
             >
               <X size={20} />
-            </button>
+            </IconButton>
           </div>
 
           <div className="space-y-4 p-6">

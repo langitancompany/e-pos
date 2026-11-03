@@ -49,6 +49,7 @@ import {
 } from "./stokUtils";
 import Select from "@/app/components/ui/Select";
 import Input from "@/app/components/ui/Input";
+import IconButton from "@/app/components/ui/IconButton";
 
 export interface RiwayatFilters {
   types: StockMovementType[];
@@ -136,14 +137,15 @@ function ProductFilter({
         <span className="truncate">
           {selected ? selected.name : "Produk terpilih"}
         </span>
-        <button
+        <IconButton
           type="button"
           onClick={() => onChange(null)}
           aria-label="Hapus filter produk"
-          className="text-zinc-400 transition-colors duration-150 hover:text-lco-coral"
+          tone="danger"
+          size="sm"
         >
           <X className="h-3.5 w-3.5" />
-        </button>
+        </IconButton>
       </div>
     );
   }

@@ -41,6 +41,7 @@ import {
 import Select from "@/app/components/ui/Select";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
+import IconButton from "@/app/components/ui/IconButton";
 
 const PAGE_SIZE = 50;
 
@@ -411,15 +412,15 @@ export default function StokSaatIniTab({
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
-                          <button
+                          <IconButton
                             type="button"
                             onClick={() => onViewHistory(product)}
                             title="Lihat riwayat mutasi produk ini"
                             aria-label={`Riwayat mutasi ${product.name}`}
-                            className="rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+                            variant="soft"
                           >
                             <History className="h-4 w-4" />
-                          </button>
+                          </IconButton>
                           {canAdjust && (
                             <button
                               type="button"

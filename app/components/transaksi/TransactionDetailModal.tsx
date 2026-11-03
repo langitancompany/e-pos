@@ -52,6 +52,7 @@ import { getReceiptPromo } from "@/lib/pos/receiptQr";
 import { usePrinterProfiles } from "@/hooks/usePrinterProfiles";
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import Modal from "@/app/components/ui/Modal";
+import IconButton from "@/app/components/ui/IconButton";
 
 type PanelMode = "detail" | "retur" | "void";
 
@@ -547,12 +548,13 @@ export default function TransactionDetailModal({
             )}
           </div>
         </div>
-        <button
+        <IconButton
           onClick={onClose}
-          className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-md transition-colors duration-150 text-zinc-500"
+          aria-label="Tutup"
+          variant="soft"
         >
           <X className="w-4 h-4" />
-        </button>
+        </IconButton>
       </div>
 
       <div className="flex-1 overflow-y-auto p-5">

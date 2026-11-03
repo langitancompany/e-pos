@@ -66,6 +66,7 @@ import { holdsPermission, permissionsEqual } from "@/lib/pos/permissionRules";
 import { AddModuleModal, PermissionMatrix } from "./PermissionMatrix";
 import Modal from "@/app/components/ui/Modal";
 import Input from "@/app/components/ui/Input";
+import IconButton from "@/app/components/ui/IconButton";
 
 const cardCls = "overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900";
 const thCls =
@@ -232,15 +233,15 @@ function ProfileModal({
                 : "Data akun pengguna. Hak akses diubah di panel Hak Akses Modul."}
             </p>
           </div>
-          <button
+          <IconButton
             type="button"
             onClick={onClose}
             disabled={saving}
             aria-label="Tutup"
-            className="p-1 text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
+            size="sm"
           >
             <X className="h-4 w-4" />
-          </button>
+          </IconButton>
         </div>
 
         <div className="space-y-4 overflow-y-auto p-5">

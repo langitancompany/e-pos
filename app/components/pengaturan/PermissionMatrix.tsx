@@ -26,6 +26,7 @@ import {
   type PermKey,
   type UserPermissions,
 } from "@/lib/pos/permissionModules";
+import IconButton from "@/app/components/ui/IconButton";
 
 // ─── Switch ──────────────────────────────────────────────────────────────────
 
@@ -309,14 +310,14 @@ export function AddModuleModal({
               Tetapkan modul dan izin awalnya untuk user ini
             </p>
           </div>
-          <button
+          <IconButton
             type="button"
             onClick={onClose}
             aria-label="Tutup"
-            className="p-1 text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
+            size="sm"
           >
             <X className="h-4 w-4" />
-          </button>
+          </IconButton>
         </div>
 
         <div className="space-y-4 p-5">
@@ -399,17 +400,17 @@ export function AddModuleModal({
                       />
                     </div>
                     {selected.length > 0 && (
-                      <button
+                      <IconButton
                         type="button"
                         aria-label="Kosongkan pilihan"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelected([]);
                         }}
-                        className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                        size="sm"
                       >
                         <X className="h-4 w-4" />
-                      </button>
+                      </IconButton>
                     )}
                     <span className="w-px self-stretch bg-zinc-200 dark:bg-zinc-800" />
                     <ChevronDown

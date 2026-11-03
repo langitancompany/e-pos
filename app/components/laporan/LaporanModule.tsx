@@ -83,6 +83,7 @@ import {
 } from "@/app/components/laporan/HarianInsights";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
+import IconButton from "@/app/components/ui/IconButton";
 
 // Piutang tidak memakai rentang tanggal; label ini dipakai di judul PDF & Excel.
 const PIUTANG_RANGE_LABEL =
@@ -189,13 +190,14 @@ function SettleReceivableModal({
           <CheckCircle2 className="h-4 w-4 text-lco-teal" />
           Tandai Lunas
         </h3>
-        <button
+        <IconButton
           type="button"
           onClick={onClose}
-          className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
+          aria-label="Tutup"
+          size="sm"
         >
           <X className="h-4 w-4" />
-        </button>
+        </IconButton>
       </div>
 
       {done ? (

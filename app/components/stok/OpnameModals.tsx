@@ -34,6 +34,7 @@ import { printCountSheet } from "./stokPrint";
 import Select from "@/app/components/ui/Select";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
+import IconButton from "@/app/components/ui/IconButton";
 
 const overlayClass =
   "fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4";
@@ -69,14 +70,14 @@ function ModalHeader({
         <ClipboardList className="h-4 w-4 text-lco-teal" />
         {title}
       </h3>
-      <button
+      <IconButton
         type="button"
         onClick={onClose}
         aria-label="Tutup"
-        className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
+        size="sm"
       >
         <X className="h-4 w-4" />
-      </button>
+      </IconButton>
     </div>
   );
 }

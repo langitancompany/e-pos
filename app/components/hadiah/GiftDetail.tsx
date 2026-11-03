@@ -19,6 +19,7 @@ import {
 } from "../stok/stokUtils";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
+import IconButton from "@/app/components/ui/IconButton";
 
 interface GiftDetailProps {
   giftId: string;
@@ -253,7 +254,7 @@ export default function GiftDetail({
                 hanya kalau hadiah salah input.
               </p>
             </div>
-            <button
+            <IconButton
               type="button"
               onClick={() => {
                 setShowVoid(false);
@@ -261,10 +262,10 @@ export default function GiftDetail({
               }}
               disabled={isVoiding}
               aria-label="Tutup"
-              className="rounded-md p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              size="sm"
             >
               <X className="h-4 w-4" />
-            </button>
+            </IconButton>
           </div>
 
           <label className="mb-1 block text-xs font-medium text-zinc-500">

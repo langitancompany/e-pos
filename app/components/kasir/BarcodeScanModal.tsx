@@ -42,6 +42,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, Camera, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import IconButton from "@/app/components/ui/IconButton";
 
 const SCANNER_ELEMENT_ID = "kasir-barcode-scanner-region";
 // Jeda antara satu scan berhasil & kamera aktif kembali — cukup lama supaya
@@ -165,12 +166,13 @@ export default function BarcodeScanModal({
             <Camera className="h-4 w-4 text-lco-teal" />
             Scan Barcode
           </h3>
-          <button
+          <IconButton
             onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+            aria-label="Tutup"
+            size="sm"
           >
             <X className="h-4 w-4" />
-          </button>
+          </IconButton>
         </div>
 
         <div className="p-4">

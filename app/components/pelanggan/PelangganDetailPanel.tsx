@@ -25,6 +25,7 @@ import {
   type PointLog,
 } from "@/hooks/useCustomerAdmin";
 import Button from "@/app/components/ui/Button";
+import IconButton from "@/app/components/ui/IconButton";
 
 type Tab = "ringkasan" | "transaksi" | "poin";
 
@@ -148,14 +149,15 @@ export default function PelangganDetailPanel({
               )}
             </p>
           </div>
-          <button
+          <IconButton
             type="button"
             onClick={onClose}
-            className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+            variant="soft"
+            size="sm"
             aria-label="Tutup"
           >
             <X className="h-4 w-4" />
-          </button>
+          </IconButton>
         </div>
 
         {/* Aksi cepat */}

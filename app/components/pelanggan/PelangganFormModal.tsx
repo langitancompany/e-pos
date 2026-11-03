@@ -16,6 +16,7 @@ import {
 } from "@/hooks/useCustomerAdmin";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
+import IconButton from "@/app/components/ui/IconButton";
 
 interface PelangganFormModalProps {
   /** null = mode tambah, ada isi = mode ubah. */
@@ -72,14 +73,15 @@ export default function PelangganFormModal({
           <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
             {customer ? "Ubah Pelanggan" : "Daftarkan Pelanggan"}
           </h3>
-          <button
+          <IconButton
             type="button"
             onClick={() => !saving && onClose()}
-            className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+            variant="soft"
+            size="sm"
             aria-label="Tutup"
           >
             <X className="h-4 w-4" />
-          </button>
+          </IconButton>
         </div>
 
         <div className="space-y-4 px-5 py-4">

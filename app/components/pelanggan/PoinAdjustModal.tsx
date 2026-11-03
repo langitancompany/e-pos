@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Loader2, Minus, Plus, X } from "lucide-react";
 import type { CustomerRecord } from "@/hooks/useCustomerAdmin";
 import Button from "@/app/components/ui/Button";
+import IconButton from "@/app/components/ui/IconButton";
 
 interface PoinAdjustModalProps {
   customer: CustomerRecord;
@@ -74,14 +75,15 @@ export default function PoinAdjustModal({
             </h3>
             <p className="text-xs text-zinc-500">{customer.name}</p>
           </div>
-          <button
+          <IconButton
             type="button"
             onClick={() => !saving && onClose()}
-            className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+            variant="soft"
+            size="sm"
             aria-label="Tutup"
           >
             <X className="h-4 w-4" />
-          </button>
+          </IconButton>
         </div>
 
         <div className="space-y-4 px-5 py-4">

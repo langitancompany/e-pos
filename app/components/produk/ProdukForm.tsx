@@ -19,6 +19,7 @@ import type { ProductType } from "@/lib/pos/types";
 import Select from "@/app/components/ui/Select";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
+import IconButton from "@/app/components/ui/IconButton";
 
 export type ProductFormValues = {
   name: string;
@@ -177,14 +178,16 @@ export default function ProdukForm({
           </p>
         </div>
 
-        <button
+        <IconButton
           type="button"
           onClick={onClose}
           disabled={saving}
-          className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+          aria-label="Tutup"
+          variant="soft"
+          size="lg"
         >
           <X size={20} />
-        </button>
+        </IconButton>
       </div>
 
       <form onSubmit={handleSubmit} className="max-h-[75vh] overflow-y-auto">

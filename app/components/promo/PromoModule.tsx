@@ -76,6 +76,7 @@ import {
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
+import IconButton from "@/app/components/ui/IconButton";
 
 // ── Helper tampilan ─────────────────────────────────────────────────────
 
@@ -225,14 +226,14 @@ function ScreenLinkModal({
         <h3 className="min-w-0 truncate text-sm font-semibold">
           Akses TV — {screen.name}
         </h3>
-        <button
+        <IconButton
           type="button"
           onClick={onClose}
           aria-label="Tutup"
-          className="shrink-0 rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+          variant="soft"
         >
           <X className="h-4 w-4" />
-        </button>
+        </IconButton>
       </div>
 
       <div className="flex justify-center">
@@ -340,15 +341,15 @@ function ScreenFormModal({
         <h3 className="text-sm font-semibold">
           {isRename ? "Ubah Nama TV" : "Tambah TV"}
         </h3>
-        <button
+        <IconButton
           type="button"
           onClick={onClose}
           disabled={isBusy}
           aria-label="Tutup"
-          className="rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+          variant="soft"
         >
           <X className="h-4 w-4" />
-        </button>
+        </IconButton>
       </div>
 
       <div className="space-y-4 p-5">
@@ -557,15 +558,15 @@ function MediaFormModal({
         <h3 className="text-sm font-semibold">
           {isEdit ? "Ubah Media" : "Tambah Media"}
         </h3>
-        <button
+        <IconButton
           type="button"
           onClick={onClose}
           disabled={isBusy}
           aria-label="Tutup"
-          className="rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+          variant="soft"
         >
           <X className="h-4 w-4" />
-        </button>
+        </IconButton>
       </div>
 
       <div className="space-y-4 overflow-y-auto p-5">

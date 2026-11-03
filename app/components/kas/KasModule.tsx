@@ -45,6 +45,7 @@ import {
   differenceLabel,
 } from "@/app/components/kasir/CloseShiftModal";
 import Modal from "@/app/components/ui/Modal";
+import IconButton from "@/app/components/ui/IconButton";
 
 function formatDateTime(isoString: string): string {
   return new Intl.DateTimeFormat("id-ID", {
@@ -95,15 +96,15 @@ function VoidCashMovementModal({
     >
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-base font-semibold">Batalkan Catatan Kas</h3>
-        <button
+        <IconButton
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
           aria-label="Tutup"
-          className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 disabled:opacity-50 dark:hover:text-zinc-200"
+          size="sm"
         >
           <X className="h-4 w-4" />
-        </button>
+        </IconButton>
       </div>
 
       <div className="mb-3 rounded-md border border-zinc-200 p-3 text-xs dark:border-zinc-800">

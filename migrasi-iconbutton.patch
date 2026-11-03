@@ -1,0 +1,1104 @@
+diff -ruN a/PROGRESS.md b/PROGRESS.md
+--- a/PROGRESS.md	2026-11-03 11:47:27.202083853 +0000
++++ b/PROGRESS.md	2026-11-03 11:47:27.209191569 +0000
+@@ -2456,3 +2456,33 @@
+ `app/components/pengaturan/PermissionMatrix.tsx`.
+ **File dihapus:** `PengaturanRoleTab.tsx`, `hooks/useRoles.ts`,
+ `lib/pos/permissionMenuMeta.ts`.
++
++
++---
++
++## Sesi: Migrasi tombol ikon ke `IconButton`
++
++**File baru:** `app/components/ui/IconButton.tsx` — tombol yang isinya hanya ikon
++(tutup, hapus, ubah, kembali, dst.). `aria-label` WAJIB (dicek TypeScript).
++Varian: `plain` (default, hanya warna ikon berubah) | `soft` (latar abu saat
++hover); `tone`: `neutral` | `danger`; `size`: `sm` | `md` | `lg`.
++
++**Dimigrasi:** 37 tombol ikon di 25 file (tombol tutup modal, hapus/ubah baris,
++stepper jumlah di keranjang). Beberapa tombol yang tadinya tanpa label kini
++punya `aria-label` ("Tutup", "Kurangi jumlah", "Tambah jumlah", dst.).
++
++**Sengaja TIDAK dimigrasi (31 tombol ikon):** yang bergaya khusus — aksen
++hijau/teal/mustard, ber-border, ukuran tetap (w-10 h-10), class dinamis
++(`${...}`), atau className lewat variabel. Biarkan sampai ada keputusan desain.
++Efek visual kecil: tombol tutup yang sebelumnya tanpa padding kini `size="sm"`
++(p-1), jadi ikon X bergeser ±4px ke dalam.
++
++**Belum dimigrasi (179 tombol teks):** sangat beragam (chip filter, baris daftar
++yang bisa diklik, tombol aksen teal/mustard, kartu produk). Yang layak
++dijadikan komponen berikutnya: tombol "Kembali" (`mb-3 flex items-center
++gap-1.5 text-sm text-zinc-500`, 6 tempat) dan tombol batal ghost
++(`px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100`).
++
++**Catatan teknis:** `package-lock.json` tidak sinkron dengan `package.json`
++(kurang `@emnapi/runtime` & `@emnapi/core`), sehingga `npm ci` gagal. Jalankan
++`npm install` sekali lalu commit lockfile-nya.
+diff -ruN a/app/components/hadiah/GiftDetail.tsx b/app/components/hadiah/GiftDetail.tsx
+--- a/app/components/hadiah/GiftDetail.tsx	2026-11-03 11:47:27.202814995 +0000
++++ b/app/components/hadiah/GiftDetail.tsx	2026-11-03 11:47:27.209769084 +0000
+@@ -19,6 +19,7 @@
+ } from "../stok/stokUtils";
+ import Modal from "@/app/components/ui/Modal";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ interface GiftDetailProps {
+   giftId: string;
+@@ -253,7 +254,7 @@
+                 hanya kalau hadiah salah input.
+               </p>
+             </div>
+-            <button
++            <IconButton
+               type="button"
+               onClick={() => {
+                 setShowVoid(false);
+@@ -261,10 +262,10 @@
+               }}
+               disabled={isVoiding}
+               aria-label="Tutup"
+-              className="rounded-md p-1 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
++              size="sm"
+             >
+               <X className="h-4 w-4" />
+-            </button>
++            </IconButton>
+           </div>
+ 
+           <label className="mb-1 block text-xs font-medium text-zinc-500">
+diff -ruN a/app/components/hadiah/GiftForm.tsx b/app/components/hadiah/GiftForm.tsx
+--- a/app/components/hadiah/GiftForm.tsx	2026-11-03 11:47:27.202832174 +0000
++++ b/app/components/hadiah/GiftForm.tsx	2026-11-03 11:47:27.209784565 +0000
+@@ -36,6 +36,7 @@
+ import Select from "@/app/components/ui/Select";
+ import Button from "@/app/components/ui/Button";
+ import Input from "@/app/components/ui/Input";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ interface FormLine {
+   productId: string;
+@@ -464,16 +465,17 @@
+                         {validQty ? formatRupiah(lineQty * line.costPrice) : "-"}
+                       </td>
+                       <td className="px-4 py-3 text-right">
+-                        <button
++                        <IconButton
+                           type="button"
+                           onClick={() => removeLine(line.productId)}
+                           disabled={isSaving}
+                           aria-label={`Hapus ${line.name}`}
+                           title="Hapus baris"
+-                          className="rounded-md p-1.5 text-zinc-400 transition-colors duration-150 hover:bg-lco-coral/10 hover:text-lco-coral"
++                          variant="soft"
++                          tone="danger"
+                         >
+                           <Trash2 className="h-4 w-4" />
+-                        </button>
++                        </IconButton>
+                       </td>
+                     </tr>
+                   );
+diff -ruN a/app/components/kas/KasModule.tsx b/app/components/kas/KasModule.tsx
+--- a/app/components/kas/KasModule.tsx	2026-11-03 11:47:27.202920741 +0000
++++ b/app/components/kas/KasModule.tsx	2026-11-03 11:47:27.209896780 +0000
+@@ -45,6 +45,7 @@
+   differenceLabel,
+ } from "@/app/components/kasir/CloseShiftModal";
+ import Modal from "@/app/components/ui/Modal";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ function formatDateTime(isoString: string): string {
+   return new Intl.DateTimeFormat("id-ID", {
+@@ -95,15 +96,15 @@
+     >
+       <div className="mb-3 flex items-center justify-between">
+         <h3 className="text-base font-semibold">Batalkan Catatan Kas</h3>
+-        <button
++        <IconButton
+           type="button"
+           onClick={onClose}
+           disabled={isSubmitting}
+           aria-label="Tutup"
+-          className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 disabled:opacity-50 dark:hover:text-zinc-200"
++          size="sm"
+         >
+           <X className="h-4 w-4" />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       <div className="mb-3 rounded-md border border-zinc-200 p-3 text-xs dark:border-zinc-800">
+diff -ruN a/app/components/kasir/BarcodeScanModal.tsx b/app/components/kasir/BarcodeScanModal.tsx
+--- a/app/components/kasir/BarcodeScanModal.tsx	2026-11-03 11:47:27.202957262 +0000
++++ b/app/components/kasir/BarcodeScanModal.tsx	2026-11-03 11:47:27.209934340 +0000
+@@ -42,6 +42,7 @@
+ 
+ import { useEffect, useRef, useState } from "react";
+ import { X, Camera, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ const SCANNER_ELEMENT_ID = "kasir-barcode-scanner-region";
+ // Jeda antara satu scan berhasil & kamera aktif kembali — cukup lama supaya
+@@ -165,12 +166,13 @@
+             <Camera className="h-4 w-4 text-lco-teal" />
+             Scan Barcode
+           </h3>
+-          <button
++          <IconButton
+             onClick={onClose}
+-            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
++            aria-label="Tutup"
++            size="sm"
+           >
+             <X className="h-4 w-4" />
+-          </button>
++          </IconButton>
+         </div>
+ 
+         <div className="p-4">
+diff -ruN a/app/components/kasir/CashMovementModal.tsx b/app/components/kasir/CashMovementModal.tsx
+--- a/app/components/kasir/CashMovementModal.tsx	2026-11-03 11:47:27.202974952 +0000
++++ b/app/components/kasir/CashMovementModal.tsx	2026-11-03 11:47:27.209952986 +0000
+@@ -33,6 +33,7 @@
+ } from "@/hooks/useCashMovements";
+ import Modal from "@/app/components/ui/Modal";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ interface CashMovementModalProps {
+   onClose: () => void;
+@@ -108,15 +109,15 @@
+           <Banknote className="h-4 w-4 text-lco-teal" />
+           Kas Masuk / Keluar
+         </h3>
+-        <button
++        <IconButton
+           type="button"
+           onClick={onClose}
+           disabled={isSubmitting}
+           aria-label="Tutup"
+-          className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 disabled:opacity-50 dark:hover:text-zinc-200"
++          size="sm"
+         >
+           <X className="h-4 w-4" />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       {saved ? (
+diff -ruN a/app/components/kasir/CloseShiftModal.tsx b/app/components/kasir/CloseShiftModal.tsx
+--- a/app/components/kasir/CloseShiftModal.tsx	2026-11-03 11:47:27.202989598 +0000
++++ b/app/components/kasir/CloseShiftModal.tsx	2026-11-03 11:47:27.209969671 +0000
+@@ -20,6 +20,7 @@
+ import type { CloseShiftResult } from "@/hooks/useShifts";
+ import Modal from "@/app/components/ui/Modal";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ // Pecahan uang tunai Rupiah yang beredar, dari besar ke kecil.
+ const DENOMINATIONS = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 100];
+@@ -133,14 +134,15 @@
+           <Lock className="h-4 w-4 text-lco-coral" />
+           Tutup Sesi Kas
+         </h3>
+-        <button
++        <IconButton
+           type="button"
+           onClick={onClose}
+           disabled={isSubmitting}
+-          className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150 disabled:opacity-50"
++          aria-label="Tutup"
++          size="sm"
+         >
+           <X className="h-4 w-4" />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       <p className="mb-3 text-xs text-zinc-500">
+diff -ruN a/app/components/kasir/KasirModule.tsx b/app/components/kasir/KasirModule.tsx
+--- a/app/components/kasir/KasirModule.tsx	2026-11-03 11:47:27.203007566 +0000
++++ b/app/components/kasir/KasirModule.tsx	2026-11-03 11:47:27.209988982 +0000
+@@ -91,6 +91,7 @@
+ import { useHoldOrders } from "@/hooks/useHoldOrders";
+ import Modal from "@/app/components/ui/Modal";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ // ── TAMBAHAN (021, T-11 bagian 2) ── Label singkat per metode, dipakai
+ // handleConfirmSplitPayment() untuk menyusun field `method` gabungan di
+@@ -1125,15 +1126,16 @@
+                 Mulai Sesi Kasir
+               </h3>
+               {onExitKasir && (
+-                <button
++                <IconButton
+                   type="button"
+                   onClick={onExitKasir}
+                   disabled={isStartingSession}
+                   title="Batal & kembali ke Dashboard"
+-                  className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150 disabled:opacity-50"
++                  aria-label="Batal & kembali ke Dashboard"
++                  size="sm"
+                 >
+                   <X className="h-4 w-4" />
+-                </button>
++                </IconButton>
+               )}
+             </div>
+ 
+@@ -1591,14 +1593,16 @@
+                 {/* ── TAMBAHAN (responsif HP) ── Tombol kembali ke layar Produk;
+                 disembunyikan di `md` ke atas karena di sana panel Produk
+                 sudah selalu terlihat di sebelah. */}
+-                <button
++                <IconButton
+                   type="button"
+                   onClick={() => setMobileView("products")}
+                   title="Kembali ke Produk"
+-                  className="md:hidden shrink-0 p-1.5 -ml-1 rounded-md text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors duration-150"
++                  aria-label="Kembali ke Produk"
++                  variant="soft"
++                  className="md:hidden -ml-1"
+                 >
+                   <ArrowLeft className="w-4 h-4" />
+-                </button>
++                </IconButton>
+                 <h2 className="font-semibold text-base tracking-tight flex items-center gap-2 text-zinc-900 dark:text-zinc-100 truncate">
+                   <ShoppingCart className="w-5 h-5 text-lco-teal shrink-0" />
+                   Keranjang
+@@ -1650,37 +1654,43 @@
+                       <div className="flex flex-col items-end justify-between">
+                         <div className="flex items-center gap-3">
+                           <div className="flex items-center bg-zinc-50 dark:bg-zinc-900 rounded-md p-0.5 border border-zinc-200 dark:border-zinc-800">
+-                            <button
++                            <IconButton
+                               onClick={() =>
+                                 handleUpdateQty(item.product.id, -1)
+                               }
+-                              className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors duration-150 text-zinc-500"
++                              aria-label="Kurangi jumlah"
++                              variant="soft"
++                              size="sm"
+                             >
+                               <Minus className="w-3 h-3" />
+-                            </button>
++                            </IconButton>
+                             <span className="w-6 text-center font-mono text-xs tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">
+                               {item.qty}
+                             </span>
+-                            <button
++                            <IconButton
+                               onClick={() =>
+                                 handleUpdateQty(item.product.id, 1)
+                               }
+                               disabled={
+                                 item.qty >= getAvailableStock(item.product)
+                               }
+-                              className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors duration-150 text-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed"
++                              aria-label="Tambah jumlah"
++                              variant="soft"
++                              size="sm"
+                             >
+                               <Plus className="w-3 h-3" />
+-                            </button>
++                            </IconButton>
+                           </div>
+-                          <button
++                          <IconButton
+                             onClick={() =>
+                               handleRemoveFromCart(item.product.id)
+                             }
+-                            className="p-1.5 text-zinc-400 hover:text-lco-coral hover:bg-lco-coral/10 rounded-md transition-colors duration-150"
++                            aria-label="Hapus dari keranjang"
++                            variant="soft"
++                            tone="danger"
+                           >
+                             <Trash2 className="w-4 h-4" />
+-                          </button>
++                          </IconButton>
+                         </div>
+                         <p className="font-mono text-sm font-semibold text-lco-teal mt-2 tabular-nums">
+                           {formatRupiah(item.product.sell_price * item.qty)}
+@@ -1881,12 +1891,13 @@
+             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+               Pesanan Tertunda
+             </h3>
+-            <button
++            <IconButton
+               onClick={() => setIsHeldListOpen(false)}
+-              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
++              aria-label="Tutup"
++              size="sm"
+             >
+               <X className="h-4 w-4" />
+-            </button>
++            </IconButton>
+           </div>
+ 
+           {heldListError && (
+@@ -1931,14 +1942,17 @@
+                         <PlayCircle className="h-4 w-4" />
+                       )}
+                     </button>
+-                    <button
++                    <IconButton
+                       onClick={() => handleDeleteHeldOrder(ho.id)}
+                       disabled={resumingId === ho.id}
+                       title="Hapus"
+-                      className="rounded-md p-2 text-zinc-400 hover:bg-lco-coral/10 hover:text-lco-coral disabled:cursor-not-allowed disabled:opacity-50"
++                      aria-label="Hapus"
++                      variant="soft"
++                      tone="danger"
++                      size="lg"
+                     >
+                       <Trash2 className="h-4 w-4" />
+-                    </button>
++                    </IconButton>
+                   </div>
+                 ))}
+               </div>
+@@ -1968,13 +1982,14 @@
+               <PackagePlus className="h-4 w-4 text-lco-mustard" />
+               Biaya Tambahan
+             </h3>
+-            <button
++            <IconButton
+               type="button"
+               onClick={() => setIsBiayaTambahanModalOpen(false)}
+-              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150"
++              aria-label="Tutup"
++              size="sm"
+             >
+               <X className="h-4 w-4" />
+-            </button>
++            </IconButton>
+           </div>
+           <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+             Pilih item non-produk untuk ditambahkan ke tagihan.
+diff -ruN a/app/components/kasir/KasirModulePC.tsx b/app/components/kasir/KasirModulePC.tsx
+--- a/app/components/kasir/KasirModulePC.tsx	2026-11-03 11:47:27.203047630 +0000
++++ b/app/components/kasir/KasirModulePC.tsx	2026-11-03 11:47:27.210057269 +0000
+@@ -53,6 +53,7 @@
+ import type { CartItem } from "@/lib/pos/types";
+ import type { Customer } from "@/hooks/useCustomers";
+ import type { ProductWithCategory } from "@/hooks/useProducts";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ interface KasirModulePCProps {
+   cashierName: string;
+@@ -855,15 +856,17 @@
+                       <td className={`${cell} pr-4`}>
+                         <div className="flex items-center justify-center gap-2.5 text-zinc-400">
+                           <Pencil className="h-3 w-3" />
+-                          <button
++                          <IconButton
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               onRemoveFromCart(item.product.id);
+                             }}
+-                            className="transition-colors duration-150 hover:text-lco-coral"
++                            aria-label="Hapus dari keranjang"
++                            tone="danger"
++                            size="sm"
+                           >
+                             <Trash2 className="h-3 w-3" />
+-                          </button>
++                          </IconButton>
+                         </div>
+                       </td>
+                     </tr>
+diff -ruN a/app/components/kasir/PaymentModal.tsx b/app/components/kasir/PaymentModal.tsx
+--- a/app/components/kasir/PaymentModal.tsx	2026-11-03 11:47:27.203084775 +0000
++++ b/app/components/kasir/PaymentModal.tsx	2026-11-03 11:47:27.210096629 +0000
+@@ -51,6 +51,7 @@
+   type MidtransStatusResult,
+ } from "@/lib/midtrans/client";
+ import Modal from "@/app/components/ui/Modal";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ // ── TAMBAHAN (bug: preview tidak sama dengan hasil cetak) ── Duplikat kecil
+ // dari METHOD_LABELS/formatMethod() di printLogic.ts (tidak diexport dari
+@@ -1039,13 +1040,14 @@
+         <h2 className="font-semibold text-base tracking-tight text-zinc-900 dark:text-zinc-100">
+           Pembayaran
+         </h2>
+-        <button
++        <IconButton
+           onClick={handleRequestClose}
+           disabled={isProcessing}
+-          className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-md transition-colors duration-150 text-zinc-500 disabled:cursor-not-allowed disabled:opacity-40"
++          aria-label="Tutup"
++          variant="soft"
+         >
+           <X className="w-4 h-4" />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       <div className="p-5 flex-1 overflow-y-auto">
+diff -ruN a/app/components/laporan/LaporanModule.tsx b/app/components/laporan/LaporanModule.tsx
+--- a/app/components/laporan/LaporanModule.tsx	2026-11-03 11:47:27.203205530 +0000
++++ b/app/components/laporan/LaporanModule.tsx	2026-11-03 11:47:27.210249249 +0000
+@@ -83,6 +83,7 @@
+ } from "@/app/components/laporan/HarianInsights";
+ import Modal from "@/app/components/ui/Modal";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ // Piutang tidak memakai rentang tanggal; label ini dipakai di judul PDF & Excel.
+ const PIUTANG_RANGE_LABEL =
+@@ -189,13 +190,14 @@
+           <CheckCircle2 className="h-4 w-4 text-lco-teal" />
+           Tandai Lunas
+         </h3>
+-        <button
++        <IconButton
+           type="button"
+           onClick={onClose}
+-          className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
++          aria-label="Tutup"
++          size="sm"
+         >
+           <X className="h-4 w-4" />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       {done ? (
+diff -ruN a/app/components/pelanggan/PelangganDetailPanel.tsx b/app/components/pelanggan/PelangganDetailPanel.tsx
+--- a/app/components/pelanggan/PelangganDetailPanel.tsx	2026-11-03 11:47:27.203377741 +0000
++++ b/app/components/pelanggan/PelangganDetailPanel.tsx	2026-11-03 11:47:27.210484001 +0000
+@@ -25,6 +25,7 @@
+   type PointLog,
+ } from "@/hooks/useCustomerAdmin";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ type Tab = "ringkasan" | "transaksi" | "poin";
+ 
+@@ -148,14 +149,15 @@
+               )}
+             </p>
+           </div>
+-          <button
++          <IconButton
+             type="button"
+             onClick={onClose}
+-            className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
++            variant="soft"
++            size="sm"
+             aria-label="Tutup"
+           >
+             <X className="h-4 w-4" />
+-          </button>
++          </IconButton>
+         </div>
+ 
+         {/* Aksi cepat */}
+diff -ruN a/app/components/pelanggan/PelangganFormModal.tsx b/app/components/pelanggan/PelangganFormModal.tsx
+--- a/app/components/pelanggan/PelangganFormModal.tsx	2026-11-03 11:47:27.203402321 +0000
++++ b/app/components/pelanggan/PelangganFormModal.tsx	2026-11-03 11:47:27.210524724 +0000
+@@ -16,6 +16,7 @@
+ } from "@/hooks/useCustomerAdmin";
+ import Button from "@/app/components/ui/Button";
+ import Input from "@/app/components/ui/Input";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ interface PelangganFormModalProps {
+   /** null = mode tambah, ada isi = mode ubah. */
+@@ -72,14 +73,15 @@
+           <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+             {customer ? "Ubah Pelanggan" : "Daftarkan Pelanggan"}
+           </h3>
+-          <button
++          <IconButton
+             type="button"
+             onClick={() => !saving && onClose()}
+-            className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
++            variant="soft"
++            size="sm"
+             aria-label="Tutup"
+           >
+             <X className="h-4 w-4" />
+-          </button>
++          </IconButton>
+         </div>
+ 
+         <div className="space-y-4 px-5 py-4">
+diff -ruN a/app/components/pelanggan/PoinAdjustModal.tsx b/app/components/pelanggan/PoinAdjustModal.tsx
+--- a/app/components/pelanggan/PoinAdjustModal.tsx	2026-11-03 11:47:27.203435760 +0000
++++ b/app/components/pelanggan/PoinAdjustModal.tsx	2026-11-03 11:47:27.210670359 +0000
+@@ -8,6 +8,7 @@
+ import { Loader2, Minus, Plus, X } from "lucide-react";
+ import type { CustomerRecord } from "@/hooks/useCustomerAdmin";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ interface PoinAdjustModalProps {
+   customer: CustomerRecord;
+@@ -74,14 +75,15 @@
+             </h3>
+             <p className="text-xs text-zinc-500">{customer.name}</p>
+           </div>
+-          <button
++          <IconButton
+             type="button"
+             onClick={() => !saving && onClose()}
+-            className="rounded-md p-1 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900"
++            variant="soft"
++            size="sm"
+             aria-label="Tutup"
+           >
+             <X className="h-4 w-4" />
+-          </button>
++          </IconButton>
+         </div>
+ 
+         <div className="space-y-4 px-5 py-4">
+diff -ruN a/app/components/pengaturan/PengaturanAdminTab.tsx b/app/components/pengaturan/PengaturanAdminTab.tsx
+--- a/app/components/pengaturan/PengaturanAdminTab.tsx	2026-11-03 11:47:27.203462834 +0000
++++ b/app/components/pengaturan/PengaturanAdminTab.tsx	2026-11-03 11:47:27.210707015 +0000
+@@ -66,6 +66,7 @@
+ import { AddModuleModal, PermissionMatrix } from "./PermissionMatrix";
+ import Modal from "@/app/components/ui/Modal";
+ import Input from "@/app/components/ui/Input";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ const cardCls = "overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900";
+ const thCls =
+@@ -232,15 +233,15 @@
+                 : "Data akun pengguna. Hak akses diubah di panel Hak Akses Modul."}
+             </p>
+           </div>
+-          <button
++          <IconButton
+             type="button"
+             onClick={onClose}
+             disabled={saving}
+             aria-label="Tutup"
+-            className="p-1 text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
++            size="sm"
+           >
+             <X className="h-4 w-4" />
+-          </button>
++          </IconButton>
+         </div>
+ 
+         <div className="space-y-4 overflow-y-auto p-5">
+diff -ruN a/app/components/pengaturan/PermissionMatrix.tsx b/app/components/pengaturan/PermissionMatrix.tsx
+--- a/app/components/pengaturan/PermissionMatrix.tsx	2026-11-03 11:47:27.203550353 +0000
++++ b/app/components/pengaturan/PermissionMatrix.tsx	2026-11-03 11:47:27.210826147 +0000
+@@ -26,6 +26,7 @@
+   type PermKey,
+   type UserPermissions,
+ } from "@/lib/pos/permissionModules";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ // ─── Switch ──────────────────────────────────────────────────────────────────
+ 
+@@ -309,14 +310,14 @@
+               Tetapkan modul dan izin awalnya untuk user ini
+             </p>
+           </div>
+-          <button
++          <IconButton
+             type="button"
+             onClick={onClose}
+             aria-label="Tutup"
+-            className="p-1 text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
++            size="sm"
+           >
+             <X className="h-4 w-4" />
+-          </button>
++          </IconButton>
+         </div>
+ 
+         <div className="space-y-4 p-5">
+@@ -399,17 +400,17 @@
+                       />
+                     </div>
+                     {selected.length > 0 && (
+-                      <button
++                      <IconButton
+                         type="button"
+                         aria-label="Kosongkan pilihan"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           setSelected([]);
+                         }}
+-                        className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
++                        size="sm"
+                       >
+                         <X className="h-4 w-4" />
+-                      </button>
++                      </IconButton>
+                     )}
+                     <span className="w-px self-stretch bg-zinc-200 dark:bg-zinc-800" />
+                     <ChevronDown
+diff -ruN a/app/components/produk/KategoriModule.tsx b/app/components/produk/KategoriModule.tsx
+--- a/app/components/produk/KategoriModule.tsx	2026-11-03 11:47:27.203583752 +0000
++++ b/app/components/produk/KategoriModule.tsx	2026-11-03 11:47:27.210857671 +0000
+@@ -13,6 +13,7 @@
+ import type { Category } from "@/lib/pos/types";
+ import Modal from "@/app/components/ui/Modal";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ const supabase = createClient();
+ 
+@@ -315,23 +316,28 @@
+ 
+                     <td className="px-5 py-4">
+                       <div className="flex justify-end gap-1">
+-                        <button
++                        <IconButton
+                           type="button"
+                           onClick={() => openEditForm(category)}
+-                          className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
++                          aria-label="Edit kategori"
++                          variant="soft"
++                          size="lg"
+                           title="Edit kategori"
+                         >
+                           <Pencil size={17} />
+-                        </button>
++                        </IconButton>
+ 
+-                        <button
++                        <IconButton
+                           type="button"
+                           onClick={() => handleDelete(category)}
+-                          className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-lco-coral/10 hover:text-lco-coral"
++                          aria-label="Hapus kategori"
++                          variant="soft"
++                          tone="danger"
++                          size="lg"
+                           title="Hapus kategori"
+                         >
+                           <Trash2 size={17} />
+-                        </button>
++                        </IconButton>
+                       </div>
+                     </td>
+                   </tr>
+@@ -358,14 +364,16 @@
+               </p>
+             </div>
+ 
+-            <button
++            <IconButton
+               type="button"
+               onClick={closeForm}
+               disabled={saving}
+-              className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-900"
++              aria-label="Tutup"
++              variant="soft"
++              size="lg"
+             >
+               <X size={20} />
+-            </button>
++            </IconButton>
+           </div>
+ 
+           <div className="space-y-4 p-6">
+diff -ruN a/app/components/produk/ProdukForm.tsx b/app/components/produk/ProdukForm.tsx
+--- a/app/components/produk/ProdukForm.tsx	2026-11-03 11:47:27.203603574 +0000
++++ b/app/components/produk/ProdukForm.tsx	2026-11-03 11:47:27.210908767 +0000
+@@ -19,6 +19,7 @@
+ import Select from "@/app/components/ui/Select";
+ import Modal from "@/app/components/ui/Modal";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ export type ProductFormValues = {
+   name: string;
+@@ -177,14 +178,16 @@
+           </p>
+         </div>
+ 
+-        <button
++        <IconButton
+           type="button"
+           onClick={onClose}
+           disabled={saving}
+-          className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
++          aria-label="Tutup"
++          variant="soft"
++          size="lg"
+         >
+           <X size={20} />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       <form onSubmit={handleSubmit} className="max-h-[75vh] overflow-y-auto">
+diff -ruN a/app/components/promo/PromoModule.tsx b/app/components/promo/PromoModule.tsx
+--- a/app/components/promo/PromoModule.tsx	2026-11-03 11:47:27.203652634 +0000
++++ b/app/components/promo/PromoModule.tsx	2026-11-03 11:47:27.210958905 +0000
+@@ -76,6 +76,7 @@
+ import Modal from "@/app/components/ui/Modal";
+ import Button from "@/app/components/ui/Button";
+ import Input from "@/app/components/ui/Input";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ // ── Helper tampilan ─────────────────────────────────────────────────────
+ 
+@@ -225,14 +226,14 @@
+         <h3 className="min-w-0 truncate text-sm font-semibold">
+           Akses TV — {screen.name}
+         </h3>
+-        <button
++        <IconButton
+           type="button"
+           onClick={onClose}
+           aria-label="Tutup"
+-          className="shrink-0 rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
++          variant="soft"
+         >
+           <X className="h-4 w-4" />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       <div className="flex justify-center">
+@@ -340,15 +341,15 @@
+         <h3 className="text-sm font-semibold">
+           {isRename ? "Ubah Nama TV" : "Tambah TV"}
+         </h3>
+-        <button
++        <IconButton
+           type="button"
+           onClick={onClose}
+           disabled={isBusy}
+           aria-label="Tutup"
+-          className="rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
++          variant="soft"
+         >
+           <X className="h-4 w-4" />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       <div className="space-y-4 p-5">
+@@ -557,15 +558,15 @@
+         <h3 className="text-sm font-semibold">
+           {isEdit ? "Ubah Media" : "Tambah Media"}
+         </h3>
+-        <button
++        <IconButton
+           type="button"
+           onClick={onClose}
+           disabled={isBusy}
+           aria-label="Tutup"
+-          className="rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
++          variant="soft"
+         >
+           <X className="h-4 w-4" />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       <div className="space-y-4 overflow-y-auto p-5">
+diff -ruN a/app/components/stok/AdjustStockModal.tsx b/app/components/stok/AdjustStockModal.tsx
+--- a/app/components/stok/AdjustStockModal.tsx	2026-11-03 11:47:27.203728327 +0000
++++ b/app/components/stok/AdjustStockModal.tsx	2026-11-03 11:47:27.211083480 +0000
+@@ -28,6 +28,7 @@
+ import { deltaColorClass, formatDelta } from "./stokUtils";
+ import Modal from "@/app/components/ui/Modal";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ // Alasan yang paling sering dipakai — tombol cepat supaya kasir/supervisor tidak
+ // mengetik bebas untuk kasus yang itu-itu saja (alasan tetap bisa diedit manual).
+@@ -142,13 +143,14 @@
+           <ClipboardCheck className="h-4 w-4 text-lco-teal" />
+           Opname / Penyesuaian Stok
+         </h3>
+-        <button
++        <IconButton
+           type="button"
+           onClick={onClose}
+-          className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
++          aria-label="Tutup"
++          size="sm"
+         >
+           <X className="h-4 w-4" />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       {result ? (
+diff -ruN a/app/components/stok/OpnameModals.tsx b/app/components/stok/OpnameModals.tsx
+--- a/app/components/stok/OpnameModals.tsx	2026-11-03 11:47:27.203760681 +0000
++++ b/app/components/stok/OpnameModals.tsx	2026-11-03 11:47:27.211115794 +0000
+@@ -34,6 +34,7 @@
+ import Select from "@/app/components/ui/Select";
+ import Button from "@/app/components/ui/Button";
+ import Input from "@/app/components/ui/Input";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ const overlayClass =
+   "fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4";
+@@ -69,14 +70,14 @@
+         <ClipboardList className="h-4 w-4 text-lco-teal" />
+         {title}
+       </h3>
+-      <button
++      <IconButton
+         type="button"
+         onClick={onClose}
+         aria-label="Tutup"
+-        className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
++        size="sm"
+       >
+         <X className="h-4 w-4" />
+-      </button>
++      </IconButton>
+     </div>
+   );
+ }
+diff -ruN a/app/components/stok/ReceiptDetail.tsx b/app/components/stok/ReceiptDetail.tsx
+--- a/app/components/stok/ReceiptDetail.tsx	2026-11-03 11:47:27.203821318 +0000
++++ b/app/components/stok/ReceiptDetail.tsx	2026-11-03 11:47:27.211184759 +0000
+@@ -23,6 +23,7 @@
+ } from "./stokUtils";
+ import Modal from "@/app/components/ui/Modal";
+ import Button from "@/app/components/ui/Button";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ interface ReceiptDetailProps {
+   receiptId: string;
+@@ -223,15 +224,15 @@
+             <h3 className="text-base font-semibold">
+               Batalkan Barang Masuk #{receipt.number}
+             </h3>
+-            <button
++            <IconButton
+               type="button"
+               onClick={() => setShowVoid(false)}
+               disabled={isVoiding}
+               aria-label="Tutup"
+-              className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
++              size="sm"
+             >
+               <X className="h-4 w-4" />
+-            </button>
++            </IconButton>
+           </div>
+ 
+           <p className="text-sm text-zinc-600 dark:text-zinc-400">
+diff -ruN a/app/components/stok/ReceiptForm.tsx b/app/components/stok/ReceiptForm.tsx
+--- a/app/components/stok/ReceiptForm.tsx	2026-11-03 11:47:27.203849769 +0000
++++ b/app/components/stok/ReceiptForm.tsx	2026-11-03 11:47:27.211229087 +0000
+@@ -27,6 +27,7 @@
+ import { formatNumber, formatRupiah, toDateInputValue } from "./stokUtils";
+ import Button from "@/app/components/ui/Button";
+ import Input from "@/app/components/ui/Input";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ interface FormLine {
+   productId: string;
+@@ -450,16 +451,17 @@
+                         {hasSubtotal ? formatRupiah(lineQty * lineCost) : "-"}
+                       </td>
+                       <td className="px-4 py-3 text-right">
+-                        <button
++                        <IconButton
+                           type="button"
+                           onClick={() => removeLine(line.productId)}
+                           disabled={isSaving}
+                           aria-label={`Hapus ${line.name}`}
+                           title="Hapus baris"
+-                          className="rounded-md p-1.5 text-zinc-400 transition-colors duration-150 hover:bg-lco-coral/10 hover:text-lco-coral"
++                          variant="soft"
++                          tone="danger"
+                         >
+                           <Trash2 className="h-4 w-4" />
+-                        </button>
++                        </IconButton>
+                       </td>
+                     </tr>
+                   );
+diff -ruN a/app/components/stok/StokRiwayatTab.tsx b/app/components/stok/StokRiwayatTab.tsx
+--- a/app/components/stok/StokRiwayatTab.tsx	2026-11-03 11:47:27.203948242 +0000
++++ b/app/components/stok/StokRiwayatTab.tsx	2026-11-03 11:47:27.211275821 +0000
+@@ -49,6 +49,7 @@
+ } from "./stokUtils";
+ import Select from "@/app/components/ui/Select";
+ import Input from "@/app/components/ui/Input";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ export interface RiwayatFilters {
+   types: StockMovementType[];
+@@ -136,14 +137,15 @@
+         <span className="truncate">
+           {selected ? selected.name : "Produk terpilih"}
+         </span>
+-        <button
++        <IconButton
+           type="button"
+           onClick={() => onChange(null)}
+           aria-label="Hapus filter produk"
+-          className="text-zinc-400 transition-colors duration-150 hover:text-lco-coral"
++          tone="danger"
++          size="sm"
+         >
+           <X className="h-3.5 w-3.5" />
+-        </button>
++        </IconButton>
+       </div>
+     );
+   }
+diff -ruN a/app/components/stok/StokSaatIniTab.tsx b/app/components/stok/StokSaatIniTab.tsx
+--- a/app/components/stok/StokSaatIniTab.tsx	2026-11-03 11:47:27.203969192 +0000
++++ b/app/components/stok/StokSaatIniTab.tsx	2026-11-03 11:47:27.211294038 +0000
+@@ -41,6 +41,7 @@
+ import Select from "@/app/components/ui/Select";
+ import Button from "@/app/components/ui/Button";
+ import Input from "@/app/components/ui/Input";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ const PAGE_SIZE = 50;
+ 
+@@ -411,15 +412,15 @@
+                       </td>
+                       <td className="px-4 py-3">
+                         <div className="flex items-center justify-end gap-1">
+-                          <button
++                          <IconButton
+                             type="button"
+                             onClick={() => onViewHistory(product)}
+                             title="Lihat riwayat mutasi produk ini"
+                             aria-label={`Riwayat mutasi ${product.name}`}
+-                            className="rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
++                            variant="soft"
+                           >
+                             <History className="h-4 w-4" />
+-                          </button>
++                          </IconButton>
+                           {canAdjust && (
+                             <button
+                               type="button"
+diff -ruN a/app/components/transaksi/TransactionDetailModal.tsx b/app/components/transaksi/TransactionDetailModal.tsx
+--- a/app/components/transaksi/TransactionDetailModal.tsx	2026-11-03 11:47:27.204056230 +0000
++++ b/app/components/transaksi/TransactionDetailModal.tsx	2026-11-03 11:47:27.211382172 +0000
+@@ -52,6 +52,7 @@
+ import { usePrinterProfiles } from "@/hooks/usePrinterProfiles";
+ import { formatRupiah } from "@/lib/pos/cartLogic";
+ import Modal from "@/app/components/ui/Modal";
++import IconButton from "@/app/components/ui/IconButton";
+ 
+ type PanelMode = "detail" | "retur" | "void";
+ 
+@@ -547,12 +548,13 @@
+             )}
+           </div>
+         </div>
+-        <button
++        <IconButton
+           onClick={onClose}
+-          className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-md transition-colors duration-150 text-zinc-500"
++          aria-label="Tutup"
++          variant="soft"
+         >
+           <X className="w-4 h-4" />
+-        </button>
++        </IconButton>
+       </div>
+ 
+       <div className="flex-1 overflow-y-auto p-5">
+diff -ruN a/app/components/ui/IconButton.tsx b/app/components/ui/IconButton.tsx
+--- a/app/components/ui/IconButton.tsx	1970-01-01 00:00:00.000000000 +0000
++++ b/app/components/ui/IconButton.tsx	2026-11-03 11:47:27.211550371 +0000
+@@ -0,0 +1,88 @@
++"use client";
++
++// ── TAMBAHAN (komponen UI bersama) ── Tombol yang isinya HANYA ikon (tutup,
++// hapus, ubah, kembali, dst.). Sebelumnya tiap modul menulis class sendiri
++// (p-1 / p-1.5 / p-2, warna hover berbeda-beda) dan sering lupa aria-label.
++//
++// `aria-label` WAJIB (dicek TypeScript) karena tombol ikon tidak punya teks
++// yang bisa dibaca screen reader.
++//
++// Cara pakai (props <button> biasa tetap berlaku: onClick, disabled, dst.):
++//   <IconButton aria-label="Tutup" onClick={onClose}><X className="h-4 w-4" /></IconButton>
++//   <IconButton aria-label="Hapus" tone="danger" variant="soft"><Trash2 className="h-4 w-4" /></IconButton>
++//
++// Props:
++//   variant  "plain" (default: hanya warna ikon berubah saat hover — cocok
++//            untuk tombol tutup) | "soft" (ada latar abu saat hover — cocok
++//            untuk tombol di baris tabel/daftar).
++//   tone     "neutral" (default) | "danger" (hover jadi merah).
++//   size     "sm" (p-1) | "md" (p-1.5, default) | "lg" (p-2).
++//   className hanya untuk margin/posisi (mis. "ml-auto", "shrink-0").
++//
++// Catatan: `type` TIDAK diberi nilai bawaan (sama seperti Button) — pakai
++// type="button" bila tombol berada di dalam <form>.
++
++import { forwardRef, type ButtonHTMLAttributes } from "react";
++
++export type IconButtonVariant = "plain" | "soft";
++export type IconButtonTone = "neutral" | "danger";
++export type IconButtonSize = "sm" | "md" | "lg";
++
++const VARIANT_CLASS: Record<IconButtonVariant, Record<IconButtonTone, string>> =
++  {
++    plain: {
++      neutral:
++        "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200",
++      danger: "text-zinc-400 hover:text-lco-coral",
++    },
++    soft: {
++      neutral:
++        "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100",
++      danger:
++        "text-zinc-400 hover:bg-lco-coral/10 hover:text-lco-coral",
++    },
++  };
++
++const SIZE_CLASS: Record<IconButtonSize, string> = {
++  sm: "p-1",
++  md: "p-1.5",
++  lg: "p-2",
++};
++
++const BASE_CLASS =
++  "inline-flex shrink-0 items-center justify-center rounded-md transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50";
++
++interface IconButtonProps
++  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
++  /** Wajib: nama aksi untuk screen reader, mis. "Tutup". */
++  "aria-label": string;
++  variant?: IconButtonVariant;
++  tone?: IconButtonTone;
++  size?: IconButtonSize;
++}
++
++const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
++  function IconButton(
++    {
++      variant = "plain",
++      tone = "neutral",
++      size = "md",
++      className = "",
++      children,
++      ...rest
++    },
++    ref,
++  ) {
++    return (
++      <button
++        ref={ref}
++        className={`${BASE_CLASS} ${VARIANT_CLASS[variant][tone]} ${SIZE_CLASS[size]} ${className}`.trim()}
++        {...rest}
++      >
++        {children}
++      </button>
++    );
++  },
++);
++
++export default IconButton;

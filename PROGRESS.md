@@ -2456,3 +2456,33 @@ juga mengisi `profiles.email` yang kosong dari `auth.users`.
 `app/components/pengaturan/PermissionMatrix.tsx`.
 **File dihapus:** `PengaturanRoleTab.tsx`, `hooks/useRoles.ts`,
 `lib/pos/permissionMenuMeta.ts`.
+
+
+---
+
+## Sesi: Migrasi tombol ikon ke `IconButton`
+
+**File baru:** `app/components/ui/IconButton.tsx` — tombol yang isinya hanya ikon
+(tutup, hapus, ubah, kembali, dst.). `aria-label` WAJIB (dicek TypeScript).
+Varian: `plain` (default, hanya warna ikon berubah) | `soft` (latar abu saat
+hover); `tone`: `neutral` | `danger`; `size`: `sm` | `md` | `lg`.
+
+**Dimigrasi:** 37 tombol ikon di 25 file (tombol tutup modal, hapus/ubah baris,
+stepper jumlah di keranjang). Beberapa tombol yang tadinya tanpa label kini
+punya `aria-label` ("Tutup", "Kurangi jumlah", "Tambah jumlah", dst.).
+
+**Sengaja TIDAK dimigrasi (31 tombol ikon):** yang bergaya khusus — aksen
+hijau/teal/mustard, ber-border, ukuran tetap (w-10 h-10), class dinamis
+(`${...}`), atau className lewat variabel. Biarkan sampai ada keputusan desain.
+Efek visual kecil: tombol tutup yang sebelumnya tanpa padding kini `size="sm"`
+(p-1), jadi ikon X bergeser ±4px ke dalam.
+
+**Belum dimigrasi (179 tombol teks):** sangat beragam (chip filter, baris daftar
+yang bisa diklik, tombol aksen teal/mustard, kartu produk). Yang layak
+dijadikan komponen berikutnya: tombol "Kembali" (`mb-3 flex items-center
+gap-1.5 text-sm text-zinc-500`, 6 tempat) dan tombol batal ghost
+(`px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100`).
+
+**Catatan teknis:** `package-lock.json` tidak sinkron dengan `package.json`
+(kurang `@emnapi/runtime` & `@emnapi/core`), sehingga `npm ci` gagal. Jalankan
+`npm install` sekali lalu commit lockfile-nya.

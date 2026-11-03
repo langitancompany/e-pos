@@ -27,6 +27,7 @@ import type {
 import { formatNumber, formatRupiah, toDateInputValue } from "./stokUtils";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
+import IconButton from "@/app/components/ui/IconButton";
 
 interface FormLine {
   productId: string;
@@ -450,16 +451,17 @@ export default function ReceiptForm({
                         {hasSubtotal ? formatRupiah(lineQty * lineCost) : "-"}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
+                        <IconButton
                           type="button"
                           onClick={() => removeLine(line.productId)}
                           disabled={isSaving}
                           aria-label={`Hapus ${line.name}`}
                           title="Hapus baris"
-                          className="rounded-md p-1.5 text-zinc-400 transition-colors duration-150 hover:bg-lco-coral/10 hover:text-lco-coral"
+                          variant="soft"
+                          tone="danger"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </IconButton>
                       </td>
                     </tr>
                   );

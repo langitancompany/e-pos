@@ -20,6 +20,7 @@ import { formatRupiah } from "@/lib/pos/cartLogic";
 import type { CloseShiftResult } from "@/hooks/useShifts";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
+import IconButton from "@/app/components/ui/IconButton";
 
 // Pecahan uang tunai Rupiah yang beredar, dari besar ke kecil.
 const DENOMINATIONS = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 100];
@@ -133,14 +134,15 @@ export function CloseShiftModal({
           <Lock className="h-4 w-4 text-lco-coral" />
           Tutup Sesi Kas
         </h3>
-        <button
+        <IconButton
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
-          className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150 disabled:opacity-50"
+          aria-label="Tutup"
+          size="sm"
         >
           <X className="h-4 w-4" />
-        </button>
+        </IconButton>
       </div>
 
       <p className="mb-3 text-xs text-zinc-500">

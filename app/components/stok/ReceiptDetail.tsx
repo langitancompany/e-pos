@@ -23,6 +23,7 @@ import {
 } from "./stokUtils";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
+import IconButton from "@/app/components/ui/IconButton";
 
 interface ReceiptDetailProps {
   receiptId: string;
@@ -223,15 +224,15 @@ export default function ReceiptDetail({
             <h3 className="text-base font-semibold">
               Batalkan Barang Masuk #{receipt.number}
             </h3>
-            <button
+            <IconButton
               type="button"
               onClick={() => setShowVoid(false)}
               disabled={isVoiding}
               aria-label="Tutup"
-              className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
+              size="sm"
             >
               <X className="h-4 w-4" />
-            </button>
+            </IconButton>
           </div>
 
           <p className="text-sm text-zinc-600 dark:text-zinc-400">

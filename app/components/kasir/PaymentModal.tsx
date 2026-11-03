@@ -51,6 +51,7 @@ import {
   type MidtransStatusResult,
 } from "@/lib/midtrans/client";
 import Modal from "@/app/components/ui/Modal";
+import IconButton from "@/app/components/ui/IconButton";
 
 // ── TAMBAHAN (bug: preview tidak sama dengan hasil cetak) ── Duplikat kecil
 // dari METHOD_LABELS/formatMethod() di printLogic.ts (tidak diexport dari
@@ -1039,13 +1040,14 @@ export default function PaymentModal({
         <h2 className="font-semibold text-base tracking-tight text-zinc-900 dark:text-zinc-100">
           Pembayaran
         </h2>
-        <button
+        <IconButton
           onClick={handleRequestClose}
           disabled={isProcessing}
-          className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-md transition-colors duration-150 text-zinc-500 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="Tutup"
+          variant="soft"
         >
           <X className="w-4 h-4" />
-        </button>
+        </IconButton>
       </div>
 
       <div className="p-5 flex-1 overflow-y-auto">

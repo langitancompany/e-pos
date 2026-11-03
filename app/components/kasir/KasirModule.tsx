@@ -91,6 +91,7 @@ import {
 import { useHoldOrders } from "@/hooks/useHoldOrders";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
+import IconButton from "@/app/components/ui/IconButton";
 
 // ── TAMBAHAN (021, T-11 bagian 2) ── Label singkat per metode, dipakai
 // handleConfirmSplitPayment() untuk menyusun field `method` gabungan di
@@ -1125,15 +1126,16 @@ export default function KasirModule({
                 Mulai Sesi Kasir
               </h3>
               {onExitKasir && (
-                <button
+                <IconButton
                   type="button"
                   onClick={onExitKasir}
                   disabled={isStartingSession}
                   title="Batal & kembali ke Dashboard"
-                  className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150 disabled:opacity-50"
+                  aria-label="Batal & kembali ke Dashboard"
+                  size="sm"
                 >
                   <X className="h-4 w-4" />
-                </button>
+                </IconButton>
               )}
             </div>
 
@@ -1591,14 +1593,16 @@ export default function KasirModule({
                 {/* ── TAMBAHAN (responsif HP) ── Tombol kembali ke layar Produk;
                 disembunyikan di `md` ke atas karena di sana panel Produk
                 sudah selalu terlihat di sebelah. */}
-                <button
+                <IconButton
                   type="button"
                   onClick={() => setMobileView("products")}
                   title="Kembali ke Produk"
-                  className="md:hidden shrink-0 p-1.5 -ml-1 rounded-md text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors duration-150"
+                  aria-label="Kembali ke Produk"
+                  variant="soft"
+                  className="md:hidden -ml-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                </button>
+                </IconButton>
                 <h2 className="font-semibold text-base tracking-tight flex items-center gap-2 text-zinc-900 dark:text-zinc-100 truncate">
                   <ShoppingCart className="w-5 h-5 text-lco-teal shrink-0" />
                   Keranjang
@@ -1650,37 +1654,43 @@ export default function KasirModule({
                       <div className="flex flex-col items-end justify-between">
                         <div className="flex items-center gap-3">
                           <div className="flex items-center bg-zinc-50 dark:bg-zinc-900 rounded-md p-0.5 border border-zinc-200 dark:border-zinc-800">
-                            <button
+                            <IconButton
                               onClick={() =>
                                 handleUpdateQty(item.product.id, -1)
                               }
-                              className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors duration-150 text-zinc-500"
+                              aria-label="Kurangi jumlah"
+                              variant="soft"
+                              size="sm"
                             >
                               <Minus className="w-3 h-3" />
-                            </button>
+                            </IconButton>
                             <span className="w-6 text-center font-mono text-xs tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">
                               {item.qty}
                             </span>
-                            <button
+                            <IconButton
                               onClick={() =>
                                 handleUpdateQty(item.product.id, 1)
                               }
                               disabled={
                                 item.qty >= getAvailableStock(item.product)
                               }
-                              className="p-1 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors duration-150 text-zinc-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                              aria-label="Tambah jumlah"
+                              variant="soft"
+                              size="sm"
                             >
                               <Plus className="w-3 h-3" />
-                            </button>
+                            </IconButton>
                           </div>
-                          <button
+                          <IconButton
                             onClick={() =>
                               handleRemoveFromCart(item.product.id)
                             }
-                            className="p-1.5 text-zinc-400 hover:text-lco-coral hover:bg-lco-coral/10 rounded-md transition-colors duration-150"
+                            aria-label="Hapus dari keranjang"
+                            variant="soft"
+                            tone="danger"
                           >
                             <Trash2 className="w-4 h-4" />
-                          </button>
+                          </IconButton>
                         </div>
                         <p className="font-mono text-sm font-semibold text-lco-teal mt-2 tabular-nums">
                           {formatRupiah(item.product.sell_price * item.qty)}
@@ -1881,12 +1891,13 @@ export default function KasirModule({
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Pesanan Tertunda
             </h3>
-            <button
+            <IconButton
               onClick={() => setIsHeldListOpen(false)}
-              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+              aria-label="Tutup"
+              size="sm"
             >
               <X className="h-4 w-4" />
-            </button>
+            </IconButton>
           </div>
 
           {heldListError && (
@@ -1931,14 +1942,17 @@ export default function KasirModule({
                         <PlayCircle className="h-4 w-4" />
                       )}
                     </button>
-                    <button
+                    <IconButton
                       onClick={() => handleDeleteHeldOrder(ho.id)}
                       disabled={resumingId === ho.id}
                       title="Hapus"
-                      className="rounded-md p-2 text-zinc-400 hover:bg-lco-coral/10 hover:text-lco-coral disabled:cursor-not-allowed disabled:opacity-50"
+                      aria-label="Hapus"
+                      variant="soft"
+                      tone="danger"
+                      size="lg"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </IconButton>
                   </div>
                 ))}
               </div>
@@ -1968,13 +1982,14 @@ export default function KasirModule({
               <PackagePlus className="h-4 w-4 text-lco-mustard" />
               Biaya Tambahan
             </h3>
-            <button
+            <IconButton
               type="button"
               onClick={() => setIsBiayaTambahanModalOpen(false)}
-              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150"
+              aria-label="Tutup"
+              size="sm"
             >
               <X className="h-4 w-4" />
-            </button>
+            </IconButton>
           </div>
           <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
             Pilih item non-produk untuk ditambahkan ke tagihan.
