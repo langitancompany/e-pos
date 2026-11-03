@@ -34,6 +34,9 @@ import {
 import type { ProductType } from "@/lib/pos/types";
 import ProdukForm, { type ProductFormValues } from "./ProdukForm";
 import KategoriModule from "./KategoriModule";
+import TabSwitcher from "@/app/components/ui/TabSwitcher";
+import Modal from "@/app/components/ui/Modal";
+import Button from "@/app/components/ui/Button";
 
 type ProdukTab = "produk" | "kategori";
 
@@ -267,14 +270,14 @@ export default function ProdukModule() {
         </div>
 
         {activeTab === "produk" && canCreateProduct && (
-          <button
+          <Button
             type="button"
             onClick={openForm}
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover"
+            size="lg"
           >
             <Plus className="h-4 w-4" />
             Tambah Produk
-          </button>
+          </Button>
         )}
       </div>
 
@@ -282,28 +285,15 @@ export default function ProdukModule() {
           PengaturanModule.tsx & TransactionHistoryModule.tsx: dibungkus satu
           kontainer beruas supaya kelihatan seperti sekelompok tombol, bukan
           teks bergaris bawah. */}
-      <div className="mb-6 inline-flex w-fit flex-wrap gap-1 rounded-xl bg-zinc-200/70 p-1 dark:bg-zinc-900">
-        {(
-          [
-            { key: "produk", label: "Daftar Produk" },
-            ...(canManageProducts
-              ? [{ key: "kategori", label: "Kategori" }]
-              : []),
-          ] as { key: ProdukTab; label: string }[]
-        ).map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`rounded-lg px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors duration-150 ${
-              activeTab === tab.key
-                ? "bg-white text-lco-green shadow-sm dark:bg-zinc-800 dark:text-lco-teal"
-                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <TabSwitcher
+        tabs={[
+          { key: "produk", label: "Daftar Produk" },
+          ...(canManageProducts ? [{ key: "kategori" as const, label: "Kategori" }] : []),
+        ]}
+        value={activeTab}
+        onChange={setActiveTab}
+        className="mb-6"
+      />
 
       {activeTab === "kategori" && canManageProducts ? (
         <KategoriModule />
@@ -406,14 +396,14 @@ export default function ProdukModule() {
                 </p>
 
                 {!search && canCreateProduct && (
-                  <button
+                  <Button
                     type="button"
                     onClick={openForm}
-                    className="mt-4 inline-flex items-center gap-2 rounded-md bg-lco-green px-4 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover"
+                    className="mt-4"
                   >
                     <Plus className="h-4 w-4" />
                     Tambah Produk
-                  </button>
+                  </Button>
                 )}
               </div>
             ) : (
@@ -631,68 +621,70 @@ export default function ProdukModule() {
           konsisten sebagai satu keluarga modal, walau ukurannya jauh lebih
           kecil (bukan form). */}
       {deletingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="mb-3 flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lco-coral/10 text-lco-coral">
-                <Trash2 className="h-4 w-4" />
-              </div>
-
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold">Hapus produk?</h3>
-
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                    {deletingProduct.name}
-                  </span>{" "}
-                  akan dipindah ke Sampah, bukan dihapus permanen — bisa
-                  dipulihkan kembali kapan saja lewat menu Sampah.
-                </p>
-              </div>
+        <Modal
+          size="sm"
+          padding="md"
+          layout="plain"
+        >
+          <div className="mb-3 flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lco-coral/10 text-lco-coral">
+              <Trash2 className="h-4 w-4" />
             </div>
 
-            <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-              Alasan (opsional)
-            </label>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold">Hapus produk?</h3>
 
-            <textarea
-              value={deleteReason}
-              onChange={(event) => setDeleteReason(event.target.value)}
-              disabled={isDeleting}
-              rows={2}
-              placeholder="Mis. produk sudah tidak dijual lagi"
-              className="mb-3 w-full resize-none rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition-colors duration-150 placeholder:text-zinc-400 focus:border-lco-teal focus:ring-1 focus:ring-lco-teal disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950"
-            />
-
-            {deleteError && (
-              <div className="mb-3 flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
-                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <p className="break-all">{deleteError}</p>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={closeDeleteConfirm}
-                disabled={isDeleting}
-                className="rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-              >
-                Batal
-              </button>
-
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="inline-flex items-center gap-2 rounded-md bg-lco-coral px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-coral/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
-                Ya, Hapus
-              </button>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                  {deletingProduct.name}
+                </span>{" "}
+                akan dipindah ke Sampah, bukan dihapus permanen — bisa
+                dipulihkan kembali kapan saja lewat menu Sampah.
+              </p>
             </div>
           </div>
-        </div>
+
+          <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            Alasan (opsional)
+          </label>
+
+          <textarea
+            value={deleteReason}
+            onChange={(event) => setDeleteReason(event.target.value)}
+            disabled={isDeleting}
+            rows={2}
+            placeholder="Mis. produk sudah tidak dijual lagi"
+            className="mb-3 w-full resize-none rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition-colors duration-150 placeholder:text-zinc-400 focus:border-lco-teal focus:ring-1 focus:ring-lco-teal disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950"
+          />
+
+          {deleteError && (
+            <div className="mb-3 flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <p className="break-all">{deleteError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              onClick={closeDeleteConfirm}
+              disabled={isDeleting}
+              variant="secondary"
+            >
+              Batal
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              variant="danger"
+            >
+              {isDeleting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Ya, Hapus
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

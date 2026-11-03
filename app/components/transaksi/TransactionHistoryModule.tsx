@@ -20,6 +20,7 @@ import {
 } from "@/hooks/useTransactions";
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import TransactionDetailModal from "./TransactionDetailModal";
+import TabSwitcher from "@/app/components/ui/TabSwitcher";
 
 type StatusGroup = "selesai" | "retur" | "void" | "lainnya";
 
@@ -163,21 +164,12 @@ export default function TransactionHistoryModule() {
       {/* Tab status — gaya "segmented control", konsisten dengan tab switcher
           di PengaturanModule.tsx: dibungkus satu kontainer beruas supaya
           kelihatan seperti sekelompok tombol, bukan teks bergaris bawah. */}
-      <div className="mb-4 inline-flex w-fit flex-wrap gap-1 rounded-xl bg-zinc-200/70 p-1 dark:bg-zinc-900">
-        {TABS.map((tab) => (
-          <button
-            key={tab.label}
-            onClick={() => setActiveTab(tab.group)}
-            className={`rounded-lg px-3.5 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors duration-150 ${
-              activeTab === tab.group
-                ? "bg-white text-lco-green shadow-sm dark:bg-zinc-800 dark:text-lco-teal"
-                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <TabSwitcher
+        tabs={TABS.map((tab) => ({ key: tab.group, label: tab.label }))}
+        value={activeTab}
+        onChange={setActiveTab}
+        className="mb-4"
+      />
 
       {error && (
         <div className="mb-4 flex items-start gap-3 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-4 text-sm text-lco-coral">

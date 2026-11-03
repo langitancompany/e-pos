@@ -73,6 +73,9 @@ import {
   type PromoScreen,
   type PromoScreenActionResult,
 } from "@/hooks/usePromoScreens";
+import Modal from "@/app/components/ui/Modal";
+import Button from "@/app/components/ui/Button";
+import Input from "@/app/components/ui/Input";
 
 // ── Helper tampilan ─────────────────────────────────────────────────────
 
@@ -110,8 +113,6 @@ function relativeScreenTime(iso: string): string {
 const LABEL_CLASS =
   "mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400";
 
-const INPUT_CLASS =
-  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm outline-none transition-colors duration-150 placeholder:text-zinc-400 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800";
 
 const ICON_BUTTON_BASE =
   "inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-800";
@@ -215,51 +216,55 @@ function ScreenLinkModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4">
-      <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h3 className="min-w-0 truncate text-sm font-semibold">
-            Akses TV — {screen.name}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Tutup"
-            className="shrink-0 rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="flex justify-center">
-          <ScreenQrCode url={url} size={220} />
-        </div>
-
-        <p className="mt-4 break-all rounded-md border border-zinc-200 bg-zinc-50 p-2.5 font-mono text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
-          {url}
-        </p>
-
-        <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-          Pindai kode QR dari Android box/tablet TV, atau salin link ini dan
-          buka langsung di browser TV lalu layar penuh. Alamat ini bisa dibuka
-          siapa pun tanpa login — jangan sebarkan ke luar kalau TV menampilkan
-          materi internal.
-        </p>
-
+    <Modal
+      size="sm"
+      padding="md"
+      layout="plain"
+    >
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h3 className="min-w-0 truncate text-sm font-semibold">
+          Akses TV — {screen.name}
+        </h3>
         <button
           type="button"
-          onClick={() => void handleCopy()}
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+          onClick={onClose}
+          aria-label="Tutup"
+          className="shrink-0 rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
         >
-          {copied ? (
-            <Check className="h-4 w-4 text-lco-green" />
-          ) : (
-            <Copy className="h-4 w-4" />
-          )}
-          {copied ? "Tersalin!" : "Salin Link"}
+          <X className="h-4 w-4" />
         </button>
       </div>
-    </div>
+
+      <div className="flex justify-center">
+        <ScreenQrCode url={url} size={220} />
+      </div>
+
+      <p className="mt-4 break-all rounded-md border border-zinc-200 bg-zinc-50 p-2.5 font-mono text-xs text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+        {url}
+      </p>
+
+      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+        Pindai kode QR dari Android box/tablet TV, atau salin link ini dan
+        buka langsung di browser TV lalu layar penuh. Alamat ini bisa dibuka
+        siapa pun tanpa login — jangan sebarkan ke luar kalau TV menampilkan
+        materi internal.
+      </p>
+
+      <Button
+        type="button"
+        onClick={() => void handleCopy()}
+        variant="secondary"
+        fullWidth
+        className="mt-4"
+      >
+        {copied ? (
+          <Check className="h-4 w-4 text-lco-green" />
+        ) : (
+          <Copy className="h-4 w-4" />
+        )}
+        {copied ? "Tersalin!" : "Salin Link"}
+      </Button>
+    </Modal>
   );
 }
 
@@ -326,99 +331,100 @@ function ScreenFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4">
-      <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-          <h3 className="text-sm font-semibold">
-            {isRename ? "Ubah Nama TV" : "Tambah TV"}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
+    <Modal
+      size="sm"
+      padding="none"
+      layout="plain"
+    >
+      <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+        <h3 className="text-sm font-semibold">
+          {isRename ? "Ubah Nama TV" : "Tambah TV"}
+        </h3>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isBusy}
+          aria-label="Tutup"
+          className="rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="space-y-4 p-5">
+        <div>
+          <label className={LABEL_CLASS}>Nama TV</label>
+          <Input
+            type="text"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
             disabled={isBusy}
-            aria-label="Tutup"
-            className="rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
-          >
-            <X className="h-4 w-4" />
-          </button>
+            maxLength={80}
+            placeholder="Mis. TV Kasir Depan"
+            size="lg"
+            autoFocus
+          />
+          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+            Hanya penanda di daftar ini — tidak tampil di layar TV itu
+            sendiri.
+          </p>
         </div>
 
-        <div className="space-y-4 p-5">
+        {!isRename && (
           <div>
-            <label className={LABEL_CLASS}>Nama TV</label>
-            <input
+            <label className={LABEL_CLASS}>Alamat TV (opsional)</label>
+            <Input
               type="text"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+              value={customSlug}
+              onChange={(event) => setCustomSlug(event.target.value)}
               disabled={isBusy}
-              maxLength={80}
-              placeholder="Mis. TV Kasir Depan"
-              className={INPUT_CLASS}
-              autoFocus
+              maxLength={64}
+              placeholder="Mis. kasir-depan (kosongkan untuk kode acak)"
+              size="lg"
             />
-            <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-              Hanya penanda di daftar ini — tidak tampil di layar TV itu
-              sendiri.
+            <p
+              className={`mt-1.5 text-xs ${
+                slugLooksInvalid
+                  ? "text-lco-coral"
+                  : "text-zinc-500 dark:text-zinc-400"
+              }`}
+            >
+              {customSlug.trim()
+                ? slugLooksInvalid
+                  ? "Minimal 3 karakter, huruf kecil/angka/tanda hubung saja."
+                  : `Link jadi: .../tv/${slugPreview}`
+                : "Kosongkan supaya link tetap acak & aman ditebak (disarankan). Isi hanya kalau ingin link pendek yang mudah diketik ulang manual di perangkat TV."}
             </p>
           </div>
+        )}
 
-          {!isRename && (
-            <div>
-              <label className={LABEL_CLASS}>Alamat TV (opsional)</label>
-              <input
-                type="text"
-                value={customSlug}
-                onChange={(event) => setCustomSlug(event.target.value)}
-                disabled={isBusy}
-                maxLength={64}
-                placeholder="Mis. kasir-depan (kosongkan untuk kode acak)"
-                className={INPUT_CLASS}
-              />
-              <p
-                className={`mt-1.5 text-xs ${
-                  slugLooksInvalid
-                    ? "text-lco-coral"
-                    : "text-zinc-500 dark:text-zinc-400"
-                }`}
-              >
-                {customSlug.trim()
-                  ? slugLooksInvalid
-                    ? "Minimal 3 karakter, huruf kecil/angka/tanda hubung saja."
-                    : `Link jadi: .../tv/${slugPreview}`
-                  : "Kosongkan supaya link tetap acak & aman ditebak (disarankan). Isi hanya kalau ingin link pendek yang mudah diketik ulang manual di perangkat TV."}
-              </p>
-            </div>
-          )}
-
-          {formError && (
-            <div className="flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
-              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <p>{formError}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isBusy}
-            className="rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-          >
-            Batal
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleSubmit()}
-            disabled={isBusy}
-            className="inline-flex items-center gap-2 rounded-md bg-lco-green px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isRename ? "Simpan" : "Tambah"}
-          </button>
-        </div>
+        {formError && (
+          <div className="flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <p>{formError}</p>
+          </div>
+        )}
       </div>
-    </div>
+
+      <div className="flex justify-end gap-2 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
+        <Button
+          type="button"
+          onClick={onClose}
+          disabled={isBusy}
+          variant="secondary"
+        >
+          Batal
+        </Button>
+        <Button
+          type="button"
+          onClick={() => void handleSubmit()}
+          disabled={isBusy}
+        >
+          {isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+          {isRename ? "Simpan" : "Tambah"}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 
@@ -542,139 +548,140 @@ function MediaFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4">
-      <div className="flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-          <h3 className="text-sm font-semibold">
-            {isEdit ? "Ubah Media" : "Tambah Media"}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isBusy}
-            aria-label="Tutup"
-            className="rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Modal
+      size="lg"
+      padding="none"
+      layout="flex"
+    >
+      <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+        <h3 className="text-sm font-semibold">
+          {isEdit ? "Ubah Media" : "Tambah Media"}
+        </h3>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isBusy}
+          aria-label="Tutup"
+          className="rounded-md p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
 
-        <div className="space-y-4 overflow-y-auto p-5">
-          {!isEdit && (
-            <div>
-              <label className={LABEL_CLASS}>File (gambar atau video)</label>
-              <input
-                type="file"
-                accept={PROMO_ACCEPT}
-                onChange={handleFileChange}
-                disabled={isBusy}
-                className="block w-full text-sm text-zinc-600 file:mr-3 file:rounded-md file:border file:border-zinc-300 file:bg-white file:px-3 file:py-2 file:text-sm file:font-medium file:text-zinc-700 file:transition-colors file:duration-150 hover:file:bg-zinc-50 disabled:opacity-60 dark:text-zinc-400 dark:file:border-zinc-700 dark:file:bg-zinc-900 dark:file:text-zinc-200 dark:hover:file:bg-zinc-800"
-              />
-              <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-                JPG, PNG, WebP, MP4, atau WebM. Maksimal{" "}
-                <span className="font-mono tabular-nums">
-                  {formatFileSize(PROMO_MAX_FILE_BYTES)}
-                </span>
-                . Video terbaik: MP4 (H.264), 1080p.
-              </p>
-            </div>
-          )}
-
-          {previewUrl && file && (
-            <div className="overflow-hidden rounded-md border border-zinc-200 bg-zinc-950 dark:border-zinc-800">
-              {isVideoPicked ? (
-                <video
-                  src={previewUrl}
-                  controls
-                  muted
-                  playsInline
-                  className="mx-auto max-h-56 w-full"
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element -- pratinjau file lokal (blob:), tidak bisa dioptimasi next/image
-                <img
-                  src={previewUrl}
-                  alt="Pratinjau"
-                  className="mx-auto max-h-56 w-full object-contain"
-                />
-              )}
-            </div>
-          )}
-
+      <div className="space-y-4 overflow-y-auto p-5">
+        {!isEdit && (
           <div>
-            <label className={LABEL_CLASS}>Judul</label>
+            <label className={LABEL_CLASS}>File (gambar atau video)</label>
             <input
-              type="text"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              type="file"
+              accept={PROMO_ACCEPT}
+              onChange={handleFileChange}
               disabled={isBusy}
-              maxLength={120}
-              placeholder="Mis. Promo Kaos Oktober"
-              className={INPUT_CLASS}
+              className="block w-full text-sm text-zinc-600 file:mr-3 file:rounded-md file:border file:border-zinc-300 file:bg-white file:px-3 file:py-2 file:text-sm file:font-medium file:text-zinc-700 file:transition-colors file:duration-150 hover:file:bg-zinc-50 disabled:opacity-60 dark:text-zinc-400 dark:file:border-zinc-700 dark:file:bg-zinc-900 dark:file:text-zinc-200 dark:hover:file:bg-zinc-800"
             />
             <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-              Hanya untuk penanda di daftar ini — tidak tampil di layar TV.
+              JPG, PNG, WebP, MP4, atau WebM. Maksimal{" "}
+              <span className="font-mono tabular-nums">
+                {formatFileSize(PROMO_MAX_FILE_BYTES)}
+              </span>
+              . Video terbaik: MP4 (H.264), 1080p.
             </p>
           </div>
+        )}
 
-          {isImage && (
-            <div>
-              <label className={LABEL_CLASS}>Lama tayang (detik)</label>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={PROMO_DURATION_MIN}
-                max={PROMO_DURATION_MAX}
-                step={1}
-                value={duration}
-                onChange={(event) => setDuration(event.target.value)}
-                disabled={isBusy}
-                className={`${INPUT_CLASS} font-mono tabular-nums`}
+        {previewUrl && file && (
+          <div className="overflow-hidden rounded-md border border-zinc-200 bg-zinc-950 dark:border-zinc-800">
+            {isVideoPicked ? (
+              <video
+                src={previewUrl}
+                controls
+                muted
+                playsInline
+                className="mx-auto max-h-56 w-full"
               />
-              <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
-                {PROMO_DURATION_MIN}–{PROMO_DURATION_MAX} detik. Video diputar
-                sampai selesai.
-              </p>
-            </div>
-          )}
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element -- pratinjau file lokal (blob:), tidak bisa dioptimasi next/image
+              <img
+                src={previewUrl}
+                alt="Pratinjau"
+                className="mx-auto max-h-56 w-full object-contain"
+              />
+            )}
+          </div>
+        )}
 
-          {formError && (
-            <div className="flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
-              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <p>{formError}</p>
-            </div>
-          )}
+        <div>
+          <label className={LABEL_CLASS}>Judul</label>
+          <Input
+            type="text"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            disabled={isBusy}
+            maxLength={120}
+            placeholder="Mis. Promo Kaos Oktober"
+            size="lg"
+          />
+          <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+            Hanya untuk penanda di daftar ini — tidak tampil di layar TV.
+          </p>
+        </div>
 
-          {isBusy && !isEdit && (
-            <p className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Mengunggah... jangan tutup halaman ini (video besar bisa butuh
-              beberapa menit).
+        {isImage && (
+          <div>
+            <label className={LABEL_CLASS}>Lama tayang (detik)</label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={PROMO_DURATION_MIN}
+              max={PROMO_DURATION_MAX}
+              step={1}
+              value={duration}
+              onChange={(event) => setDuration(event.target.value)}
+              disabled={isBusy}
+              size="lg" className="font-mono tabular-nums"
+            />
+            <p className="mt-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+              {PROMO_DURATION_MIN}–{PROMO_DURATION_MAX} detik. Video diputar
+              sampai selesai.
             </p>
-          )}
-        </div>
+          </div>
+        )}
 
-        <div className="flex justify-end gap-2 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isBusy}
-            className="rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-          >
-            Batal
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleSubmit()}
-            disabled={isBusy}
-            className="inline-flex items-center gap-2 rounded-md bg-lco-green px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isEdit ? "Simpan" : "Unggah"}
-          </button>
-        </div>
+        {formError && (
+          <div className="flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <p>{formError}</p>
+          </div>
+        )}
+
+        {isBusy && !isEdit && (
+          <p className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Mengunggah... jangan tutup halaman ini (video besar bisa butuh
+            beberapa menit).
+          </p>
+        )}
       </div>
-    </div>
+
+      <div className="flex justify-end gap-2 border-t border-zinc-200 px-5 py-4 dark:border-zinc-800">
+        <Button
+          type="button"
+          onClick={onClose}
+          disabled={isBusy}
+          variant="secondary"
+        >
+          Batal
+        </Button>
+        <Button
+          type="button"
+          onClick={() => void handleSubmit()}
+          disabled={isBusy}
+        >
+          {isBusy && <Loader2 className="h-4 w-4 animate-spin" />}
+          {isEdit ? "Simpan" : "Unggah"}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 
@@ -770,26 +777,25 @@ function ScreenMediaManager({
         </div>
 
         <div className="flex shrink-0 gap-2">
-          <button
+          <Button
             type="button"
             onClick={() => setShowLinkModal(true)}
-            className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            variant="secondary"
           >
             <QrCode className="h-4 w-4" />
             Link & QR
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => {
               setActionError("");
               setSuccessMessage("");
               setFormTarget({ mode: "add" });
             }}
-            className="inline-flex items-center gap-2 rounded-md bg-lco-green px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover"
           >
             <Plus className="h-4 w-4" />
             Tambah Media
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -835,13 +841,14 @@ function ScreenMediaManager({
         <div className="rounded-xl border border-lco-coral/30 bg-white p-6 text-center dark:bg-zinc-950">
           <AlertCircle className="mx-auto mb-2 h-5 w-5 text-lco-coral" />
           <p className="text-sm text-lco-coral">{error}</p>
-          <button
+          <Button
             type="button"
             onClick={() => void refetch()}
-            className="mt-3 rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            variant="secondary"
+            className="mt-3"
           >
             Coba lagi
-          </button>
+          </Button>
         </div>
       ) : items.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center dark:border-zinc-700 dark:bg-zinc-950">
@@ -1032,53 +1039,55 @@ function ScreenMediaManager({
           produk di ProdukModule.tsx. Beda penting: di sini hapus PERMANEN
           (tidak ada Sampah untuk media promosi, lihat migration 026/027). */}
       {deletingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="mb-3 flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lco-coral/10 text-lco-coral">
-                <Trash2 className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold">Hapus media?</h3>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                    {deletingItem.title}
-                  </span>{" "}
-                  akan dihapus permanen beserta filenya dan tidak bisa
-                  dipulihkan. Kalau hanya ingin berhenti menayangkan sementara,
-                  pakai tombol sembunyikan (ikon mata).
-                </p>
-              </div>
+        <Modal
+          size="sm"
+          padding="md"
+          layout="plain"
+        >
+          <div className="mb-3 flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lco-coral/10 text-lco-coral">
+              <Trash2 className="h-4 w-4" />
             </div>
-
-            {deleteError && (
-              <div className="mb-3 flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
-                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <p className="break-all">{deleteError}</p>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setDeletingItem(null)}
-                disabled={isMutating}
-                className="rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleConfirmDelete()}
-                disabled={isMutating}
-                className="inline-flex items-center gap-2 rounded-md bg-lco-coral px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-coral/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isMutating && <Loader2 className="h-4 w-4 animate-spin" />}
-                Ya, Hapus
-              </button>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold">Hapus media?</h3>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                  {deletingItem.title}
+                </span>{" "}
+                akan dihapus permanen beserta filenya dan tidak bisa
+                dipulihkan. Kalau hanya ingin berhenti menayangkan sementara,
+                pakai tombol sembunyikan (ikon mata).
+              </p>
             </div>
           </div>
-        </div>
+
+          {deleteError && (
+            <div className="mb-3 flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <p className="break-all">{deleteError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              onClick={() => setDeletingItem(null)}
+              disabled={isMutating}
+              variant="secondary"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleConfirmDelete()}
+              disabled={isMutating}
+              variant="danger"
+            >
+              {isMutating && <Loader2 className="h-4 w-4 animate-spin" />}
+              Ya, Hapus
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );
@@ -1201,18 +1210,17 @@ export default function PromoModule() {
           </p>
         </div>
 
-        <button
+        <Button
           type="button"
           onClick={() => {
             setActionError("");
             setSuccessMessage("");
             setScreenFormTarget({ mode: "add" });
           }}
-          className="inline-flex items-center gap-2 rounded-md bg-lco-green px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover"
         >
           <Plus className="h-4 w-4" />
           Tambah TV
-        </button>
+        </Button>
       </div>
 
       {successMessage && (
@@ -1260,13 +1268,14 @@ export default function PromoModule() {
         <div className="rounded-xl border border-lco-coral/30 bg-white p-6 text-center dark:bg-zinc-950">
           <AlertCircle className="mx-auto mb-2 h-5 w-5 text-lco-coral" />
           <p className="text-sm text-lco-coral">{error}</p>
-          <button
+          <Button
             type="button"
             onClick={() => void refetch()}
-            className="mt-3 rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            variant="secondary"
+            className="mt-3"
           >
             Coba lagi
-          </button>
+          </Button>
         </div>
       ) : screens.length === 0 ? (
         <div className="rounded-xl border border-dashed border-zinc-300 bg-white p-10 text-center dark:border-zinc-700 dark:bg-zinc-950">
@@ -1424,53 +1433,55 @@ export default function PromoModule() {
       )}
 
       {deletingScreen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="mb-3 flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lco-coral/10 text-lco-coral">
-                <Trash2 className="h-4 w-4" />
-              </div>
-              <div className="min-w-0">
-                <h3 className="text-sm font-semibold">Hapus TV?</h3>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                    {deletingScreen.name}
-                  </span>{" "}
-                  beserta SEMUA media dan filenya akan dihapus permanen dan
-                  tidak bisa dipulihkan. Kalau hanya ingin berhenti menayangkan
-                  sementara, pakai tombol nonaktifkan (ikon mata).
-                </p>
-              </div>
+        <Modal
+          size="sm"
+          padding="md"
+          layout="plain"
+        >
+          <div className="mb-3 flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lco-coral/10 text-lco-coral">
+              <Trash2 className="h-4 w-4" />
             </div>
-
-            {deleteError && (
-              <div className="mb-3 flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
-                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <p className="break-all">{deleteError}</p>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setDeletingScreen(null)}
-                disabled={isMutating}
-                className="rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleConfirmDeleteScreen()}
-                disabled={isMutating}
-                className="inline-flex items-center gap-2 rounded-md bg-lco-coral px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-coral/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isMutating && <Loader2 className="h-4 w-4 animate-spin" />}
-                Ya, Hapus
-              </button>
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold">Hapus TV?</h3>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                  {deletingScreen.name}
+                </span>{" "}
+                beserta SEMUA media dan filenya akan dihapus permanen dan
+                tidak bisa dipulihkan. Kalau hanya ingin berhenti menayangkan
+                sementara, pakai tombol nonaktifkan (ikon mata).
+              </p>
             </div>
           </div>
-        </div>
+
+          {deleteError && (
+            <div className="mb-3 flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <p className="break-all">{deleteError}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              onClick={() => setDeletingScreen(null)}
+              disabled={isMutating}
+              variant="secondary"
+            >
+              Batal
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleConfirmDeleteScreen()}
+              disabled={isMutating}
+              variant="danger"
+            >
+              {isMutating && <Loader2 className="h-4 w-4 animate-spin" />}
+              Ya, Hapus
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -38,6 +38,9 @@ import {
   stockStatusColorClass,
   type StockStatus,
 } from "./stokUtils";
+import Select from "@/app/components/ui/Select";
+import Button from "@/app/components/ui/Button";
+import Input from "@/app/components/ui/Input";
 
 const PAGE_SIZE = 50;
 
@@ -178,9 +181,7 @@ export default function StokSaatIniTab({
     "rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950";
   const labelClass =
     "flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400";
-  const inputClass =
-    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950";
-
+  
   return (
     <div>
       {/* ---------------- Kartu ringkasan ---------------- */}
@@ -236,7 +237,7 @@ export default function StokSaatIniTab({
         <div className="flex flex-col gap-3 md:flex-row md:items-end">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
-            <input
+            <Input
               type="text"
               value={search}
               onChange={(e) => {
@@ -244,18 +245,17 @@ export default function StokSaatIniTab({
                 setPage(0);
               }}
               placeholder="Cari nama, SKU, atau barcode..."
-              className={`${inputClass} w-full pl-9`}
+              className="pl-9"
             />
           </div>
 
-          <select
+          <Select
             value={categoryId}
             onChange={(e) => {
               setCategoryId(e.target.value);
               setPage(0);
             }}
             aria-label="Filter kategori"
-            className={inputClass}
           >
             <option value="">Semua kategori</option>
             {categories.map((category) => (
@@ -263,34 +263,33 @@ export default function StokSaatIniTab({
                 {category.name}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <select
+          <Select
             value={sortKey}
             onChange={(e) => {
               setSortKey(e.target.value as SortKey);
               setPage(0);
             }}
             aria-label="Urutkan"
-            className={inputClass}
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.key} value={option.key}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
 
-          <button
+          <Button
             type="button"
             onClick={() => exportStockToExcel(filtered)}
             disabled={filtered.length === 0}
             title="Ekspor daftar yang sedang tampil (sesuai filter & urutan) ke Excel"
-            className="flex items-center justify-center gap-2 rounded-md border border-zinc-300 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+            variant="secondary"
           >
             <FileSpreadsheet className="h-4 w-4" />
             Ekspor Excel
-          </button>
+          </Button>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-1.5">

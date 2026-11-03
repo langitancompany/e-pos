@@ -24,6 +24,7 @@ import {
   type CustomerWithStats,
   type PointLog,
 } from "@/hooks/useCustomerAdmin";
+import Button from "@/app/components/ui/Button";
 
 type Tab = "ringkasan" | "transaksi" | "poin";
 
@@ -171,27 +172,30 @@ export default function PelangganDetailPanel({
           )}
           {canEdit && (
             <>
-              <button
+              <Button
                 type="button"
                 onClick={onEdit}
-                className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                variant="secondary"
+                size="sm"
               >
                 <Pencil className="h-3.5 w-3.5" /> Ubah
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={onAdjustPoints}
-                className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+                variant="secondary"
+                size="sm"
               >
                 <Coins className="h-3.5 w-3.5" /> Sesuaikan Poin
-              </button>
+              </Button>
             </>
           )}
           {canDelete && (
-            <button
+            <Button
               type="button"
               onClick={onToggleActive}
-              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+              variant="secondary"
+              size="sm"
             >
               {customer.is_active ? (
                 <>
@@ -202,7 +206,7 @@ export default function PelangganDetailPanel({
                   <ArchiveRestore className="h-3.5 w-3.5" /> Aktifkan
                 </>
               )}
-            </button>
+            </Button>
           )}
         </div>
 

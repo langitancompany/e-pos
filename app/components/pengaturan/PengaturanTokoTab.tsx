@@ -27,6 +27,8 @@ import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Save } from "lucide-react";
 import { useSettings, type Settings } from "@/hooks/useSettings";
 import { normalizePromoUrl } from "@/lib/pos/receiptQr";
+import Select from "@/app/components/ui/Select";
+import Input from "@/app/components/ui/Input";
 
 const inputClass =
   "w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800";
@@ -149,23 +151,23 @@ export default function PengaturanTokoTab() {
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass}>Nama Toko</label>
-            <input
+            <Input
               type="text"
               value={form.namaToko}
               onChange={(e) => updateField("namaToko", e.target.value)}
               disabled={isSaving}
-              className={inputClass}
+              size="lg"
             />
           </div>
           <div>
             <label className={labelClass}>Telepon</label>
-            <input
+            <Input
               type="text"
               value={form.telepon}
               onChange={(e) => updateField("telepon", e.target.value)}
               disabled={isSaving}
               placeholder="mis. 0812xxxxxxx"
-              className={inputClass}
+              size="lg"
             />
           </div>
           <div className="sm:col-span-2">
@@ -274,7 +276,9 @@ export default function PengaturanTokoTab() {
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label className={labelClass}>Format Default</label>
-            <select
+            <Select
+              size="lg"
+              fullWidth
               value={form.printDefault}
               onChange={(e) =>
                 updateField(
@@ -283,15 +287,16 @@ export default function PengaturanTokoTab() {
                 )
               }
               disabled={isSaving}
-              className={inputClass}
             >
               <option value="struk">Struk Thermal</option>
               <option value="nota">Nota A6/A5</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className={labelClass}>Ukuran Kertas Nota</label>
-            <select
+            <Select
+              size="lg"
+              fullWidth
               value={form.paperNota}
               onChange={(e) =>
                 updateField(
@@ -300,15 +305,16 @@ export default function PengaturanTokoTab() {
                 )
               }
               disabled={isSaving}
-              className={inputClass}
             >
               <option value="A6">A6</option>
               <option value="A5">A5</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className={labelClass}>Ukuran Kertas Thermal</label>
-            <select
+            <Select
+              size="lg"
+              fullWidth
               value={form.paperThermal}
               onChange={(e) =>
                 updateField(
@@ -317,11 +323,10 @@ export default function PengaturanTokoTab() {
                 )
               }
               disabled={isSaving}
-              className={inputClass}
             >
               <option value="58mm">58mm</option>
               <option value="80mm">80mm</option>
-            </select>
+            </Select>
           </div>
         </div>
       </div>
@@ -382,14 +387,14 @@ export default function PengaturanTokoTab() {
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className={labelClass}>Link Promosi (untuk QR)</label>
-              <input
+              <Input
                 type="text"
                 inputMode="url"
                 value={form.promoUrl}
                 onChange={(e) => updateField("promoUrl", e.target.value)}
                 disabled={isSaving}
                 placeholder="mis. linktr.ee/langitan.co"
-                className={inputClass}
+                size="lg"
               />
               <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                 Pakai link pendek (Linktree / link-in-bio) supaya QR lebih besar
@@ -400,14 +405,14 @@ export default function PengaturanTokoTab() {
             </div>
             <div className="sm:col-span-2">
               <label className={labelClass}>Teks Ajakan</label>
-              <input
+              <Input
                 type="text"
                 value={form.promoText}
                 onChange={(e) => updateField("promoText", e.target.value)}
                 disabled={isSaving}
                 maxLength={60}
                 placeholder="Scan untuk ikuti kami"
-                className={inputClass}
+                size="lg"
               />
             </div>
           </div>

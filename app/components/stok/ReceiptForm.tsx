@@ -25,6 +25,8 @@ import type {
   ReceiveStockResult,
 } from "@/hooks/useStockReceipts";
 import { formatNumber, formatRupiah, toDateInputValue } from "./stokUtils";
+import Button from "@/app/components/ui/Button";
+import Input from "@/app/components/ui/Input";
 
 interface FormLine {
   productId: string;
@@ -258,47 +260,43 @@ export default function ReceiptForm({
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div>
             <label className={labelClass}>Tanggal terima</label>
-            <input
+            <Input
               type="date"
               value={receivedAt}
               max={today}
               onChange={(e) => setReceivedAt(e.target.value)}
               disabled={isSaving}
-              className={inputClass}
             />
           </div>
           <div>
             <label className={labelClass}>Supplier (opsional)</label>
-            <input
+            <Input
               type="text"
               value={supplier}
               onChange={(e) => setSupplier(e.target.value)}
               disabled={isSaving}
               placeholder="Nama supplier / pengirim"
-              className={inputClass}
             />
           </div>
           <div>
             <label className={labelClass}>No. referensi (opsional)</label>
-            <input
+            <Input
               type="text"
               value={referenceNo}
               onChange={(e) => setReferenceNo(e.target.value)}
               disabled={isSaving}
               placeholder="Nomor nota / surat jalan"
-              className={inputClass}
             />
           </div>
         </div>
 
         <div className="mt-3">
           <label className={labelClass}>Catatan (opsional)</label>
-          <input
+          <Input
             type="text"
             value={note}
             onChange={(e) => setNote(e.target.value)}
             disabled={isSaving}
-            className={inputClass}
           />
         </div>
       </div>
@@ -311,7 +309,7 @@ export default function ReceiptForm({
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
-          <input
+          <Input
             ref={searchInputRef}
             type="text"
             value={query}
@@ -326,7 +324,7 @@ export default function ReceiptForm({
             disabled={isSaving}
             placeholder="Nama, SKU, atau barcode..."
             autoComplete="off"
-            className={`${inputClass} pl-9`}
+            className="pl-9"
           />
 
           {isPickerOpen && query.trim() !== "" && (
@@ -416,7 +414,7 @@ export default function ReceiptForm({
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <input
+                        <Input
                           type="number"
                           inputMode="numeric"
                           min={1}
@@ -427,7 +425,7 @@ export default function ReceiptForm({
                           }
                           disabled={isSaving}
                           aria-label={`Jumlah masuk ${line.name}`}
-                          className={`${inputClass} w-24 text-right font-mono tabular-nums`}
+                          className="w-24 text-right font-mono tabular-nums"
                         />
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -519,11 +517,12 @@ export default function ReceiptForm({
           </div>
         )}
 
-        <button
+        <Button
           type="button"
           onClick={handleSubmit}
           disabled={isSaving || lines.length === 0}
-          className="flex w-full items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-60"
+          size="lg"
+          fullWidth
         >
           {isSaving ? (
             <>
@@ -533,7 +532,7 @@ export default function ReceiptForm({
           ) : (
             "Simpan Barang Masuk"
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

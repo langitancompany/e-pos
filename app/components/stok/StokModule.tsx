@@ -52,6 +52,8 @@ import StokRiwayatTab, {
   EMPTY_RIWAYAT_FILTERS,
   type RiwayatFilters,
 } from "./StokRiwayatTab";
+import TabSwitcher from "@/app/components/ui/TabSwitcher";
+import Button from "@/app/components/ui/Button";
 
 type StokTab = "saat_ini" | "barang_masuk" | "opname" | "riwayat";
 
@@ -182,35 +184,24 @@ export default function StokModule() {
         </div>
 
         {canAdjustStock && (
-          <button
+          <Button
             type="button"
             onClick={() => setModal({ isOpen: true, product: null })}
-            className="flex items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover"
+            size="lg"
           >
             <ClipboardCheck className="h-4 w-4" />
             Penyesuaian Cepat
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Tab switcher — gaya "segmented control" yang sama dengan menu Pengaturan. */}
-      <div className="mb-4 inline-flex w-fit flex-wrap gap-1 rounded-xl bg-zinc-200/70 p-1 dark:bg-zinc-900">
-        {TABS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors duration-150 ${
-              activeTab === key
-                ? "bg-white text-lco-green shadow-sm dark:bg-zinc-800 dark:text-lco-teal"
-                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
+      <TabSwitcher
+        tabs={TABS}
+        value={activeTab}
+        onChange={setActiveTab}
+        className="mb-4"
+      />
 
       {activeTab === "saat_ini" && (
         <StokSaatIniTab

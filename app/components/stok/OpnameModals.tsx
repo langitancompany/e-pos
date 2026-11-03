@@ -31,6 +31,9 @@ import {
 } from "./stokUtils";
 import { itemDiff, type OpnameStats } from "./opnameUtils";
 import { printCountSheet } from "./stokPrint";
+import Select from "@/app/components/ui/Select";
+import Button from "@/app/components/ui/Button";
+import Input from "@/app/components/ui/Input";
 
 const overlayClass =
   "fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4";
@@ -140,22 +143,21 @@ export function OpnameStartModal({
         <div className="space-y-4">
           <div>
             <label className={labelClass}>Nama sesi (opsional)</label>
-            <input
+            <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Contoh: Opname rak kaos akhir bulan"
-              className={inputClass}
               disabled={isSaving}
             />
           </div>
 
           <div>
             <label className={labelClass}>Cakupan produk</label>
-            <select
+            <Select
+              fullWidth
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className={inputClass}
               disabled={isSaving}
             >
               <option value="">Semua produk berstok</option>
@@ -164,7 +166,7 @@ export function OpnameStartModal({
                   Kategori: {category.name}
                 </option>
               ))}
-            </select>
+            </Select>
             <p className="mt-1 text-[11px] text-zinc-400">
               {formatNumber(productCount)} produk akan masuk daftar hitung.
               Produk jasa dan produk yang sudah dihapus tidak ikut.
@@ -429,14 +431,16 @@ export function OpnameFinalizeModal({
         {error && <ErrorBox message={error} />}
 
         <div className="mt-5 flex gap-2">
-          <button
+          <Button
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="w-full rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-900"
+            variant="secondary"
+            size="lg"
+            fullWidth
           >
             Kembali
-          </button>
+          </Button>
           <button
             type="button"
             onClick={handleFinalize}
@@ -519,14 +523,16 @@ export function OpnameCancelModal({
         {error && <ErrorBox message={error} />}
 
         <div className="mt-5 flex gap-2">
-          <button
+          <Button
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="w-full rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-900"
+            variant="secondary"
+            size="lg"
+            fullWidth
           >
             Kembali
-          </button>
+          </Button>
           <button
             type="button"
             onClick={handleCancel}
@@ -639,13 +645,15 @@ export function OpnamePrintModal({
         {error && <ErrorBox message={error} />}
 
         <div className="mt-5 flex gap-2">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="w-full rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+            variant="secondary"
+            size="lg"
+            fullWidth
           >
             Batal
-          </button>
+          </Button>
           <button
             type="button"
             onClick={handlePrint}

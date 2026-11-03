@@ -50,6 +50,7 @@ import {
   type MidtransOrder,
   type MidtransStatusResult,
 } from "@/lib/midtrans/client";
+import Modal from "@/app/components/ui/Modal";
 
 // ── TAMBAHAN (bug: preview tidak sama dengan hasil cetak) ── Duplikat kecil
 // dari METHOD_LABELS/formatMethod() di printLogic.ts (tidak diexport dari
@@ -1029,472 +1030,117 @@ export default function PaymentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 p-4">
-      <div className="bg-white dark:bg-zinc-950 rounded-xl w-full max-w-lg border border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden max-h-[90vh]">
-        <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
-          <h2 className="font-semibold text-base tracking-tight text-zinc-900 dark:text-zinc-100">
-            Pembayaran
-          </h2>
-          <button
-            onClick={handleRequestClose}
-            disabled={isProcessing}
-            className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-md transition-colors duration-150 text-zinc-500 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <Modal
+      size="lg"
+      padding="none"
+      layout="flex"
+    >
+      <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+        <h2 className="font-semibold text-base tracking-tight text-zinc-900 dark:text-zinc-100">
+          Pembayaran
+        </h2>
+        <button
+          onClick={handleRequestClose}
+          disabled={isProcessing}
+          className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-md transition-colors duration-150 text-zinc-500 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="p-5 flex-1 overflow-y-auto">
+        <div className="bg-zinc-50 dark:bg-zinc-900/90 p-5 rounded-xl text-center mb-6 border border-zinc-200 dark:border-zinc-800">
+          {tax > 0 && (
+            <div className="flex flex-col gap-1 mb-3 pb-3 border-b border-dashed border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span className="font-mono tabular-nums">
+                  {formatRp(subtotal)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Pajak (PPN)</span>
+                <span className="font-mono tabular-nums">
+                  {formatRp(tax)}
+                </span>
+              </div>
+            </div>
+          )}
+          <p className="text-[10px] uppercase tracking-[0.12em] text-zinc-500 font-semibold mb-2">
+            Total Tagihan
+          </p>
+          <p className="text-3xl font-mono tabular-nums font-semibold leading-none text-zinc-900 dark:text-zinc-100">
+            {formatRp(total)}
+          </p>
         </div>
 
-        <div className="p-5 flex-1 overflow-y-auto">
-          <div className="bg-zinc-50 dark:bg-zinc-900/90 p-5 rounded-xl text-center mb-6 border border-zinc-200 dark:border-zinc-800">
-            {tax > 0 && (
-              <div className="flex flex-col gap-1 mb-3 pb-3 border-b border-dashed border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span className="font-mono tabular-nums">
-                    {formatRp(subtotal)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Pajak (PPN)</span>
-                  <span className="font-mono tabular-nums">
-                    {formatRp(tax)}
-                  </span>
-                </div>
-              </div>
-            )}
-            <p className="text-[10px] uppercase tracking-[0.12em] text-zinc-500 font-semibold mb-2">
-              Total Tagihan
-            </p>
-            <p className="text-3xl font-mono tabular-nums font-semibold leading-none text-zinc-900 dark:text-zinc-100">
-              {formatRp(total)}
-            </p>
+        {/* ── TAMBAHAN (021) ── Pemilih mode: satu metode / split. Hanya tampil
+            kalau parent menyediakan onConfirmSplitPayment. */}
+        {splitAvailable && (
+          <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-md p-0.5 border border-zinc-200 dark:border-zinc-800 mb-5">
+            {(
+              [
+                { value: "single", label: "Satu Metode" },
+                { value: "split", label: "Split Bayar" },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  setLocalError(null);
+                  setMode(opt.value);
+                }}
+                disabled={lockInputs}
+                className={`flex-1 px-3 py-2 text-xs font-medium rounded-sm transition-colors duration-150 disabled:cursor-not-allowed ${
+                  mode === opt.value
+                    ? "bg-white dark:bg-zinc-950 text-lco-teal border border-zinc-200 dark:border-zinc-800"
+                    : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-transparent"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
+        )}
 
-          {/* ── TAMBAHAN (021) ── Pemilih mode: satu metode / split. Hanya tampil
-              kalau parent menyediakan onConfirmSplitPayment. */}
-          {splitAvailable && (
-            <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-md p-0.5 border border-zinc-200 dark:border-zinc-800 mb-5">
-              {(
-                [
-                  { value: "single", label: "Satu Metode" },
-                  { value: "split", label: "Split Bayar" },
-                ] as const
-              ).map((opt) => (
+        {!isSplit && (
+          <>
+            <div
+              className={`grid gap-2 mb-6 ${availableMethods.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}
+            >
+              {availableMethods.map(({ value, label, icon: Icon }) => (
                 <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => {
-                    setLocalError(null);
-                    setMode(opt.value);
-                  }}
+                  key={value}
+                  onClick={() => setMethod(value)}
                   disabled={lockInputs}
-                  className={`flex-1 px-3 py-2 text-xs font-medium rounded-sm transition-colors duration-150 disabled:cursor-not-allowed ${
-                    mode === opt.value
-                      ? "bg-white dark:bg-zinc-950 text-lco-teal border border-zinc-200 dark:border-zinc-800"
-                      : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 border border-transparent"
-                  }`}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${method === value ? "border-lco-teal bg-zinc-50 dark:bg-zinc-900 text-lco-teal" : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-500 hover:border-lco-teal/50"}`}
                 >
-                  {opt.label}
+                  <Icon className="w-5 h-5" />
+                  <span className="font-medium text-[11px] text-center leading-tight">
+                    {label}
+                  </span>
                 </button>
               ))}
             </div>
-          )}
 
-          {!isSplit && (
-            <>
-              <div
-                className={`grid gap-2 mb-6 ${availableMethods.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}
-              >
-                {availableMethods.map(({ value, label, icon: Icon }) => (
-                  <button
-                    key={value}
-                    onClick={() => setMethod(value)}
-                    disabled={lockInputs}
-                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${method === value ? "border-lco-teal bg-zinc-50 dark:bg-zinc-900 text-lco-teal" : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-500 hover:border-lco-teal/50"}`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium text-[11px] text-center leading-tight">
-                      {label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* ── TAMBAHAN (013) ── Identitas pelanggan opsional (PRD §4.2), khusus
-              di sini untuk metode SELAIN TEMPO — TEMPO sudah punya field Nama
-              wajib + field HP opsional sendiri di bloknya masing-masing di
-              bawah, jadi tidak perlu field nama dobel. */}
-              {method !== "TEMPO" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                      Nama Pelanggan{" "}
-                      <span className="normal-case font-normal text-zinc-400">
-                        (opsional)
-                      </span>
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        disabled={lockInputs}
-                        placeholder="Nama"
-                        className="w-full pl-10 pr-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                      No. HP{" "}
-                      <span className="normal-case font-normal text-zinc-400">
-                        (opsional)
-                      </span>
-                    </label>
-                    <div className="relative">
-                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                      <input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        disabled={lockInputs}
-                        placeholder="08xxxxxxxxxx"
-                        className="w-full pl-10 pr-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {method === "CASH" && (
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                      Uang Diterima
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-zinc-400">
-                        Rp
-                      </span>
-                      <MoneyInput
-                        value={paidAmount || ""}
-                        onValueChange={(raw) => setPaidAmount(Number(raw))}
-                        disabled={lockInputs}
-                        className="w-full pl-12 pr-4 py-3 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
-                        placeholder="0"
-                        autoFocus
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <button
-                      onClick={() => setPaidAmount(total)}
-                      disabled={lockInputs}
-                      className="py-2 px-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-lco-teal/50 rounded-md text-xs font-medium transition-colors duration-150 text-zinc-700 dark:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Uang Pas
-                    </button>
-                    <button
-                      onClick={() => setPaidAmount(50000)}
-                      disabled={lockInputs}
-                      className="py-2 px-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-lco-teal/50 rounded-md text-xs font-mono tabular-nums font-medium transition-colors duration-150 text-zinc-700 dark:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      50.000
-                    </button>
-                    <button
-                      onClick={() => setPaidAmount(100000)}
-                      disabled={lockInputs}
-                      className="py-2 px-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-lco-teal/50 rounded-md text-xs font-mono tabular-nums font-medium transition-colors duration-150 text-zinc-700 dark:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      100.000
-                    </button>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 mt-2">
-                    <span className="text-xs font-medium text-zinc-500">
-                      Kembalian
-                    </span>
-                    <span
-                      className={`font-mono text-xl font-semibold tabular-nums ${changeAmount < 0 ? "text-lco-coral" : "text-zinc-900 dark:text-zinc-100"}`}
-                    >
-                      {changeAmount < 0 ? "Rp 0" : formatRp(changeAmount)}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {method === "DIGITAL" && (
-                <div className="p-4 bg-lco-mustard/10 rounded-xl border border-lco-mustard/30 text-center">
-                  <QrCode className="w-6 h-6 mx-auto text-lco-mustard mb-2" />
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                    Nominal dibayar penuh sebesar{" "}
-                    <span className="font-mono font-semibold">
-                      {formatRp(total)}
-                    </span>{" "}
-                    lewat pembayaran digital (Virtual Account, QRIS, dll. via
-                    Midtrans). Transaksi baru tersimpan setelah pembayaran
-                    lunas.
-                  </p>
-                </div>
-              )}
-
-              {method === "TEMPO" && (
-                <div className="space-y-4">
-                  <div className="p-4 bg-lco-coral/10 rounded-xl border border-lco-coral/30 text-center">
-                    <CalendarClock className="w-6 h-6 mx-auto text-lco-coral mb-2" />
-                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                      Transaksi tercatat sebagai piutang sebesar{" "}
-                      <span className="font-mono font-semibold">
-                        {formatRp(total)}
-                      </span>
-                      . Nama &amp; jatuh tempo wajib diisi.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                      Nama Pelanggan <span className="text-lco-coral">*</span>
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                      <input
-                        type="text"
-                        value={customerName}
-                        onChange={(e) => setCustomerName(e.target.value)}
-                        disabled={lockInputs}
-                        placeholder="Nama pelanggan"
-                        className="w-full pl-11 pr-4 py-3 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                      Tanggal Jatuh Tempo{" "}
-                      <span className="text-lco-coral">*</span>
-                    </label>
-                    <input
-                      type="date"
-                      value={dueDate}
-                      onChange={(e) => setDueDate(e.target.value)}
-                      disabled={lockInputs}
-                      min={new Date().toISOString().slice(0, 10)}
-                      className="w-full px-4 py-3 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                      No. HP{" "}
-                      <span className="normal-case font-normal text-zinc-400">
-                        (opsional, untuk kirim struk &amp; tagih WA)
-                      </span>
-                    </label>
-                    <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                      <input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        disabled={lockInputs}
-                        placeholder="08xxxxxxxxxx"
-                        className="w-full pl-11 pr-4 py-3 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ── TAMBAHAN (021, T-11 bagian 2) ── UI SPLIT PAYMENT.
-              Aturan: pilih ≥ 2 metode; tiap metode 1 baris; jumlah nominal harus
-              persis = total. TEMPO hanya menampung SISA (nominal otomatis), jadi
-              piutang tidak bisa salah ketik. */}
-          {isSplit && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                  Pilih Metode{" "}
-                  <span className="normal-case font-normal text-zinc-400">
-                    (minimal 2)
-                  </span>
-                </label>
-                <div
-                  className={`grid gap-2 ${availableMethods.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}
-                >
-                  {availableMethods.map(({ value, label, icon: Icon }) => {
-                    const on = splitOn[value];
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => toggleSplitMethod(value)}
-                        disabled={lockInputs}
-                        aria-pressed={on}
-                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${on ? "border-lco-teal bg-zinc-50 dark:bg-zinc-900 text-lco-teal" : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-500 hover:border-lco-teal/50"}`}
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span className="font-medium text-[11px] text-center leading-tight">
-                          {label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {selectedMethods.map((m) => (
-                <div
-                  key={m}
-                  data-split-row={m}
-                  className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                      {methodLabel(m)}
-                    </span>
-                    {m !== "TEMPO" && (
-                      <button
-                        type="button"
-                        onClick={() => fillSplitRemainder(m)}
-                        disabled={lockInputs}
-                        className="text-[11px] font-medium text-lco-teal hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        Isi sisa
-                      </button>
-                    )}
-                  </div>
-
-                  {m === "TEMPO" ? (
-                    <>
-                      <div className="flex items-center justify-between rounded-md bg-lco-coral/10 border border-lco-coral/30 px-3 py-2.5">
-                        <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                          Piutang (sisa otomatis)
-                        </span>
-                        <span
-                          data-testid="tempo-amount"
-                          className="font-mono text-sm font-semibold tabular-nums text-lco-coral"
-                        >
-                          {formatRp(tempoAmount)}
-                        </span>
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
-                          Tanggal Jatuh Tempo{" "}
-                          <span className="text-lco-coral">*</span>
-                        </label>
-                        <input
-                          type="date"
-                          value={dueDate}
-                          onChange={(e) => setDueDate(e.target.value)}
-                          disabled={lockInputs}
-                          min={new Date().toISOString().slice(0, 10)}
-                          className="w-full px-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-zinc-400">
-                        Rp
-                      </span>
-                      <MoneyInput
-                        aria-label={`Nominal ${methodLabel(m)}`}
-                        value={splitAmount[m] || ""}
-                        onValueChange={(raw) =>
-                          setSplitAmountFor(m, Number(raw))
-                        }
-                        disabled={lockInputs}
-                        placeholder="0"
-                        className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-base font-semibold tabular-nums text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
-                      />
-                    </div>
-                  )}
-
-                  {m === "CASH" && (
-                    <div className="space-y-2">
-                      <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                        Uang Diterima{" "}
-                        <span className="normal-case font-normal text-zinc-400">
-                          (kosong = uang pas)
-                        </span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-zinc-400">
-                          Rp
-                        </span>
-                        <MoneyInput
-                          aria-label="Uang diterima tunai"
-                          value={splitCashReceived || ""}
-                          onValueChange={(raw) =>
-                            setSplitCashReceived(Number(raw))
-                          }
-                          disabled={lockInputs}
-                          placeholder="0"
-                          className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-base tabular-nums text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
-                        />
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-zinc-500">Kembalian</span>
-                        <span
-                          data-testid="split-change"
-                          className="font-mono font-semibold tabular-nums text-zinc-900 dark:text-zinc-100"
-                        >
-                          {formatRp(splitCashChange)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {/* Ringkasan: selalu terlihat supaya kasir tahu berapa yang masih kurang. */}
-              <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Total tagihan</span>
-                  <span className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {formatRp(total)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-500">Terbayar</span>
-                  <span
-                    data-testid="split-paid"
-                    className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100"
-                  >
-                    {formatRp(splitPaidSum)}
-                  </span>
-                </div>
-                <div className="flex justify-between font-semibold">
-                  <span className="text-zinc-500">
-                    {total - splitPaidSum < 0 ? "Kelebihan" : "Masih kurang"}
-                  </span>
-                  <span
-                    data-testid="split-remaining"
-                    className={`font-mono tabular-nums ${total - splitPaidSum === 0 ? "text-lco-green" : "text-lco-coral"}`}
-                  >
-                    {formatRp(Math.abs(total - splitPaidSum))}
-                  </span>
-                </div>
-              </div>
-
-              {/* Identitas pelanggan — satu set untuk seluruh transaksi. Nama
-                  WAJIB kalau ada baris TEMPO (aturan RPC). */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* ── TAMBAHAN (013) ── Identitas pelanggan opsional (PRD §4.2), khusus
+            di sini untuk metode SELAIN TEMPO — TEMPO sudah punya field Nama
+            wajib + field HP opsional sendiri di bloknya masing-masing di
+            bawah, jadi tidak perlu field nama dobel. */}
+            {method !== "TEMPO" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                 <div>
                   <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
                     Nama Pelanggan{" "}
-                    {splitOn.TEMPO ? (
-                      <span className="text-lco-coral">*</span>
-                    ) : (
-                      <span className="normal-case font-normal text-zinc-400">
-                        (opsional)
-                      </span>
-                    )}
+                    <span className="normal-case font-normal text-zinc-400">
+                      (opsional)
+                    </span>
                   </label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                     <input
                       type="text"
-                      aria-label="Nama pelanggan"
                       value={customerName}
                       onChange={(e) => setCustomerName(e.target.value)}
                       disabled={lockInputs}
@@ -1514,7 +1160,6 @@ export default function PaymentModal({
                     <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                     <input
                       type="tel"
-                      aria-label="No. HP pelanggan"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       disabled={lockInputs}
@@ -1524,167 +1169,525 @@ export default function PaymentModal({
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ── TAMBAHAN (Midtrans) ── Panel menunggu pembayaran digital. Tombol
-              di dalamnya TIDAK ikut terkunci oleh isProcessing (memang harus
-              bisa ditekan selagi menunggu). */}
-          {digitalPhase !== "idle" && (
-            <div className="mt-5 rounded-xl border border-lco-teal/30 bg-lco-teal/5 p-4">
-              {digitalPhase === "creating" || !digitalOrder ? (
-                <div className="flex items-center justify-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Menyiapkan pembayaran digital...
+            {method === "CASH" && (
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                    Uang Diterima
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-zinc-400">
+                      Rp
+                    </span>
+                    <MoneyInput
+                      value={paidAmount || ""}
+                      onValueChange={(raw) => setPaidAmount(Number(raw))}
+                      disabled={lockInputs}
+                      className="w-full pl-12 pr-4 py-3 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-lg font-semibold tabular-nums text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
+                      placeholder="0"
+                      autoFocus
+                    />
+                  </div>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Loader2 className="w-4 h-4 animate-spin text-lco-teal shrink-0" />
-                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      Menunggu pelanggan membayar
-                    </p>
-                  </div>
-                  <dl className="space-y-1.5 text-xs">
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-zinc-500">Nominal</dt>
-                      <dd className="font-mono font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
-                        {formatRp(digitalOrder.amount)}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-zinc-500 shrink-0">Order ID</dt>
-                      <dd className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300 break-all text-right">
-                        {digitalOrder.orderId}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-zinc-500">Berlaku hingga</dt>
-                      <dd className="font-mono tabular-nums text-zinc-700 dark:text-zinc-300">
-                        {new Date(digitalOrder.expiresAt).toLocaleTimeString(
-                          "id-ID",
-                          { hour: "2-digit", minute: "2-digit" },
-                        )}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-zinc-500">Status</dt>
-                      <dd className="text-zinc-700 dark:text-zinc-300 text-right">
-                        {digitalStatusLabel(digitalMidtransStatus)}
-                      </dd>
-                    </div>
-                  </dl>
-                  <p className="mt-3 text-[11px] text-zinc-500">
-                    Status dicek otomatis setiap 3 detik. Struk keluar sendiri
-                    begitu pembayaran lunas.
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    onClick={() => setPaidAmount(total)}
+                    disabled={lockInputs}
+                    className="py-2 px-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-lco-teal/50 rounded-md text-xs font-medium transition-colors duration-150 text-zinc-700 dark:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Uang Pas
+                  </button>
+                  <button
+                    onClick={() => setPaidAmount(50000)}
+                    disabled={lockInputs}
+                    className="py-2 px-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-lco-teal/50 rounded-md text-xs font-mono tabular-nums font-medium transition-colors duration-150 text-zinc-700 dark:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    50.000
+                  </button>
+                  <button
+                    onClick={() => setPaidAmount(100000)}
+                    disabled={lockInputs}
+                    className="py-2 px-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-lco-teal/50 rounded-md text-xs font-mono tabular-nums font-medium transition-colors duration-150 text-zinc-700 dark:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    100.000
+                  </button>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 mt-2">
+                  <span className="text-xs font-medium text-zinc-500">
+                    Kembalian
+                  </span>
+                  <span
+                    className={`font-mono text-xl font-semibold tabular-nums ${changeAmount < 0 ? "text-lco-coral" : "text-zinc-900 dark:text-zinc-100"}`}
+                  >
+                    {changeAmount < 0 ? "Rp 0" : formatRp(changeAmount)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {method === "DIGITAL" && (
+              <div className="p-4 bg-lco-mustard/10 rounded-xl border border-lco-mustard/30 text-center">
+                <QrCode className="w-6 h-6 mx-auto text-lco-mustard mb-2" />
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                  Nominal dibayar penuh sebesar{" "}
+                  <span className="font-mono font-semibold">
+                    {formatRp(total)}
+                  </span>{" "}
+                  lewat pembayaran digital (Virtual Account, QRIS, dll. via
+                  Midtrans). Transaksi baru tersimpan setelah pembayaran
+                  lunas.
+                </p>
+              </div>
+            )}
+
+            {method === "TEMPO" && (
+              <div className="space-y-4">
+                <div className="p-4 bg-lco-coral/10 rounded-xl border border-lco-coral/30 text-center">
+                  <CalendarClock className="w-6 h-6 mx-auto text-lco-coral mb-2" />
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    Transaksi tercatat sebagai piutang sebesar{" "}
+                    <span className="font-mono font-semibold">
+                      {formatRp(total)}
+                    </span>
+                    . Nama &amp; jatuh tempo wajib diisi.
                   </p>
-                  {digitalNote && (
-                    <p className="mt-2 text-[11px] text-lco-coral">
-                      {digitalNote}
-                    </p>
-                  )}
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={handleReopenSnap}
-                      className="flex items-center justify-center gap-1.5 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors duration-150"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      Buka Pembayaran
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCheckDigitalStatus}
-                      disabled={checkingDigital}
-                      className="flex items-center justify-center gap-1.5 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors duration-150 disabled:opacity-50"
-                    >
-                      <RefreshCw
-                        className={`w-3.5 h-3.5 ${checkingDigital ? "animate-spin" : ""}`}
-                      />
-                      Cek Status
-                    </button>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                    Nama Pelanggan <span className="text-lco-coral">*</span>
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                    <input
+                      type="text"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      disabled={lockInputs}
+                      placeholder="Nama pelanggan"
+                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
+                    />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                    Tanggal Jatuh Tempo{" "}
+                    <span className="text-lco-coral">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    disabled={lockInputs}
+                    min={new Date().toISOString().slice(0, 10)}
+                    className="w-full px-4 py-3 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                    No. HP{" "}
+                    <span className="normal-case font-normal text-zinc-400">
+                      (opsional, untuk kirim struk &amp; tagih WA)
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                    <input
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      disabled={lockInputs}
+                      placeholder="08xxxxxxxxxx"
+                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── TAMBAHAN (021, T-11 bagian 2) ── UI SPLIT PAYMENT.
+            Aturan: pilih ≥ 2 metode; tiap metode 1 baris; jumlah nominal harus
+            persis = total. TEMPO hanya menampung SISA (nominal otomatis), jadi
+            piutang tidak bisa salah ketik. */}
+        {isSplit && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                Pilih Metode{" "}
+                <span className="normal-case font-normal text-zinc-400">
+                  (minimal 2)
+                </span>
+              </label>
+              <div
+                className={`grid gap-2 ${availableMethods.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}
+              >
+                {availableMethods.map(({ value, label, icon: Icon }) => {
+                  const on = splitOn[value];
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => toggleSplitMethod(value)}
+                      disabled={lockInputs}
+                      aria-pressed={on}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${on ? "border-lco-teal bg-zinc-50 dark:bg-zinc-900 text-lco-teal" : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-500 hover:border-lco-teal/50"}`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium text-[11px] text-center leading-tight">
+                        {label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {selectedMethods.map((m) => (
+              <div
+                key={m}
+                data-split-row={m}
+                className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                    {methodLabel(m)}
+                  </span>
+                  {m !== "TEMPO" && (
+                    <button
+                      type="button"
+                      onClick={() => fillSplitRemainder(m)}
+                      disabled={lockInputs}
+                      className="text-[11px] font-medium text-lco-teal hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      Isi sisa
+                    </button>
+                  )}
+                </div>
+
+                {m === "TEMPO" ? (
+                  <>
+                    <div className="flex items-center justify-between rounded-md bg-lco-coral/10 border border-lco-coral/30 px-3 py-2.5">
+                      <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                        Piutang (sisa otomatis)
+                      </span>
+                      <span
+                        data-testid="tempo-amount"
+                        className="font-mono text-sm font-semibold tabular-nums text-lco-coral"
+                      >
+                        {formatRp(tempoAmount)}
+                      </span>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                        Tanggal Jatuh Tempo{" "}
+                        <span className="text-lco-coral">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                        disabled={lockInputs}
+                        min={new Date().toISOString().slice(0, 10)}
+                        className="w-full px-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-zinc-400">
+                      Rp
+                    </span>
+                    <MoneyInput
+                      aria-label={`Nominal ${methodLabel(m)}`}
+                      value={splitAmount[m] || ""}
+                      onValueChange={(raw) =>
+                        setSplitAmountFor(m, Number(raw))
+                      }
+                      disabled={lockInputs}
+                      placeholder="0"
+                      className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-base font-semibold tabular-nums text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
+                    />
+                  </div>
+                )}
+
+                {m === "CASH" && (
+                  <div className="space-y-2">
+                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+                      Uang Diterima{" "}
+                      <span className="normal-case font-normal text-zinc-400">
+                        (kosong = uang pas)
+                      </span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-zinc-400">
+                        Rp
+                      </span>
+                      <MoneyInput
+                        aria-label="Uang diterima tunai"
+                        value={splitCashReceived || ""}
+                        onValueChange={(raw) =>
+                          setSplitCashReceived(Number(raw))
+                        }
+                        disabled={lockInputs}
+                        placeholder="0"
+                        className="w-full pl-12 pr-4 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-base tabular-nums text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-zinc-500">Kembalian</span>
+                      <span
+                        data-testid="split-change"
+                        className="font-mono font-semibold tabular-nums text-zinc-900 dark:text-zinc-100"
+                      >
+                        {formatRp(splitCashChange)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {/* Ringkasan: selalu terlihat supaya kasir tahu berapa yang masih kurang. */}
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-4 space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Total tagihan</span>
+                <span className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
+                  {formatRp(total)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Terbayar</span>
+                <span
+                  data-testid="split-paid"
+                  className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100"
+                >
+                  {formatRp(splitPaidSum)}
+                </span>
+              </div>
+              <div className="flex justify-between font-semibold">
+                <span className="text-zinc-500">
+                  {total - splitPaidSum < 0 ? "Kelebihan" : "Masih kurang"}
+                </span>
+                <span
+                  data-testid="split-remaining"
+                  className={`font-mono tabular-nums ${total - splitPaidSum === 0 ? "text-lco-green" : "text-lco-coral"}`}
+                >
+                  {formatRp(Math.abs(total - splitPaidSum))}
+                </span>
+              </div>
+            </div>
+
+            {/* Identitas pelanggan — satu set untuk seluruh transaksi. Nama
+                WAJIB kalau ada baris TEMPO (aturan RPC). */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                  Nama Pelanggan{" "}
+                  {splitOn.TEMPO ? (
+                    <span className="text-lco-coral">*</span>
+                  ) : (
+                    <span className="normal-case font-normal text-zinc-400">
+                      (opsional)
+                    </span>
+                  )}
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  <input
+                    type="text"
+                    aria-label="Nama pelanggan"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    disabled={lockInputs}
+                    placeholder="Nama"
+                    className="w-full pl-10 pr-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500 mb-2">
+                  No. HP{" "}
+                  <span className="normal-case font-normal text-zinc-400">
+                    (opsional)
+                  </span>
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  <input
+                    type="tel"
+                    aria-label="No. HP pelanggan"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    disabled={lockInputs}
+                    placeholder="08xxxxxxxxxx"
+                    className="w-full pl-10 pr-3 py-2.5 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal transition-colors duration-150 font-mono text-sm text-zinc-900 dark:text-zinc-100 disabled:opacity-60"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAMBAHAN (Midtrans) ── Panel menunggu pembayaran digital. Tombol
+            di dalamnya TIDAK ikut terkunci oleh isProcessing (memang harus
+            bisa ditekan selagi menunggu). */}
+        {digitalPhase !== "idle" && (
+          <div className="mt-5 rounded-xl border border-lco-teal/30 bg-lco-teal/5 p-4">
+            {digitalPhase === "creating" || !digitalOrder ? (
+              <div className="flex items-center justify-center gap-2 text-xs text-zinc-600 dark:text-zinc-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Menyiapkan pembayaran digital...
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-3">
+                  <Loader2 className="w-4 h-4 animate-spin text-lco-teal shrink-0" />
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    Menunggu pelanggan membayar
+                  </p>
+                </div>
+                <dl className="space-y-1.5 text-xs">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-zinc-500">Nominal</dt>
+                    <dd className="font-mono font-semibold tabular-nums text-zinc-900 dark:text-zinc-100">
+                      {formatRp(digitalOrder.amount)}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-zinc-500 shrink-0">Order ID</dt>
+                    <dd className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300 break-all text-right">
+                      {digitalOrder.orderId}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-zinc-500">Berlaku hingga</dt>
+                    <dd className="font-mono tabular-nums text-zinc-700 dark:text-zinc-300">
+                      {new Date(digitalOrder.expiresAt).toLocaleTimeString(
+                        "id-ID",
+                        { hour: "2-digit", minute: "2-digit" },
+                      )}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-zinc-500">Status</dt>
+                    <dd className="text-zinc-700 dark:text-zinc-300 text-right">
+                      {digitalStatusLabel(digitalMidtransStatus)}
+                    </dd>
+                  </div>
+                </dl>
+                <p className="mt-3 text-[11px] text-zinc-500">
+                  Status dicek otomatis setiap 3 detik. Struk keluar sendiri
+                  begitu pembayaran lunas.
+                </p>
+                {digitalNote && (
+                  <p className="mt-2 text-[11px] text-lco-coral">
+                    {digitalNote}
+                  </p>
+                )}
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={handleCancelDigital}
-                    disabled={cancellingDigital}
-                    className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-md border border-lco-coral/40 text-xs font-medium text-lco-coral hover:bg-lco-coral/10 transition-colors duration-150 disabled:opacity-50"
+                    onClick={handleReopenSnap}
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors duration-150"
                   >
-                    {cancellingDigital ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <XCircle className="w-3.5 h-3.5" />
-                    )}
-                    Batalkan Pembayaran Digital
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Buka Pembayaran
                   </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* ── TAMBAHAN (Midtrans) ── Pembayaran digital sudah lunas tetapi
-              transaksi belum tersimpan (mis. koneksi ke database putus). */}
-          {paidDigital && digitalPhase === "idle" && (
-            <div className="mt-5 flex items-start gap-2 rounded-md border border-lco-green/30 bg-lco-green/10 p-3 text-xs text-lco-green">
-              <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold mb-1">
-                  Pembayaran digital diterima
-                </p>
-                <p>
-                  {formatRp(paidDigital.amount)} sudah lunas (Order{" "}
-                  <span className="font-mono">{paidDigital.orderId}</span>).{" "}
-                  {isProcessing
-                    ? "Menyimpan transaksi..."
-                    : "Transaksi belum tersimpan — tekan tombol di bawah untuk menyimpan ulang. Jangan menagih pelanggan lagi."}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {localError && (
-            <div className="mt-5 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold mb-1">Pembayaran gagal</p>
-                <p>{localError}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="p-5 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 shrink-0">
-          <button
-            onClick={isSplit ? handleProcessSplitPayment : handleProcessPayment}
-            disabled={!isPayable || isProcessing}
-            className="w-full py-3 rounded-md bg-lco-green hover:bg-lco-green-hover text-white text-sm font-semibold transition-colors duration-150 disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {digitalPhase !== "idle" ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Menunggu Pembayaran Digital...
+                  <button
+                    type="button"
+                    onClick={handleCheckDigitalStatus}
+                    disabled={checkingDigital}
+                    className="flex items-center justify-center gap-1.5 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors duration-150 disabled:opacity-50"
+                  >
+                    <RefreshCw
+                      className={`w-3.5 h-3.5 ${checkingDigital ? "animate-spin" : ""}`}
+                    />
+                    Cek Status
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCancelDigital}
+                  disabled={cancellingDigital}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-md border border-lco-coral/40 text-xs font-medium text-lco-coral hover:bg-lco-coral/10 transition-colors duration-150 disabled:opacity-50"
+                >
+                  {cancellingDigital ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5" />
+                  )}
+                  Batalkan Pembayaran Digital
+                </button>
               </>
-            ) : isProcessing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Menyimpan Transaksi...
-              </>
-            ) : isSplit && splitError ? (
-              splitError
-            ) : !isSplit && method === "CASH" && !isPayable ? (
-              `Uang Kurang ( ${formatRp(Math.abs(changeAmount))} )`
-            ) : !isSplit && method === "TEMPO" && !isPayable ? (
-              "Lengkapi Nama & Jatuh Tempo"
-            ) : paidDigital ? (
-              "Simpan Transaksi (Digital Sudah Lunas)"
-            ) : (isSplit ? splitOn.DIGITAL : method === "DIGITAL") ? (
-              "Lanjut ke Pembayaran Digital"
-            ) : (
-              "Proses Pembayaran"
             )}
-          </button>
-        </div>
+          </div>
+        )}
+
+        {/* ── TAMBAHAN (Midtrans) ── Pembayaran digital sudah lunas tetapi
+            transaksi belum tersimpan (mis. koneksi ke database putus). */}
+        {paidDigital && digitalPhase === "idle" && (
+          <div className="mt-5 flex items-start gap-2 rounded-md border border-lco-green/30 bg-lco-green/10 p-3 text-xs text-lco-green">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold mb-1">
+                Pembayaran digital diterima
+              </p>
+              <p>
+                {formatRp(paidDigital.amount)} sudah lunas (Order{" "}
+                <span className="font-mono">{paidDigital.orderId}</span>).{" "}
+                {isProcessing
+                  ? "Menyimpan transaksi..."
+                  : "Transaksi belum tersimpan — tekan tombol di bawah untuk menyimpan ulang. Jangan menagih pelanggan lagi."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {localError && (
+          <div className="mt-5 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold mb-1">Pembayaran gagal</p>
+              <p>{localError}</p>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+
+      <div className="p-5 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 shrink-0">
+        <button
+          onClick={isSplit ? handleProcessSplitPayment : handleProcessPayment}
+          disabled={!isPayable || isProcessing}
+          className="w-full py-3 rounded-md bg-lco-green hover:bg-lco-green-hover text-white text-sm font-semibold transition-colors duration-150 disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {digitalPhase !== "idle" ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Menunggu Pembayaran Digital...
+            </>
+          ) : isProcessing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Menyimpan Transaksi...
+            </>
+          ) : isSplit && splitError ? (
+            splitError
+          ) : !isSplit && method === "CASH" && !isPayable ? (
+            `Uang Kurang ( ${formatRp(Math.abs(changeAmount))} )`
+          ) : !isSplit && method === "TEMPO" && !isPayable ? (
+            "Lengkapi Nama & Jatuh Tempo"
+          ) : paidDigital ? (
+            "Simpan Transaksi (Digital Sudah Lunas)"
+          ) : (isSplit ? splitOn.DIGITAL : method === "DIGITAL") ? (
+            "Lanjut ke Pembayaran Digital"
+          ) : (
+            "Proses Pembayaran"
+          )}
+        </button>
+      </div>
+    </Modal>
   );
 }

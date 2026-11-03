@@ -33,6 +33,7 @@ import Toast, { type ToastVariant } from "../ui/Toast";
 import PelangganFormModal from "./PelangganFormModal";
 import PelangganDetailPanel from "./PelangganDetailPanel";
 import PoinAdjustModal from "./PoinAdjustModal";
+import Select from "@/app/components/ui/Select";
 
 // Nilai 1 poin = Rp 100. HARUS sama dengan LOYALTY_POINT_VALUE di
 // app/components/kasir/KasirModule.tsx (konstanta itu tidak di-export);
@@ -349,10 +350,10 @@ export default function PelangganModule() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <select
+            <Select
+              size="sm"
               value={sortKey}
               onChange={(e) => setSortKey(e.target.value as SortKey)}
-              className="rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-xs text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
               aria-label="Urutkan"
             >
               {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
@@ -360,7 +361,7 @@ export default function PelangganModule() {
                   {SORT_LABELS[key]}
                 </option>
               ))}
-            </select>
+            </Select>
 
             <button
               type="button"

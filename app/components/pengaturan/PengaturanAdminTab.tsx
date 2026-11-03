@@ -64,12 +64,12 @@ import {
 } from "@/lib/pos/permissionModules";
 import { holdsPermission, permissionsEqual } from "@/lib/pos/permissionRules";
 import { AddModuleModal, PermissionMatrix } from "./PermissionMatrix";
+import Modal from "@/app/components/ui/Modal";
+import Input from "@/app/components/ui/Input";
 
 const cardCls = "overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900";
 const thCls =
   "px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800";
-const inputCls =
-  "w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors duration-150 placeholder-zinc-400 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal/20 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder-zinc-500";
 const labelCls = "mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400";
 const primaryBtn =
   "inline-flex items-center justify-center gap-1.5 rounded-lg bg-lco-green px-3.5 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-60";
@@ -136,33 +136,31 @@ function ConfirmModal({
   }, [busy, onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-5 shadow-xl dark:border-zinc-800 dark:bg-zinc-950"
-      >
-        <h3 className="mb-1.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
-        <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{message}</p>
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={busy} className={ghostBtn}>
-            Batal
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={busy}
-            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold text-white transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
-              danger ? "bg-lco-coral hover:bg-lco-coral/90" : "bg-lco-green hover:bg-lco-green-hover"
-            }`}
-          >
-            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            {confirmLabel}
-          </button>
-        </div>
+    <Modal
+      size="sm"
+      padding="md"
+      layout="plain"
+      aria-label={title}
+    >
+      <h3 className="mb-1.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
+      <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{message}</p>
+      <div className="flex justify-end gap-2">
+        <button type="button" onClick={onClose} disabled={busy} className={ghostBtn}>
+          Batal
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={busy}
+          className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold text-white transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
+            danger ? "bg-lco-coral hover:bg-lco-coral/90" : "bg-lco-green hover:bg-lco-green-hover"
+          }`}
+        >
+          {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {confirmLabel}
+        </button>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -251,8 +249,7 @@ function ProfileModal({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={labelCls}>Nama Lengkap</label>
-              <input
-                className={inputCls}
+              <Input
                 value={form.name}
                 disabled={saving}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -261,10 +258,9 @@ function ProfileModal({
             </div>
             <div>
               <label className={labelCls}>Email Login</label>
-              <input
+              <Input
                 type="email"
                 autoComplete="off"
-                className={inputCls}
                 value={form.email}
                 disabled={saving || !isNew}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -279,10 +275,10 @@ function ProfileModal({
             <div className="sm:col-span-2">
               <label className={labelCls}>Password</label>
               <div className="relative">
-                <input
+                <Input
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
-                  className={`${inputCls} pr-9`}
+                  className="pr-9"
                   value={form.password}
                   disabled={saving}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -854,7 +850,7 @@ export default function PengaturanAdminTab() {
             <div className="border-b border-zinc-200 p-4 dark:border-zinc-800">
               <div className="relative max-w-sm">
                 <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                <input
+                <Input
                   value={query}
                   onChange={(e) => {
                     setQuery(e.target.value);
@@ -862,7 +858,7 @@ export default function PengaturanAdminTab() {
                   }}
                   placeholder="Cari nama atau email..."
                   aria-label="Cari pengguna"
-                  className={`${inputCls} pl-9`}
+                  className="pl-9"
                 />
               </div>
             </div>

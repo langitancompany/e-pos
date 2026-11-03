@@ -16,6 +16,9 @@ import { FormEvent, useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
 import type { ProductType } from "@/lib/pos/types";
+import Select from "@/app/components/ui/Select";
+import Modal from "@/app/components/ui/Modal";
+import Button from "@/app/components/ui/Button";
 
 export type ProductFormValues = {
   name: string;
@@ -157,288 +160,292 @@ export default function ProdukForm({
   const displayError = validationError || error;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4">
-      <div className="w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-sm dark:bg-zinc-950">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
-          <div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-              {isEdit ? "Edit Produk" : "Tambah Produk"}
-            </h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              {isEdit
-                ? "Perbarui informasi produk ini."
-                : "Masukkan informasi produk baru."}
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
-          >
-            <X size={20} />
-          </button>
+    <Modal
+      size="2xl"
+      padding="none"
+      layout="clip"
+    >
+      <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+        <div>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+            {isEdit ? "Edit Produk" : "Tambah Produk"}
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            {isEdit
+              ? "Perbarui informasi produk ini."
+              : "Masukkan informasi produk baru."}
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="max-h-[75vh] overflow-y-auto">
-          <div className="space-y-5 p-6">
-            {displayError && (
-              <div className="rounded-md border border-lco-coral/30 bg-lco-coral/10 px-4 py-3 text-sm text-lco-coral">
-                {displayError}
-              </div>
-            )}
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+        >
+          <X size={20} />
+        </button>
+      </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Nama Produk
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => updateField("name", e.target.value)}
-                  disabled={saving}
-                  placeholder="Contoh: Kaos Polos Hitam"
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                />
-              </div>
+      <form onSubmit={handleSubmit} className="max-h-[75vh] overflow-y-auto">
+        <div className="space-y-5 p-6">
+          {displayError && (
+            <div className="rounded-md border border-lco-coral/30 bg-lco-coral/10 px-4 py-3 text-sm text-lco-coral">
+              {displayError}
+            </div>
+          )}
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  SKU
-                </label>
-                <input
-                  type="text"
-                  value={form.sku}
-                  onChange={(e) =>
-                    updateField("sku", e.target.value.toUpperCase())
-                  }
-                  disabled={saving}
-                  placeholder="Contoh: KAOS-HITAM-L"
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm uppercase tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                />
-              </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="md:col-span-2">
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Nama Produk
+              </label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => updateField("name", e.target.value)}
+                disabled={saving}
+                placeholder="Contoh: Kaos Polos Hitam"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+              />
+            </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Barcode
-                </label>
-                <input
-                  type="text"
-                  value={form.barcode}
-                  onChange={(e) => updateField("barcode", e.target.value)}
-                  disabled={saving}
-                  placeholder="Opsional"
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                />
-              </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                SKU
+              </label>
+              <input
+                type="text"
+                value={form.sku}
+                onChange={(e) =>
+                  updateField("sku", e.target.value.toUpperCase())
+                }
+                disabled={saving}
+                placeholder="Contoh: KAOS-HITAM-L"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm uppercase tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+              />
+            </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Jenis Produk
-                </label>
-                <select
-                  value={form.type}
-                  onChange={(e) =>
-                    handleTypeChange(e.target.value as ProductType)
-                  }
-                  disabled={saving}
-                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                >
-                  {PRODUCT_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Barcode
+              </label>
+              <input
+                type="text"
+                value={form.barcode}
+                onChange={(e) => updateField("barcode", e.target.value)}
+                disabled={saving}
+                placeholder="Opsional"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+              />
+            </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Kategori
-                </label>
-                <select
-                  value={form.category_id}
-                  onChange={(e) => updateField("category_id", e.target.value)}
-                  disabled={saving || loadingCategories}
-                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                >
-                  <option value="">
-                    {loadingCategories
-                      ? "Memuat kategori..."
-                      : "Pilih kategori"}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Jenis Produk
+              </label>
+              <Select
+                size="lg"
+                fullWidth
+                value={form.type}
+                onChange={(e) =>
+                  handleTypeChange(e.target.value as ProductType)
+                }
+                disabled={saving}
+              >
+                {PRODUCT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
                   </option>
+                ))}
+              </Select>
+            </div>
 
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Kategori
+              </label>
+              <Select
+                size="lg"
+                fullWidth
+                value={form.category_id}
+                onChange={(e) => updateField("category_id", e.target.value)}
+                disabled={saving || loadingCategories}
+              >
+                <option value="">
+                  {loadingCategories
+                    ? "Memuat kategori..."
+                    : "Pilih kategori"}
+                </option>
 
-                {!loadingCategories && categories.length === 0 && (
-                  <p className="mt-1.5 text-xs text-lco-coral">
-                    Belum ada kategori aktif.
-                  </p>
-                )}
-              </div>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </Select>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Satuan
-                </label>
-                <input
-                  type="text"
-                  value={form.unit}
-                  onChange={(e) => updateField("unit", e.target.value)}
-                  disabled={saving}
-                  placeholder="pcs"
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Harga Jual
-                </label>
-                <MoneyInput
-                  value={form.sell_price}
-                  onValueChange={(raw) => updateField("sell_price", raw)}
-                  disabled={saving}
-                  placeholder="0"
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Harga Modal
-                </label>
-                <MoneyInput
-                  value={form.cost_price}
-                  onValueChange={(raw) => updateField("cost_price", raw)}
-                  disabled={saving}
-                  placeholder="0"
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                />
-              </div>
-
-              {form.type !== "JASA" && (
-                <>
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Stok {isEdit ? "" : "Awal"}
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.stock}
-                      onChange={(e) => updateField("stock", e.target.value)}
-                      disabled={saving || isEdit}
-                      placeholder="0"
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                    />
-                    {!isEdit && (
-                      <p className="mt-1.5 text-xs text-zinc-400">
-                        Stok awal tercatat di riwayat mutasi sebagai Stok Awal.
-                        Untuk menambah stok berikutnya, pakai Barang Masuk di
-                        menu Stok &amp; Opname.
-                      </p>
-                    )}
-                    {isEdit && (
-                      <p className="mt-1.5 text-xs text-zinc-400">
-                        Stok tidak bisa diubah dari sini. Ubah lewat menu Stok
-                        &amp; Opname supaya tercatat di riwayat mutasi.
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Minimum Stok
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.min_stock}
-                      onChange={(e) => updateField("min_stock", e.target.value)}
-                      disabled={saving}
-                      placeholder="0"
-                      className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                    />
-                  </div>
-                </>
+              {!loadingCategories && categories.length === 0 && (
+                <p className="mt-1.5 text-xs text-lco-coral">
+                  Belum ada kategori aktif.
+                </p>
               )}
             </div>
 
-            {form.type !== "JASA" && form.type !== "KEMASAN" && (
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-                <input
-                  type="checkbox"
-                  checked={form.is_extra_charge}
-                  onChange={(e) =>
-                    updateField("is_extra_charge", e.target.checked)
-                  }
-                  disabled={saving}
-                  className="h-4 w-4 rounded border-zinc-300 text-lco-green focus:ring-lco-teal"
-                />
-                <div>
-                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                    Tampilkan di Biaya Tambahan Kasir
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Untuk kantong plastik, paper bag, packaging, dll. Stok
-                    tetap dihitung dan berkurang saat dijual.
-                  </p>
-                </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Satuan
               </label>
-            )}
+              <input
+                type="text"
+                value={form.unit}
+                onChange={(e) => updateField("unit", e.target.value)}
+                disabled={saving}
+                placeholder="pcs"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+              />
+            </div>
 
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Harga Jual
+              </label>
+              <MoneyInput
+                value={form.sell_price}
+                onValueChange={(raw) => updateField("sell_price", raw)}
+                disabled={saving}
+                placeholder="0"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Harga Modal
+              </label>
+              <MoneyInput
+                value={form.cost_price}
+                onValueChange={(raw) => updateField("cost_price", raw)}
+                disabled={saving}
+                placeholder="0"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+              />
+            </div>
+
+            {form.type !== "JASA" && (
+              <>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Stok {isEdit ? "" : "Awal"}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.stock}
+                    onChange={(e) => updateField("stock", e.target.value)}
+                    disabled={saving || isEdit}
+                    placeholder="0"
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                  />
+                  {!isEdit && (
+                    <p className="mt-1.5 text-xs text-zinc-400">
+                      Stok awal tercatat di riwayat mutasi sebagai Stok Awal.
+                      Untuk menambah stok berikutnya, pakai Barang Masuk di
+                      menu Stok &amp; Opname.
+                    </p>
+                  )}
+                  {isEdit && (
+                    <p className="mt-1.5 text-xs text-zinc-400">
+                      Stok tidak bisa diubah dari sini. Ubah lewat menu Stok
+                      &amp; Opname supaya tercatat di riwayat mutasi.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Minimum Stok
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.min_stock}
+                    onChange={(e) => updateField("min_stock", e.target.value)}
+                    disabled={saving}
+                    placeholder="0"
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {form.type !== "JASA" && form.type !== "KEMASAN" && (
             <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
               <input
                 type="checkbox"
-                checked={form.is_active}
-                onChange={(e) => updateField("is_active", e.target.checked)}
+                checked={form.is_extra_charge}
+                onChange={(e) =>
+                  updateField("is_extra_charge", e.target.checked)
+                }
                 disabled={saving}
                 className="h-4 w-4 rounded border-zinc-300 text-lco-green focus:ring-lco-teal"
               />
               <div>
                 <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                  Produk aktif
+                  Tampilkan di Biaya Tambahan Kasir
                 </p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  Produk aktif dapat digunakan dalam transaksi kasir.
+                  Untuk kantong plastik, paper bag, packaging, dll. Stok
+                  tetap dihitung dan berkurang saat dijual.
                 </p>
               </div>
             </label>
-          </div>
+          )}
 
-          <div className="flex justify-end gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-            <button
-              type="button"
-              onClick={onClose}
+          <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <input
+              type="checkbox"
+              checked={form.is_active}
+              onChange={(e) => updateField("is_active", e.target.checked)}
               disabled={saving}
-              className="rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors duration-150 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
-            >
-              Batal
-            </button>
+              className="h-4 w-4 rounded border-zinc-300 text-lco-green focus:ring-lco-teal"
+            />
+            <div>
+              <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                Produk aktif
+              </p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                Produk aktif dapat digunakan dalam transaksi kasir.
+              </p>
+            </div>
+          </label>
+        </div>
 
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-md bg-lco-green px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saving && <Loader2 size={16} className="animate-spin" />}
-              {saving
-                ? "Menyimpan..."
-                : isEdit
-                  ? "Simpan Perubahan"
-                  : "Simpan Produk"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="flex justify-end gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors duration-150 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+          >
+            Batal
+          </button>
+
+          <Button
+            type="submit"
+            disabled={saving}
+            size="lg"
+          >
+            {saving && <Loader2 size={16} className="animate-spin" />}
+            {saving
+              ? "Menyimpan..."
+              : isEdit
+                ? "Simpan Perubahan"
+                : "Simpan Produk"}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   );
 }

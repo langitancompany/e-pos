@@ -89,6 +89,8 @@ import {
 // ── TAMBAHAN (T-11 bagian 1) ── Hold order / "Tunda" — lihat komentar header
 // hooks/useHoldOrders.ts untuk pembagian tanggung jawab lengkap.
 import { useHoldOrders } from "@/hooks/useHoldOrders";
+import Modal from "@/app/components/ui/Modal";
+import Button from "@/app/components/ui/Button";
 
 // ── TAMBAHAN (021, T-11 bagian 2) ── Label singkat per metode, dipakai
 // handleConfirmSplitPayment() untuk menyusun field `method` gabungan di
@@ -1116,70 +1118,70 @@ export default function KasirModule({
             onDone={handleFinishCloseSession}
           />
         ) : (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-sm rounded-xl bg-white p-6 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-base font-semibold flex items-center gap-2">
-                  <Wallet className="h-4 w-4 text-lco-teal" />
-                  Mulai Sesi Kasir
-                </h3>
-                {onExitKasir && (
-                  <button
-                    type="button"
-                    onClick={onExitKasir}
-                    disabled={isStartingSession}
-                    title="Batal & kembali ke Dashboard"
-                    className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150 disabled:opacity-50"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              <label className="mb-1 block text-xs font-medium text-zinc-500">
-                Modal awal kas
-              </label>
-              <div className="flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950 focus-within:border-lco-teal focus-within:ring-2 focus-within:ring-lco-teal transition-colors duration-150">
-                <span className="text-sm text-zinc-400 font-mono">Rp</span>
-                <MoneyInput
-                  autoFocus
-                  value={openingCashValue}
-                  onValueChange={setOpeningCashInput}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !isStartingSession) {
-                      void handleStartSession();
-                    }
-                  }}
-                  placeholder="200.000"
-                  className="w-full bg-transparent text-sm font-mono tabular-nums outline-none"
-                />
-              </div>
-
-              {openSessionError && (
-                <div className="mt-3 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  {openSessionError}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={handleStartSession}
-                disabled={isStartingSession}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:opacity-60"
-              >
-                {isStartingSession ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Unlock className="h-4 w-4" />
-                )}
+          <Modal size="sm" layout="plain">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-base font-semibold flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-lco-teal" />
                 Mulai Sesi Kasir
-              </button>
-              <p className="mt-2 text-center text-[11px] text-zinc-400">
-                Struk awal akan tercetak otomatis (jika printer terhubung).
-              </p>
+              </h3>
+              {onExitKasir && (
+                <button
+                  type="button"
+                  onClick={onExitKasir}
+                  disabled={isStartingSession}
+                  title="Batal & kembali ke Dashboard"
+                  className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150 disabled:opacity-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
-          </div>
+
+            <label className="mb-1 block text-xs font-medium text-zinc-500">
+              Modal awal kas
+            </label>
+            <div className="flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950 focus-within:border-lco-teal focus-within:ring-2 focus-within:ring-lco-teal transition-colors duration-150">
+              <span className="text-sm text-zinc-400 font-mono">Rp</span>
+              <MoneyInput
+                autoFocus
+                value={openingCashValue}
+                onValueChange={setOpeningCashInput}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !isStartingSession) {
+                    void handleStartSession();
+                  }
+                }}
+                placeholder="200.000"
+                className="w-full bg-transparent text-sm font-mono tabular-nums outline-none"
+              />
+            </div>
+
+            {openSessionError && (
+              <div className="mt-3 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {openSessionError}
+              </div>
+            )}
+
+            <Button
+              type="button"
+              onClick={handleStartSession}
+              disabled={isStartingSession}
+              size="lg"
+              fullWidth
+              className="mt-5"
+            >
+              {isStartingSession ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Unlock className="h-4 w-4" />
+              )}
+              Mulai Sesi Kasir
+            </Button>
+            <p className="mt-2 text-center text-[11px] text-zinc-400">
+              Struk awal akan tercetak otomatis (jika printer terhubung).
+            </p>
+          </Modal>
         )}
       </div>
     );
@@ -1816,129 +1818,133 @@ export default function KasirModule({
 
       {/* ── TAMBAHAN (T-11 bagian 1) ── Modal konfirmasi "Tunda". */}
       {isHoldModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-            <h3 className="mb-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              Tunda Transaksi
-            </h3>
-            <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
-              {getCartItemCount(cart)} item, {formatRupiah(subtotal)} —
-              keranjang akan dikosongkan dan bisa dilanjutkan lagi lewat ikon
-              riwayat di atas keranjang.
-            </p>
+        <Modal
+          size="sm"
+          padding="md"
+          layout="plain"
+        >
+          <h3 className="mb-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+            Tunda Transaksi
+          </h3>
+          <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
+            {getCartItemCount(cart)} item, {formatRupiah(subtotal)} —
+            keranjang akan dikosongkan dan bisa dilanjutkan lagi lewat ikon
+            riwayat di atas keranjang.
+          </p>
 
-            <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-              Catatan (opsional)
-            </label>
-            <input
-              type="text"
-              value={holdLabel}
-              onChange={(e) => setHoldLabel(e.target.value)}
+          <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            Catatan (opsional)
+          </label>
+          <input
+            type="text"
+            value={holdLabel}
+            onChange={(e) => setHoldLabel(e.target.value)}
+            disabled={isHolding}
+            placeholder="Mis. nama pelanggan"
+            className="mb-3 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-1 focus:ring-lco-teal disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950"
+          />
+
+          {holdModalError && (
+            <p className="mb-3 text-xs text-lco-coral">{holdModalError}</p>
+          )}
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              onClick={() => setIsHoldModalOpen(false)}
               disabled={isHolding}
-              placeholder="Mis. nama pelanggan"
-              className="mb-3 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-1 focus:ring-lco-teal disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950"
-            />
-
-            {holdModalError && (
-              <p className="mb-3 text-xs text-lco-coral">{holdModalError}</p>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsHoldModalOpen(false)}
-                disabled={isHolding}
-                className="rounded-md border border-zinc-200 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmHold}
-                disabled={isHolding}
-                className="inline-flex items-center gap-2 rounded-md bg-lco-mustard px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isHolding && <Loader2 className="h-4 w-4 animate-spin" />}
-                Tunda
-              </button>
-            </div>
+              variant="secondary"
+            >
+              Batal
+            </Button>
+            <button
+              type="button"
+              onClick={handleConfirmHold}
+              disabled={isHolding}
+              className="inline-flex items-center gap-2 rounded-md bg-lco-mustard px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isHolding && <Loader2 className="h-4 w-4 animate-spin" />}
+              Tunda
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* ── TAMBAHAN (T-11 bagian 1) ── Modal daftar held order — lanjutkan/hapus. */}
       {isHeldListOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4">
-          <div className="flex max-h-[80vh] w-full max-w-md flex-col rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
-              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                Pesanan Tertunda
-              </h3>
-              <button
-                onClick={() => setIsHeldListOpen(false)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {heldListError && (
-              <p className="mx-4 mt-3 text-xs text-lco-coral">
-                {heldListError}
-              </p>
-            )}
-
-            <div className="flex-1 overflow-y-auto p-4">
-              {isHeldOrdersLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
-                </div>
-              ) : heldOrders.length === 0 ? (
-                <p className="py-8 text-center text-xs text-zinc-400">
-                  Belum ada pesanan yang ditunda.
-                </p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {heldOrders.map((ho) => (
-                    <div
-                      key={ho.id}
-                      className="flex items-center gap-3 rounded-md border border-zinc-200 p-3 dark:border-zinc-800"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                          {ho.label || "Tanpa catatan"}
-                        </p>
-                        <p className="font-mono text-xs text-zinc-500">
-                          {ho.item_count} item • {formatRupiah(ho.subtotal)}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => handleResumeHeldOrder(ho.id)}
-                        disabled={resumingId === ho.id}
-                        title="Lanjutkan"
-                        className="rounded-md p-2 text-lco-teal hover:bg-lco-green/10 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {resumingId === ho.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <PlayCircle className="h-4 w-4" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteHeldOrder(ho.id)}
-                        disabled={resumingId === ho.id}
-                        title="Hapus"
-                        className="rounded-md p-2 text-zinc-400 hover:bg-lco-coral/10 hover:text-lco-coral disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+        <Modal
+          size="md"
+          padding="none"
+          layout="flex"
+        >
+          <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
+            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+              Pesanan Tertunda
+            </h3>
+            <button
+              onClick={() => setIsHeldListOpen(false)}
+              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-        </div>
+
+          {heldListError && (
+            <p className="mx-4 mt-3 text-xs text-lco-coral">
+              {heldListError}
+            </p>
+          )}
+
+          <div className="flex-1 overflow-y-auto p-4">
+            {isHeldOrdersLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+              </div>
+            ) : heldOrders.length === 0 ? (
+              <p className="py-8 text-center text-xs text-zinc-400">
+                Belum ada pesanan yang ditunda.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {heldOrders.map((ho) => (
+                  <div
+                    key={ho.id}
+                    className="flex items-center gap-3 rounded-md border border-zinc-200 p-3 dark:border-zinc-800"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                        {ho.label || "Tanpa catatan"}
+                      </p>
+                      <p className="font-mono text-xs text-zinc-500">
+                        {ho.item_count} item • {formatRupiah(ho.subtotal)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleResumeHeldOrder(ho.id)}
+                      disabled={resumingId === ho.id}
+                      title="Lanjutkan"
+                      className="rounded-md p-2 text-lco-teal hover:bg-lco-green/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {resumingId === ho.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <PlayCircle className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteHeldOrder(ho.id)}
+                      disabled={resumingId === ho.id}
+                      title="Hapus"
+                      className="rounded-md p-2 text-zinc-400 hover:bg-lco-coral/10 hover:text-lco-coral disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* ── TAMBAHAN (T-11 bagian 3) ── Modal scan barcode kamera. */}
@@ -1956,82 +1962,82 @@ export default function KasirModule({
           keranjang seperti produk biasa) lalu modal ini otomatis tertutup —
           sama seperti "pilih item -> Simpan" di flow yang diminta. */}
       {isBiayaTambahanModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800">
-            <div className="mb-1 flex items-center justify-between">
-              <h3 className="text-base font-semibold flex items-center gap-2">
-                <PackagePlus className="h-4 w-4 text-lco-mustard" />
-                Biaya Tambahan
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsBiayaTambahanModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
-              Pilih item non-produk untuk ditambahkan ke tagihan.
-            </p>
-
-            {serviceProducts.length === 0 ? (
-              <p className="rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 px-3 py-4 text-center text-xs text-zinc-400">
-                Belum ada item Biaya Tambahan. Di menu Produk, tandai tipenya
-                sebagai <strong>Jasa</strong> (tanpa stok, mis. &quot;Ongkos
-                Kirim&quot;) atau centang{" "}
-                <strong>Tampilkan di Biaya Tambahan Kasir</strong> untuk barang
-                berstok (mis. &quot;Paper Bag&quot;).
-              </p>
-            ) : (
-              <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
-                {serviceProducts.map((product) => {
-                  const inCart = cart.find(
-                    (item) => item.product.id === product.id,
-                  );
-                  const soldOut = !product.is_service && product.stock <= 0;
-                  return (
-                    <button
-                      key={product.id}
-                      disabled={soldOut}
-                      onClick={() => {
-                        setCart((prev) => addToCart(prev, product));
-                      }}
-                      className="flex items-center justify-between rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2.5 text-left hover:border-lco-mustard transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <span className="text-sm font-medium">
-                        {product.name}
-                        {inCart && (
-                          <span className="ml-2 rounded bg-lco-mustard/20 px-1.5 py-0.5 text-[10px] font-bold text-lco-mustard">
-                            {inCart.qty}x di keranjang
-                          </span>
-                        )}
-                      </span>
-                      <span className="text-right font-mono text-sm text-zinc-500">
-                        {formatRupiah(product.sell_price)}
-                        {!product.is_service && (
-                          <span
-                            className={`block text-[10px] ${soldOut ? "text-lco-coral" : "text-zinc-400"}`}
-                          >
-                            {soldOut ? "Stok habis" : `Stok: ${product.stock}`}
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
+        <Modal size="sm" layout="plain">
+          <div className="mb-1 flex items-center justify-between">
+            <h3 className="text-base font-semibold flex items-center gap-2">
+              <PackagePlus className="h-4 w-4 text-lco-mustard" />
+              Biaya Tambahan
+            </h3>
             <button
               type="button"
               onClick={() => setIsBiayaTambahanModalOpen(false)}
-              className="mt-5 w-full rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover"
+              className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150"
             >
-              Simpan
+              <X className="h-4 w-4" />
             </button>
           </div>
-        </div>
+          <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
+            Pilih item non-produk untuk ditambahkan ke tagihan.
+          </p>
+
+          {serviceProducts.length === 0 ? (
+            <p className="rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 px-3 py-4 text-center text-xs text-zinc-400">
+              Belum ada item Biaya Tambahan. Di menu Produk, tandai tipenya
+              sebagai <strong>Jasa</strong> (tanpa stok, mis. &quot;Ongkos
+              Kirim&quot;) atau centang{" "}
+              <strong>Tampilkan di Biaya Tambahan Kasir</strong> untuk barang
+              berstok (mis. &quot;Paper Bag&quot;).
+            </p>
+          ) : (
+            <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
+              {serviceProducts.map((product) => {
+                const inCart = cart.find(
+                  (item) => item.product.id === product.id,
+                );
+                const soldOut = !product.is_service && product.stock <= 0;
+                return (
+                  <button
+                    key={product.id}
+                    disabled={soldOut}
+                    onClick={() => {
+                      setCart((prev) => addToCart(prev, product));
+                    }}
+                    className="flex items-center justify-between rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2.5 text-left hover:border-lco-mustard transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <span className="text-sm font-medium">
+                      {product.name}
+                      {inCart && (
+                        <span className="ml-2 rounded bg-lco-mustard/20 px-1.5 py-0.5 text-[10px] font-bold text-lco-mustard">
+                          {inCart.qty}x di keranjang
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-right font-mono text-sm text-zinc-500">
+                      {formatRupiah(product.sell_price)}
+                      {!product.is_service && (
+                        <span
+                          className={`block text-[10px] ${soldOut ? "text-lco-coral" : "text-zinc-400"}`}
+                        >
+                          {soldOut ? "Stok habis" : `Stok: ${product.stock}`}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <Button
+            type="button"
+            onClick={() => setIsBiayaTambahanModalOpen(false)}
+            size="lg"
+            fullWidth
+            className="mt-5"
+          >
+            Simpan
+          </Button>
+        </Modal>
       )}
     </div>
   );

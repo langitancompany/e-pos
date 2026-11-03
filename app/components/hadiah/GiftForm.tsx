@@ -33,6 +33,9 @@ import {
   formatRupiah,
   toDateInputValue,
 } from "../stok/stokUtils";
+import Select from "@/app/components/ui/Select";
+import Button from "@/app/components/ui/Button";
+import Input from "@/app/components/ui/Input";
 
 interface FormLine {
   productId: string;
@@ -263,39 +266,37 @@ export default function GiftForm({
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <div>
             <label className={labelClass}>Tanggal</label>
-            <input
+            <Input
               type="date"
               value={givenAt}
               max={today}
               onChange={(e) => setGivenAt(e.target.value)}
               disabled={isSaving}
-              className={inputClass}
             />
           </div>
           <div>
             <label className={labelClass}>Untuk siapa (kategori)</label>
-            <select
+            <Select
+              fullWidth
               value={category}
               onChange={(e) => setCategory(e.target.value as GiftCategory)}
               disabled={isSaving}
-              className={inputClass}
             >
               {GIFT_CATEGORIES.map((key) => (
                 <option key={key} value={key}>
                   {GIFT_CATEGORY_LABEL[key]}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div>
             <label className={labelClass}>Nama penerima</label>
-            <input
+            <Input
               type="text"
               value={recipientName}
               onChange={(e) => setRecipientName(e.target.value)}
               disabled={isSaving}
               placeholder="Mis. Bapak Kiyai / nama tamu / rombongan"
-              className={inputClass}
             />
           </div>
         </div>
@@ -303,23 +304,21 @@ export default function GiftForm({
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
           <div>
             <label className={labelClass}>Keperluan / acara (opsional)</label>
-            <input
+            <Input
               type="text"
               value={occasion}
               onChange={(e) => setOccasion(e.target.value)}
               disabled={isSaving}
               placeholder="Mis. Kunjungan tamu besar, oleh-oleh pulang"
-              className={inputClass}
             />
           </div>
           <div>
             <label className={labelClass}>Catatan (opsional)</label>
-            <input
+            <Input
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               disabled={isSaving}
-              className={inputClass}
             />
           </div>
         </div>
@@ -333,7 +332,7 @@ export default function GiftForm({
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
-          <input
+          <Input
             ref={searchInputRef}
             type="text"
             value={query}
@@ -348,7 +347,7 @@ export default function GiftForm({
             disabled={isSaving}
             placeholder="Nama, SKU, atau barcode..."
             autoComplete="off"
-            className={`${inputClass} pl-9`}
+            className="pl-9"
           />
 
           {isPickerOpen && query.trim() !== "" && (
@@ -534,19 +533,20 @@ export default function GiftForm({
       )}
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <button
+        <Button
           type="button"
           onClick={onBack}
           disabled={isSaving}
-          className="rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          variant="secondary"
+          size="lg"
         >
           Batal
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={handleSubmit}
           disabled={isSaving}
-          className="flex items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:opacity-60"
+          size="lg"
         >
           {isSaving ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -554,7 +554,7 @@ export default function GiftForm({
             <Gift className="h-4 w-4" />
           )}
           Simpan Hadiah & Kurangi Stok
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -47,6 +47,8 @@ import {
   formatNumber,
   formatRupiah,
 } from "./stokUtils";
+import Button from "@/app/components/ui/Button";
+import Input from "@/app/components/ui/Input";
 
 const PAGE_SIZE = 50;
 
@@ -236,9 +238,7 @@ export default function OpnameSessionDetail({
     "rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950";
   const labelClass =
     "text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400";
-  const inputClass =
-    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950";
-
+  
   if (isLoading && !session) {
     return (
       <div className="flex items-center justify-center gap-2 py-16 text-sm text-zinc-500">
@@ -322,23 +322,23 @@ export default function OpnameSessionDetail({
           <div className="flex flex-col gap-2 md:items-end">
             <div className="flex flex-wrap gap-2">
               {isDraft && (
-                <button
+                <Button
                   type="button"
                   onClick={() => setShowPrint(true)}
-                  className="flex items-center gap-2 rounded-md border border-zinc-300 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+                  variant="secondary"
                 >
                   <Printer className="h-4 w-4" />
                   Cetak Lembar Hitung
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 type="button"
                 onClick={() => exportOpnameToExcel(session, items)}
-                className="flex items-center gap-2 rounded-md border border-zinc-300 px-3.5 py-2 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-900"
+                variant="secondary"
               >
                 <FileSpreadsheet className="h-4 w-4" />
                 Ekspor Excel
-              </button>
+              </Button>
             </div>
 
           {canCount && (
@@ -351,15 +351,14 @@ export default function OpnameSessionDetail({
                 <Ban className="h-4 w-4" />
                 Batalkan
               </button>
-              <button
+              <Button
                 type="button"
                 onClick={() => setShowFinalize(true)}
                 disabled={stats.counted === 0}
-                className="flex items-center gap-2 rounded-md bg-lco-green px-3.5 py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 Selesaikan
-              </button>
+              </Button>
             </div>
           )}
           </div>
@@ -426,14 +425,14 @@ export default function OpnameSessionDetail({
               <ScanBarcode className="h-3.5 w-3.5" />
               Scan barcode atau ketik SKU lalu Enter — tiap scan menambah 1
             </label>
-            <input
+            <Input
               ref={scanInputRef}
               type="text"
               value={scanValue}
               onChange={(e) => setScanValue(e.target.value)}
               placeholder="Arahkan scanner ke sini..."
               autoComplete="off"
-              className={`${inputClass} w-full font-mono`}
+              className="font-mono"
             />
             {scanFeedback && (
               <p
@@ -452,7 +451,7 @@ export default function OpnameSessionDetail({
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
-            <input
+            <Input
               type="text"
               value={search}
               onChange={(e) => {
@@ -460,7 +459,7 @@ export default function OpnameSessionDetail({
                 setPage(0);
               }}
               placeholder="Cari nama, SKU, atau barcode..."
-              className={`${inputClass} w-full pl-9`}
+              className="pl-9"
             />
           </div>
 
@@ -562,7 +561,7 @@ export default function OpnameSessionDetail({
                             {isSaving && (
                               <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-400" />
                             )}
-                            <input
+                            <Input
                               key={`c:${item.id}:${item.counted_qty ?? ""}`}
                               type="number"
                               inputMode="numeric"
@@ -575,7 +574,7 @@ export default function OpnameSessionDetail({
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") e.currentTarget.blur();
                               }}
-                              className={`${inputClass} w-24 text-right font-mono tabular-nums`}
+                              fullWidth={false} className="w-24 text-right font-mono tabular-nums"
                             />
                           </div>
                         ) : (
@@ -605,7 +604,7 @@ export default function OpnameSessionDetail({
 
                       <td className="px-4 py-3">
                         {canCount ? (
-                          <input
+                          <Input
                             key={`n:${item.id}:${item.note ?? ""}`}
                             type="text"
                             defaultValue={item.note ?? ""}
@@ -615,7 +614,7 @@ export default function OpnameSessionDetail({
                             onKeyDown={(e) => {
                               if (e.key === "Enter") e.currentTarget.blur();
                             }}
-                            className={`${inputClass} w-full min-w-[160px] text-xs`}
+                            className="min-w-[160px] text-xs"
                           />
                         ) : (
                           <span className="text-xs text-zinc-500">

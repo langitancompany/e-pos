@@ -27,6 +27,7 @@ import {
   formatNumber,
   formatRupiah,
 } from "./stokUtils";
+import Button from "@/app/components/ui/Button";
 
 interface OpnameTabProps {
   products: ProductWithCategory[];
@@ -72,14 +73,14 @@ export default function OpnameTab({
         </p>
 
         {canEdit && (
-          <button
+          <Button
             type="button"
             onClick={() => setShowStart(true)}
-            className="flex items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover"
+            size="lg"
           >
             <Plus className="h-4 w-4" />
             Mulai Opname Baru
-          </button>
+          </Button>
         )}
       </div>
 

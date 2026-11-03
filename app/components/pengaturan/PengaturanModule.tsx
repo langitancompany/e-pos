@@ -56,6 +56,7 @@ import { hasPermission, useAuth } from "@/hooks/useAuth";
 import PengaturanTokoTab from "./PengaturanTokoTab";
 import PengaturanAdminTab from "./PengaturanAdminTab";
 import PengaturanPrinterTab from "./PengaturanPrinterTab";
+import TabSwitcher from "@/app/components/ui/TabSwitcher";
 
 type PengaturanTab = "toko" | "admin" | "printer";
 
@@ -179,22 +180,12 @@ export default function PengaturanModule() {
           kelihatan seperti sekelompok tombol, bukan cuma teks bergaris
           bawah — tab aktif dapat latar putih + sedikit shadow untuk kesan
           "terangkat", mirip pola toggle switch lain di aplikasi ini. */}
-      <div className="mb-4 inline-flex w-fit flex-wrap gap-1 rounded-xl bg-zinc-200/70 p-1 dark:bg-zinc-900">
-        {visibleTabs.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors duration-150 ${
-              activeTab === key
-                ? "bg-white text-lco-green shadow-sm dark:bg-zinc-800 dark:text-lco-teal"
-                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-            }`}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
+      <TabSwitcher
+        tabs={visibleTabs}
+        value={activeTab}
+        onChange={setActiveTab}
+        className="mb-4"
+      />
 
       {/* Render sub-tab sungguhan. Dirender kondisional dengan && (bukan
           CSS hidden), jadi tab yang tidak aktif memang UNMOUNT — state

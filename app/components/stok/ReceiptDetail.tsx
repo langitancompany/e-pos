@@ -21,6 +21,8 @@ import {
   formatNumber,
   formatRupiah,
 } from "./stokUtils";
+import Modal from "@/app/components/ui/Modal";
+import Button from "@/app/components/ui/Button";
 
 interface ReceiptDetailProps {
   receiptId: string;
@@ -216,78 +218,78 @@ export default function ReceiptDetail({
       </div>
 
       {showVoid && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold">
-                Batalkan Barang Masuk #{receipt.number}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowVoid(false)}
-                disabled={isVoiding}
-                aria-label="Tutup"
-                className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Stok tiap produk dikurangi sebesar jumlah yang dulu masuk dan
-              tercatat sebagai Penyesuaian. Pembatalan ditolak kalau sebagian
-              barang sudah terjual dan stok sekarang tidak cukup. Harga modal
-              yang pernah diperbarui tidak dikembalikan otomatis.
-            </p>
-
-            <div className="mt-4">
-              <label className="mb-1 block text-xs font-medium text-zinc-500">
-                Alasan pembatalan
-              </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={2}
-                disabled={isVoiding}
-                placeholder="Wajib diisi — tersimpan di riwayat dan log aktivitas."
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950"
-              />
-            </div>
-
-            {voidError && (
-              <div className="mt-3 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                <span>{voidError}</span>
-              </div>
-            )}
-
-            <div className="mt-5 flex gap-2">
-              <button
-                type="button"
-                onClick={() => setShowVoid(false)}
-                disabled={isVoiding}
-                className="w-full rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-900"
-              >
-                Kembali
-              </button>
-              <button
-                type="button"
-                onClick={handleVoid}
-                disabled={isVoiding || reason.trim() === ""}
-                className="flex w-full items-center justify-center gap-2 rounded-md bg-lco-coral px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isVoiding ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Membatalkan...
-                  </>
-                ) : (
-                  "Batalkan Barang Masuk"
-                )}
-              </button>
-            </div>
+        <Modal size="md" layout="plain">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-base font-semibold">
+              Batalkan Barang Masuk #{receipt.number}
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowVoid(false)}
+              disabled={isVoiding}
+              aria-label="Tutup"
+              className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-        </div>
+
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            Stok tiap produk dikurangi sebesar jumlah yang dulu masuk dan
+            tercatat sebagai Penyesuaian. Pembatalan ditolak kalau sebagian
+            barang sudah terjual dan stok sekarang tidak cukup. Harga modal
+            yang pernah diperbarui tidak dikembalikan otomatis.
+          </p>
+
+          <div className="mt-4">
+            <label className="mb-1 block text-xs font-medium text-zinc-500">
+              Alasan pembatalan
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={2}
+              disabled={isVoiding}
+              placeholder="Wajib diisi — tersimpan di riwayat dan log aktivitas."
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950"
+            />
+          </div>
+
+          {voidError && (
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{voidError}</span>
+            </div>
+          )}
+
+          <div className="mt-5 flex gap-2">
+            <Button
+              type="button"
+              onClick={() => setShowVoid(false)}
+              disabled={isVoiding}
+              variant="secondary"
+              size="lg"
+              fullWidth
+            >
+              Kembali
+            </Button>
+            <button
+              type="button"
+              onClick={handleVoid}
+              disabled={isVoiding || reason.trim() === ""}
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-lco-coral px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isVoiding ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Membatalkan...
+                </>
+              ) : (
+                "Batalkan Barang Masuk"
+              )}
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );

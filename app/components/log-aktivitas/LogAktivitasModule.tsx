@@ -41,6 +41,7 @@ import {
 } from "@/hooks/useActivityLogs";
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import { categoryLabel } from "@/hooks/useCashMovements";
+import Select from "@/app/components/ui/Select";
 
 const ENTITY_FILTER_OPTIONS: {
   value: ActivityLogEntity | "all";
@@ -236,29 +237,29 @@ export default function LogAktivitasModule() {
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
               Entitas
             </label>
-            <select
+            <Select
+              fullWidth
               value={entityFilter}
               onChange={(e) =>
                 setEntityFilter(e.target.value as ActivityLogEntity | "all")
               }
-              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             >
               {ENTITY_FILTER_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div>
             <label className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
               User Pelaku
             </label>
-            <select
+            <Select
+              fullWidth
               value={userFilter}
               onChange={(e) => setUserFilter(e.target.value)}
-              className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
             >
               <option value="all">Semua User</option>
               {users.map((u) => (
@@ -266,7 +267,7 @@ export default function LogAktivitasModule() {
                   {u.full_name || "(tanpa nama)"}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           <div>

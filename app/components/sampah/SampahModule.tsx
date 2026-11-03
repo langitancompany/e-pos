@@ -35,6 +35,7 @@ import {
   type TrashedTransaction,
 } from "@/hooks/useTrash";
 import { formatRupiah } from "@/lib/pos/cartLogic";
+import TabSwitcher from "@/app/components/ui/TabSwitcher";
 
 type SampahTab = "produk" | "transaksi";
 
@@ -170,29 +171,20 @@ export default function SampahModule() {
         </p>
       </div>
 
-      <div className="mb-6 flex gap-4 border-b border-zinc-200 dark:border-zinc-800">
-        {(
-          [
-            { key: "produk", label: `Produk (${products.length})` },
-            { key: "transaksi", label: `Transaksi (${transactions.length})` },
-          ] as { key: SampahTab; label: string }[]
-        ).map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`relative pb-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors duration-150 ${
-              activeTab === tab.key
-                ? "text-lco-teal"
-                : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-            }`}
-          >
-            {tab.label}
-            {activeTab === tab.key && (
-              <span className="absolute bottom-0 left-0 h-0.5 w-full rounded-t-full bg-lco-teal" />
-            )}
-          </button>
-        ))}
-      </div>
+      {/* Tab switcher — gaya "segmented control" yang sama dengan Stok & Opname dan Pengaturan. */}
+      <TabSwitcher
+        tabs={[
+          { key: "produk", label: `Produk (${products.length})`, icon: Package },
+          {
+            key: "transaksi",
+            label: `Transaksi (${transactions.length})`,
+            icon: Receipt,
+          },
+        ]}
+        value={activeTab}
+        onChange={setActiveTab}
+        className="mb-4"
+      />
 
       {error && (
         <div className="mb-4 flex items-start gap-3 border border-lco-coral/30 bg-white p-4 text-sm text-lco-coral dark:bg-zinc-950">

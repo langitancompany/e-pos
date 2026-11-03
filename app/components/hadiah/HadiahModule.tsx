@@ -41,6 +41,9 @@ import {
 import GiftForm from "./GiftForm";
 import GiftDetail from "./GiftDetail";
 import { exportGiftsToExcel } from "./hadiahExport";
+import TabSwitcher from "@/app/components/ui/TabSwitcher";
+import Button from "@/app/components/ui/Button";
+import Input from "@/app/components/ui/Input";
 
 type View =
   | { kind: "list" }
@@ -178,9 +181,7 @@ export default function HadiahModule() {
     refetchProducts();
   };
 
-  const inputClass =
-    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950";
-
+  
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-zinc-100 p-4 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100 md:p-6">
       <div className="mb-5 flex flex-col justify-between gap-4 md:flex-row md:items-start">
@@ -199,14 +200,14 @@ export default function HadiahModule() {
         </div>
 
         {view.kind === "list" && canCreate && (
-          <button
+          <Button
             type="button"
             onClick={() => setView({ kind: "form" })}
-            className="flex items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover"
+            size="lg"
           >
             <Plus className="h-4 w-4" />
             Catat Hadiah
-          </button>
+          </Button>
         )}
       </div>
 
@@ -235,42 +236,32 @@ export default function HadiahModule() {
         <div>
           {/* Filter periode */}
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="inline-flex w-fit flex-wrap gap-1 rounded-xl bg-zinc-200/70 p-1 dark:bg-zinc-900">
-              {PERIOD_OPTIONS.map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setPeriod(key)}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
-                    period === key
-                      ? "bg-white text-lco-green shadow-sm dark:bg-zinc-800 dark:text-lco-teal"
-                      : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <TabSwitcher
+              tabs={PERIOD_OPTIONS}
+              value={period}
+              onChange={setPeriod}
+              size="sm"
+            />
 
             <div className="flex flex-wrap items-center gap-2">
               {period === "kustom" && (
                 <>
-                  <input
+                  <Input
                     type="date"
                     value={customFrom}
                     max={customTo || undefined}
                     onChange={(e) => setCustomFrom(e.target.value)}
                     aria-label="Dari tanggal"
-                    className={inputClass}
+                    fullWidth={false}
                   />
                   <span className="text-xs text-zinc-400">s/d</span>
-                  <input
+                  <Input
                     type="date"
                     value={customTo}
                     min={customFrom || undefined}
                     onChange={(e) => setCustomTo(e.target.value)}
                     aria-label="Sampai tanggal"
-                    className={inputClass}
+                    fullWidth={false}
                   />
                 </>
               )}

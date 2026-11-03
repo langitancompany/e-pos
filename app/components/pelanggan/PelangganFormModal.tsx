@@ -14,6 +14,8 @@ import {
   type CustomerFormValues,
   type CustomerRecord,
 } from "@/hooks/useCustomerAdmin";
+import Button from "@/app/components/ui/Button";
+import Input from "@/app/components/ui/Input";
 
 interface PelangganFormModalProps {
   /** null = mode tambah, ada isi = mode ubah. */
@@ -24,8 +26,6 @@ interface PelangganFormModalProps {
   onSubmit: (values: CustomerFormValues) => Promise<void>;
 }
 
-const inputClass =
-  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100";
 
 export default function PelangganFormModal({
   customer,
@@ -87,8 +87,8 @@ export default function PelangganFormModal({
             <label className="mb-1 block text-xs font-semibold text-zinc-600 dark:text-zinc-400">
               No. HP / WhatsApp <span className="text-lco-coral">*</span>
             </label>
-            <input
-              className={inputClass}
+            <Input
+              size="lg"
               inputMode="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -119,8 +119,8 @@ export default function PelangganFormModal({
             <label className="mb-1 block text-xs font-semibold text-zinc-600 dark:text-zinc-400">
               Nama <span className="font-normal text-zinc-400">(opsional)</span>
             </label>
-            <input
-              className={inputClass}
+            <Input
+              size="lg"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !saving && handleSubmit()}
@@ -144,15 +144,14 @@ export default function PelangganFormModal({
           >
             Batal
           </button>
-          <button
+          <Button
             type="button"
             onClick={handleSubmit}
             disabled={saving || !!duplicate}
-            className="inline-flex items-center gap-2 rounded-md bg-lco-green px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-lco-green-hover disabled:opacity-60"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             {customer ? "Simpan" : "Daftarkan"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

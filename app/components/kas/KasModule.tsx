@@ -44,6 +44,7 @@ import {
   differenceColorClass,
   differenceLabel,
 } from "@/app/components/kasir/CloseShiftModal";
+import Modal from "@/app/components/ui/Modal";
 
 function formatDateTime(isoString: string): string {
   return new Intl.DateTimeFormat("id-ID", {
@@ -87,90 +88,88 @@ function VoidCashMovementModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div
-        role="dialog"
-        aria-label="Batalkan catatan kas"
-        className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950"
-      >
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-base font-semibold">Batalkan Catatan Kas</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            aria-label="Tutup"
-            className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 disabled:opacity-50 dark:hover:text-zinc-200"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        <div className="mb-3 rounded-md border border-zinc-200 p-3 text-xs dark:border-zinc-800">
-          <p className="font-medium text-zinc-900 dark:text-zinc-100">
-            {movement.type === "IN" ? "Kas masuk" : "Kas keluar"} ·{" "}
-            {categoryLabel(movement.category)} ·{" "}
-            <span className="font-mono tabular-nums">
-              {formatRupiah(movement.amount)}
-            </span>
-          </p>
-          <p className="mt-1 text-zinc-500">{movement.note}</p>
-        </div>
-
-        <p className="mb-2 text-xs text-zinc-500">
-          Catatan yang dibatalkan tidak dihitung lagi di kas shift ini, tetapi
-          tetap tersimpan di riwayat dan Log Aktivitas.
-        </p>
-
-        <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-          Alasan pembatalan (wajib)
-        </label>
-        <textarea
-          rows={2}
-          value={reason}
+    <Modal
+      size="sm"
+      layout="plain"
+      aria-label="Batalkan catatan kas"
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-base font-semibold">Batalkan Catatan Kas</h3>
+        <button
+          type="button"
+          onClick={onClose}
           disabled={isSubmitting}
-          onChange={(e) => setReason(e.target.value)}
-          aria-label="Alasan pembatalan"
-          className="w-full resize-none rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950"
-        />
-
-        {error && (
-          <div
-            role="alert"
-            className="mt-3 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral"
-          >
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            {error}
-          </div>
-        )}
-
-        <div className="mt-5 flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="flex-1 rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition-colors duration-150 hover:border-zinc-400 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200"
-          >
-            Kembali
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isSubmitting || !isValid}
-            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-lco-coral/40 bg-lco-coral/5 px-4 py-2.5 text-sm font-semibold text-lco-coral transition-colors duration-150 hover:bg-lco-coral/10 disabled:opacity-60"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Membatalkan...
-              </>
-            ) : (
-              "Batalkan Catatan"
-            )}
-          </button>
-        </div>
+          aria-label="Tutup"
+          className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 disabled:opacity-50 dark:hover:text-zinc-200"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
-    </div>
+
+      <div className="mb-3 rounded-md border border-zinc-200 p-3 text-xs dark:border-zinc-800">
+        <p className="font-medium text-zinc-900 dark:text-zinc-100">
+          {movement.type === "IN" ? "Kas masuk" : "Kas keluar"} ·{" "}
+          {categoryLabel(movement.category)} ·{" "}
+          <span className="font-mono tabular-nums">
+            {formatRupiah(movement.amount)}
+          </span>
+        </p>
+        <p className="mt-1 text-zinc-500">{movement.note}</p>
+      </div>
+
+      <p className="mb-2 text-xs text-zinc-500">
+        Catatan yang dibatalkan tidak dihitung lagi di kas shift ini, tetapi
+        tetap tersimpan di riwayat dan Log Aktivitas.
+      </p>
+
+      <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+        Alasan pembatalan (wajib)
+      </label>
+      <textarea
+        rows={2}
+        value={reason}
+        disabled={isSubmitting}
+        onChange={(e) => setReason(e.target.value)}
+        aria-label="Alasan pembatalan"
+        className="w-full resize-none rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950"
+      />
+
+      {error && (
+        <div
+          role="alert"
+          className="mt-3 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral"
+        >
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {error}
+        </div>
+      )}
+
+      <div className="mt-5 flex gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={isSubmitting}
+          className="flex-1 rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition-colors duration-150 hover:border-zinc-400 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200"
+        >
+          Kembali
+        </button>
+        <button
+          type="button"
+          onClick={handleConfirm}
+          disabled={isSubmitting || !isValid}
+          className="flex flex-1 items-center justify-center gap-2 rounded-md border border-lco-coral/40 bg-lco-coral/5 px-4 py-2.5 text-sm font-semibold text-lco-coral transition-colors duration-150 hover:bg-lco-coral/10 disabled:opacity-60"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Membatalkan...
+            </>
+          ) : (
+            "Batalkan Catatan"
+          )}
+        </button>
+      </div>
+    </Modal>
   );
 }
 

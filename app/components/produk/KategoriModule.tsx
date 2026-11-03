@@ -11,6 +11,8 @@ import { useEffect, useState } from "react";
 import { Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Category } from "@/lib/pos/types";
+import Modal from "@/app/components/ui/Modal";
+import Button from "@/app/components/ui/Button";
 
 const supabase = createClient();
 
@@ -209,14 +211,14 @@ export default function KategoriModule() {
           </p>
         </div>
 
-        <button
+        <Button
           type="button"
           onClick={openCreateForm}
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover"
+          size="lg"
         >
           <Plus size={18} />
           Tambah Kategori
-        </button>
+        </Button>
       </div>
 
       {error && !showForm && (
@@ -341,152 +343,154 @@ export default function KategoriModule() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/30 p-4">
-          <div className="w-full max-w-md overflow-hidden rounded-xl bg-white shadow-sm dark:bg-zinc-950">
-            <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
-              <div>
-                <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                  {editingId ? "Edit Kategori" : "Tambah Kategori"}
-                </h2>
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-                  Isi informasi kategori.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={closeForm}
-                disabled={saving}
-                className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-900"
-              >
-                <X size={20} />
-              </button>
+        <Modal
+          size="md"
+          padding="none"
+          layout="clip"
+        >
+          <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
+            <div>
+              <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                {editingId ? "Edit Kategori" : "Tambah Kategori"}
+              </h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Isi informasi kategori.
+              </p>
             </div>
 
-            <div className="space-y-4 p-6">
-              {error && (
-                <div className="rounded-md border border-lco-coral/30 bg-lco-coral/10 px-4 py-3 text-sm text-lco-coral">
-                  {error}
-                </div>
-              )}
+            <button
+              type="button"
+              onClick={closeForm}
+              disabled={saving}
+              className="rounded-md p-2 text-zinc-500 transition-colors duration-150 hover:bg-zinc-100 disabled:opacity-50 dark:hover:bg-zinc-900"
+            >
+              <X size={20} />
+            </button>
+          </div>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Nama Kategori
-                </label>
+          <div className="space-y-4 p-6">
+            {error && (
+              <div className="rounded-md border border-lco-coral/30 bg-lco-coral/10 px-4 py-3 text-sm text-lco-coral">
+                {error}
+              </div>
+            )}
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Nama Kategori
+              </label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) =>
+                  setForm((current) => ({ ...current, name: e.target.value }))
+                }
+                disabled={saving}
+                placeholder="Contoh: Kaos"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Warna
+              </label>
+
+              <div className="flex gap-2">
+                <input
+                  type="color"
+                  value={form.color || "#49bfb4"}
+                  onChange={(e) =>
+                    setForm((current) => ({
+                      ...current,
+                      color: e.target.value,
+                    }))
+                  }
+                  disabled={saving}
+                  className="h-10 w-12 cursor-pointer rounded-md border border-zinc-300 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
+                />
+
                 <input
                   type="text"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((current) => ({ ...current, name: e.target.value }))
-                  }
-                  disabled={saving}
-                  placeholder="Contoh: Kaos"
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Warna
-                </label>
-
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={form.color || "#49bfb4"}
-                    onChange={(e) =>
-                      setForm((current) => ({
-                        ...current,
-                        color: e.target.value,
-                      }))
-                    }
-                    disabled={saving}
-                    className="h-10 w-12 cursor-pointer rounded-md border border-zinc-300 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
-                  />
-
-                  <input
-                    type="text"
-                    value={form.color}
-                    onChange={(e) =>
-                      setForm((current) => ({
-                        ...current,
-                        color: e.target.value,
-                      }))
-                    }
-                    disabled={saving}
-                    placeholder="#49bfb4"
-                    className="flex-1 rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm uppercase outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Urutan
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={form.sort_order}
+                  value={form.color}
                   onChange={(e) =>
                     setForm((current) => ({
                       ...current,
-                      sort_order: e.target.value,
+                      color: e.target.value,
                     }))
                   }
                   disabled={saving}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                  placeholder="#49bfb4"
+                  className="flex-1 rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm uppercase outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
                 />
               </div>
+            </div>
 
-              <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) =>
-                    setForm((current) => ({
-                      ...current,
-                      is_active: e.target.checked,
-                    }))
-                  }
-                  disabled={saving}
-                  className="h-4 w-4 rounded border-zinc-300 text-lco-green focus:ring-lco-teal"
-                />
-
-                <div>
-                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-                    Kategori aktif
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Kategori aktif akan tersedia saat membuat produk.
-                  </p>
-                </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Urutan
               </label>
+              <input
+                type="number"
+                min="0"
+                value={form.sort_order}
+                onChange={(e) =>
+                  setForm((current) => ({
+                    ...current,
+                    sort_order: e.target.value,
+                  }))
+                }
+                disabled={saving}
+                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+              />
             </div>
 
-            <div className="flex justify-end gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-              <button
-                type="button"
-                onClick={closeForm}
+            <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+              <input
+                type="checkbox"
+                checked={form.is_active}
+                onChange={(e) =>
+                  setForm((current) => ({
+                    ...current,
+                    is_active: e.target.checked,
+                  }))
+                }
                 disabled={saving}
-                className="rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors duration-150 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
-              >
-                Batal
-              </button>
+                className="h-4 w-4 rounded border-zinc-300 text-lco-green focus:ring-lco-teal"
+              />
 
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-md bg-lco-green px-5 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving && <Loader2 size={16} className="animate-spin" />}
-                {saving ? "Menyimpan..." : "Simpan"}
-              </button>
-            </div>
+              <div>
+                <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                  Kategori aktif
+                </p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Kategori aktif akan tersedia saat membuat produk.
+                </p>
+              </div>
+            </label>
           </div>
-        </div>
+
+          <div className="flex justify-end gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <button
+              type="button"
+              onClick={closeForm}
+              disabled={saving}
+              className="rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors duration-150 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            >
+              Batal
+            </button>
+
+            <Button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              size="lg"
+            >
+              {saving && <Loader2 size={16} className="animate-spin" />}
+              {saving ? "Menyimpan..." : "Simpan"}
+            </Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

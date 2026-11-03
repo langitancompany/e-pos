@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { Loader2, Minus, Plus, X } from "lucide-react";
 import type { CustomerRecord } from "@/hooks/useCustomerAdmin";
+import Button from "@/app/components/ui/Button";
 
 interface PoinAdjustModalProps {
   customer: CustomerRecord;
@@ -175,15 +176,14 @@ export default function PoinAdjustModal({
           >
             Batal
           </button>
-          <button
+          <Button
             type="button"
             onClick={handleSubmit}
             disabled={saving}
-            className="inline-flex items-center gap-2 rounded-md bg-lco-green px-4 py-2 text-sm font-semibold text-white hover:bg-lco-green-hover disabled:opacity-60"
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
             Simpan
-          </button>
+          </Button>
         </div>
       </div>
     </div>

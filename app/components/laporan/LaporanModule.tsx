@@ -81,6 +81,8 @@ import {
   DeltaBadge,
   HarianInsightsSection,
 } from "@/app/components/laporan/HarianInsights";
+import Modal from "@/app/components/ui/Modal";
+import Button from "@/app/components/ui/Button";
 
 // Piutang tidak memakai rentang tanggal; label ini dipakai di judul PDF & Excel.
 const PIUTANG_RANGE_LABEL =
@@ -181,79 +183,80 @@ function SettleReceivableModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-sm rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-base font-semibold">
-            <CheckCircle2 className="h-4 w-4 text-lco-teal" />
-            Tandai Lunas
-          </h3>
-          <button
+    <Modal size="sm" layout="plain">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="flex items-center gap-2 text-base font-semibold">
+          <CheckCircle2 className="h-4 w-4 text-lco-teal" />
+          Tandai Lunas
+        </h3>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {done ? (
+        <div className="space-y-4">
+          <div className="flex items-start gap-2 rounded-md border border-lco-teal/30 bg-lco-teal/10 p-3 text-xs text-lco-teal">
+            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            Piutang {receivable.receipt_no} berhasil ditandai lunas.
+          </div>
+          <Button
             type="button"
             onClick={onClose}
-            className="text-zinc-400 transition-colors duration-150 hover:text-zinc-600 dark:hover:text-zinc-200"
+            size="lg"
+            fullWidth
           >
-            <X className="h-4 w-4" />
-          </button>
+            Selesai
+          </Button>
         </div>
-
-        {done ? (
-          <div className="space-y-4">
-            <div className="flex items-start gap-2 rounded-md border border-lco-teal/30 bg-lco-teal/10 p-3 text-xs text-lco-teal">
-              <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Piutang {receivable.receipt_no} berhasil ditandai lunas.
+      ) : (
+        <>
+          <div className="mb-4 space-y-1 rounded-md border border-zinc-200 p-3 text-xs dark:border-zinc-800">
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Struk</span>
+              <span className="font-mono">{receivable.receipt_no}</span>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover"
-            >
-              Selesai
-            </button>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Pelanggan</span>
+              <span>{receivable.customer_name ?? "-"}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-500">Nominal</span>
+              <span className="font-mono tabular-nums font-semibold">
+                {formatRupiah(receivable.amount)}
+              </span>
+            </div>
           </div>
-        ) : (
-          <>
-            <div className="mb-4 space-y-1 rounded-md border border-zinc-200 p-3 text-xs dark:border-zinc-800">
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Struk</span>
-                <span className="font-mono">{receivable.receipt_no}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Pelanggan</span>
-                <span>{receivable.customer_name ?? "-"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Nominal</span>
-                <span className="font-mono tabular-nums font-semibold">
-                  {formatRupiah(receivable.amount)}
-                </span>
-              </div>
+
+          {error && (
+            <div className="mt-3 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              {error}
             </div>
+          )}
 
-            {error && (
-              <div className="mt-3 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                {error}
-              </div>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            size="lg"
+            fullWidth
+            className="mt-5"
+          >
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
             )}
-
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="h-4 w-4" />
-              )}
-              Tandai Lunas
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+            Tandai Lunas
+          </Button>
+        </>
+      )}
+    </Modal>
   );
 }
 
@@ -552,13 +555,13 @@ function PiutangTab({
                   </td>
                   <td className="px-5 py-3 text-right">
                     {!row.is_settled && (
-                      <button
+                      <Button
                         type="button"
                         onClick={() => setTarget(row)}
-                        className="rounded-md bg-lco-green px-3 py-1.5 text-xs font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover"
+                        size="sm"
                       >
                         Tandai Lunas
-                      </button>
+                      </Button>
                     )}
                     {row.is_settled && row.settled_at && (
                       <span className="flex items-center justify-end gap-1 text-[11px] text-zinc-400">

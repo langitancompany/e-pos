@@ -47,6 +47,8 @@ import {
   movementTypeColorClass,
   toDateInputValue,
 } from "./stokUtils";
+import Select from "@/app/components/ui/Select";
+import Input from "@/app/components/ui/Input";
 
 export interface RiwayatFilters {
   types: StockMovementType[];
@@ -337,9 +339,7 @@ export default function StokRiwayatTab({
     "rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950";
   const labelClass =
     "flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400";
-  const inputClass =
-    "rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950";
-  const presetClass =
+    const presetClass =
     "rounded-md border border-zinc-200 px-2.5 py-1 text-xs font-medium text-zinc-500 transition-colors duration-150 hover:text-zinc-900 dark:border-zinc-800 dark:hover:text-zinc-100";
 
   return (
@@ -392,24 +392,22 @@ export default function StokRiwayatTab({
             <label className="mb-1 block text-xs font-medium text-zinc-500">
               Dari tanggal
             </label>
-            <input
+            <Input
               type="date"
               value={filters.dateFrom}
               max={filters.dateTo || undefined}
               onChange={(e) => handleDateFrom(e.target.value)}
-              className={`${inputClass} w-full`}
             />
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-zinc-500">
               Sampai tanggal
             </label>
-            <input
+            <Input
               type="date"
               value={filters.dateTo}
               min={filters.dateFrom || undefined}
               onChange={(e) => handleDateTo(e.target.value)}
-              className={`${inputClass} w-full`}
             />
           </div>
           <div>
@@ -427,12 +425,12 @@ export default function StokRiwayatTab({
               <label className="mb-1 block text-xs font-medium text-zinc-500">
                 Oleh
               </label>
-              <select
+              <Select
+                fullWidth
                 value={filters.userId ?? ""}
                 onChange={(e) =>
                   onFiltersChange({ userId: e.target.value || null })
                 }
-                className={`${inputClass} w-full`}
               >
                 <option value="">Semua user</option>
                 {actors.map((actor) => (
@@ -440,7 +438,7 @@ export default function StokRiwayatTab({
                     {actor.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
         </div>

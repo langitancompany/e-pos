@@ -52,6 +52,10 @@ import {
   type LabelSheetSpec,
   type LabelUnit,
 } from "@/lib/pos/labelPrint";
+import TabSwitcher from "@/app/components/ui/TabSwitcher";
+import Select from "@/app/components/ui/Select";
+import Button from "@/app/components/ui/Button";
+import Input from "@/app/components/ui/Input";
 
 const MAX_QTY = 999;
 const PX_PER_MM = 96 / 25.4;
@@ -160,7 +164,7 @@ function UnitField({
         {label}
       </span>
       <div className="relative">
-        <input
+        <Input
           type="text"
           inputMode="decimal"
           value={text}
@@ -187,7 +191,7 @@ function UnitField({
               onChangeMm(Math.round((parsed / perMm) * 1000) / 1000);
             }
           }}
-          className={`${inputClass} pr-11`}
+          className="pr-11"
         />
         <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400">
           {unitLabel}
@@ -207,22 +211,7 @@ function SegmentedControl<T extends string>({
   onChange: (next: T) => void;
 }) {
   return (
-    <div className="inline-flex w-full gap-1 rounded-xl bg-zinc-200/70 p-1 dark:bg-zinc-900">
-      {options.map((option) => (
-        <button
-          key={option.key}
-          type="button"
-          onClick={() => onChange(option.key)}
-          className={`flex-1 rounded-lg px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition-colors duration-150 ${
-            value === option.key
-              ? "bg-white text-lco-green shadow-sm dark:bg-zinc-800 dark:text-lco-teal"
-              : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          }`}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
+    <TabSwitcher tabs={options} value={value} onChange={onChange} fullWidth />
   );
 }
 
@@ -525,7 +514,8 @@ export default function LabelBarcodeModule() {
           <section className={sectionClass}>
             <p className={sectionTitleClass}>1 · Jenis label</p>
 
-            <select
+            <Select
+              fullWidth
               value={presetKey}
               onChange={(event) => {
                 if (event.target.value === CUSTOM_PRESET_KEY) {
@@ -535,7 +525,6 @@ export default function LabelBarcodeModule() {
                   applyPreset(event.target.value);
                 }
               }}
-              className={inputClass}
             >
               {LABEL_PRESETS.map((preset) => (
                 <option key={preset.key} value={preset.key}>
@@ -543,7 +532,7 @@ export default function LabelBarcodeModule() {
                 </option>
               ))}
               <option value={CUSTOM_PRESET_KEY}>Kustom (atur sendiri)</option>
-            </select>
+            </Select>
 
             <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
               {getPreset(presetKey)?.description ??
@@ -590,15 +579,15 @@ export default function LabelBarcodeModule() {
                   </p>
                   <label className="flex shrink-0 items-center gap-1.5 text-[11px] text-zinc-500 dark:text-zinc-400">
                     Satuan
-                    <select
+                    <Select
+                      size="xs"
                       value={unit}
                       onChange={(event) => setUnit(event.target.value as LabelUnit)}
-                      className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs dark:border-zinc-800 dark:bg-zinc-950"
                     >
                       <option value="cm">cm</option>
                       <option value="mm">mm</option>
                       <option value="in">inci</option>
-                    </select>
+                    </Select>
                   </label>
                 </div>
 
@@ -662,10 +651,10 @@ export default function LabelBarcodeModule() {
                     <span className="mb-1 block text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                       Ukuran kertas
                     </span>
-                    <select
+                    <Select
+                      fullWidth
                       value={pageSizeKey}
                       onChange={(event) => changePageSize(event.target.value)}
-                      className={inputClass}
                     >
                       {PAGE_SIZES.map((size) => (
                         <option key={size.key} value={size.key}>
@@ -673,7 +662,7 @@ export default function LabelBarcodeModule() {
                         </option>
                       ))}
                       <option value="custom">Kustom</option>
-                    </select>
+                    </Select>
                   </label>
                   <UnitField
                     label="Lebar kertas"
@@ -808,12 +797,12 @@ export default function LabelBarcodeModule() {
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                <input
+                <Input
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Cari nama, SKU, atau barcode..."
-                  className={`${inputClass} pl-9`}
+                  className="pl-9"
                 />
               </div>
               <button
@@ -1049,16 +1038,18 @@ export default function LabelBarcodeModule() {
               </p>
             )}
 
-            <button
+            <Button
               type="button"
               onClick={handlePrint}
               disabled={!canPrint}
-              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-50"
+              size="lg"
+              fullWidth
+              className="mt-4"
             >
               <Printer className="h-4 w-4" />
               Cetak {totalLabels > 0 ? `${totalLabels} label` : "label"}
               {sheets.length > 1 ? ` (${sheets.length} lembar)` : ""}
-            </button>
+            </Button>
 
             <p className="mt-2 text-center text-[11px] text-zinc-500 dark:text-zinc-400">
               Di dialog cetak pilih ukuran kertas sesuai lembar, skala 100%, dan

@@ -20,6 +20,7 @@ import type { ProductWithCategory } from "@/hooks/useProducts";
 import ReceiptForm from "./ReceiptForm";
 import ReceiptDetail from "./ReceiptDetail";
 import { formatDateOnly, formatNumber, formatRupiah } from "./stokUtils";
+import Button from "@/app/components/ui/Button";
 
 type View =
   | { kind: "list" }
@@ -81,14 +82,14 @@ export default function BarangMasukTab({
         </p>
 
         {canEdit && (
-          <button
+          <Button
             type="button"
             onClick={() => setView({ kind: "form" })}
-            className="flex items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover"
+            size="lg"
           >
             <Plus className="h-4 w-4" />
             Catat Barang Masuk
-          </button>
+          </Button>
         )}
       </div>
 
