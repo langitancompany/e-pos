@@ -34,6 +34,8 @@ import PelangganFormModal from "./PelangganFormModal";
 import PelangganDetailPanel from "./PelangganDetailPanel";
 import PoinAdjustModal from "./PoinAdjustModal";
 import Select from "@/app/components/ui/Select";
+import Button from "@/app/components/ui/Button";
+import Chip from "@/app/components/ui/Chip";
 
 // Nilai 1 poin = Rp 100. HARUS sama dengan LOYALTY_POINT_VALUE di
 // app/components/kasir/KasirModule.tsx (konstanta itu tidak di-export);
@@ -363,26 +365,27 @@ export default function PelangganModule() {
               ))}
             </Select>
 
-            <button
+            <Button
               type="button"
               onClick={() => {
                 exportCsv(filtered);
                 showToast(`${filtered.length} pelanggan diekspor.`);
               }}
               disabled={filtered.length === 0}
-              className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+              variant="secondary"
+              size="sm"
             >
               <Download className="h-3.5 w-3.5" /> Ekspor CSV
-            </button>
+            </Button>
 
             {canCreate && (
-              <button
+              <Button
                 type="button"
                 onClick={() => setFormMode("create")}
-                className="inline-flex items-center gap-1.5 rounded-md bg-lco-green px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-lco-green-hover"
+                size="sm"
               >
                 <Plus className="h-3.5 w-3.5" /> Daftarkan Pelanggan
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -396,21 +399,19 @@ export default function PelangganModule() {
               ["semua", "Semua"],
             ] as [StatusFilter, string][]
           ).map(([key, label]) => (
-            <button
+            <Chip
               key={key}
               type="button"
               onClick={() => {
                 setStatusFilter(key);
                 setVisibleCount(PAGE_SIZE);
               }}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                statusFilter === key
-                  ? "bg-lco-green text-white"
-                  : "bg-zinc-200 text-zinc-600 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-300"
-              }`}
+              selected={statusFilter === key}
+              variant="solid"
+              shape="pill"
             >
               {label}
-            </button>
+            </Chip>
           ))}
           <span className="mx-1 h-4 w-px bg-zinc-300 dark:bg-zinc-700" />
           {(
@@ -420,18 +421,15 @@ export default function PelangganModule() {
               ["belum_belanja", "Belum pernah belanja"],
             ] as [QuickFilter, string][]
           ).map(([key, label]) => (
-            <button
+            <Chip
               key={key}
               type="button"
               onClick={() => toggleQuick(key)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                quickFilters.includes(key)
-                  ? "border-lco-teal bg-lco-teal/10 text-lco-green dark:text-lco-teal"
-                  : "border-zinc-300 text-zinc-600 hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-400"
-              }`}
+              selected={quickFilters.includes(key)}
+              shape="pill"
             >
               {label}
-            </button>
+            </Chip>
           ))}
         </div>
 

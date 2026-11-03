@@ -36,6 +36,7 @@ import {
 } from "@/hooks/useTrash";
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import TabSwitcher from "@/app/components/ui/TabSwitcher";
+import Button from "@/app/components/ui/Button";
 
 type SampahTab = "produk" | "transaksi";
 
@@ -291,11 +292,12 @@ export default function SampahModule() {
                     </td>
 
                     <td className="px-4 py-3 text-right">
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleRestoreProduct(product)}
                         disabled={restoringId === product.id}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-lco-teal transition-colors duration-150 hover:bg-lco-teal/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700"
+                        variant="secondary"
+                        size="sm"
                       >
                         {restoringId === product.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -303,7 +305,7 @@ export default function SampahModule() {
                           <RotateCcw className="h-3.5 w-3.5" />
                         )}
                         Pulihkan
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -368,11 +370,12 @@ export default function SampahModule() {
                     </td>
 
                     <td className="px-4 py-3 text-right">
-                      <button
+                      <Button
                         type="button"
                         onClick={() => handleRestoreTransaction(transaction)}
                         disabled={restoringId === transaction.id}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-lco-teal transition-colors duration-150 hover:bg-lco-teal/10 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700"
+                        variant="secondary"
+                        size="sm"
                       >
                         {restoringId === transaction.id ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -380,7 +383,7 @@ export default function SampahModule() {
                           <ArrowUpFromLine className="h-3.5 w-3.5" />
                         )}
                         Pulihkan
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))}

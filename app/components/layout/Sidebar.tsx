@@ -46,6 +46,7 @@ import { useAuth, hasPermission, type AuthUser } from "@/hooks/useAuth";
 // hooks/useThemePreference.ts.
 import { useThemePreference } from "@/hooks/useThemePreference";
 import { clearStoredMenu } from "@/lib/pos/activeMenu";
+import Button from "@/app/components/ui/Button";
 
 export interface SidebarMenuItem {
   key: string;
@@ -283,10 +284,12 @@ function ThemeToggle() {
   const isDark = theme === "dark";
 
   return (
-    <button
+    <Button
       type="button"
       onClick={toggleTheme}
-      className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs font-medium text-zinc-600 transition-colors duration-150 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+      variant="ghost"
+      size="sm"
+      fullWidth
     >
       {isDark ? (
         <Sun className="h-3.5 w-3.5" />
@@ -294,7 +297,7 @@ function ThemeToggle() {
         <Moon className="h-3.5 w-3.5" />
       )}
       {isDark ? "Mode Terang" : "Mode Gelap"}
-    </button>
+    </Button>
   );
 }
 

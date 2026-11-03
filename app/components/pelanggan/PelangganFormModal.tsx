@@ -138,14 +138,14 @@ export default function PelangganFormModal({
         </div>
 
         <div className="flex justify-end gap-2 border-t border-zinc-200 px-5 py-3 dark:border-zinc-800">
-          <button
+          <Button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-md px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            variant="ghost"
           >
             Batal
-          </button>
+          </Button>
           <Button
             type="button"
             onClick={handleSubmit}

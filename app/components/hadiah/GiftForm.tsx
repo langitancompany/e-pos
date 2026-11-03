@@ -13,7 +13,6 @@
 import { useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
-  ArrowLeft,
   Gift,
   Loader2,
   ScanBarcode,
@@ -37,6 +36,7 @@ import Select from "@/app/components/ui/Select";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
 import IconButton from "@/app/components/ui/IconButton";
+import BackButton from "@/app/components/ui/BackButton";
 
 interface FormLine {
   productId: string;
@@ -251,15 +251,7 @@ export default function GiftForm({
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={onBack}
-        disabled={isSaving}
-        className="mb-3 flex items-center gap-1.5 text-sm text-zinc-500 transition-colors duration-150 hover:text-zinc-900 disabled:opacity-60 dark:hover:text-zinc-100"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Kembali ke daftar hadiah
-      </button>
+      <BackButton onClick={onBack} disabled={isSaving}>Kembali ke daftar hadiah</BackButton>
 
       <div className={`${cardClass} mb-4`}>
         <h3 className="mb-3 text-base font-semibold">Catat Hadiah / Oleh-oleh</h3>

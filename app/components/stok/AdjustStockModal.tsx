@@ -29,6 +29,7 @@ import { deltaColorClass, formatDelta } from "./stokUtils";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
+import Chip from "@/app/components/ui/Chip";
 
 // Alasan yang paling sering dipakai — tombol cepat supaya kasir/supervisor tidak
 // mengetik bebas untuk kasus yang itu-itu saja (alasan tetap bisa diedit manual).
@@ -207,7 +208,7 @@ export default function AdjustStockModal({
           <div className="mb-4 flex gap-2">
             {(["opname", "adjustment"] as ManualMovementType[]).map(
               (option) => (
-                <button
+                <Chip
                   key={option}
                   type="button"
                   onClick={() => {
@@ -215,14 +216,12 @@ export default function AdjustStockModal({
                     setValue("");
                     setReason("");
                   }}
-                  className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors duration-150 ${
-                    type === option
-                      ? "border-lco-teal text-lco-teal"
-                      : "border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:hover:text-zinc-100"
-                  }`}
+                  selected={type === option}
+                  size="md"
+                  className="flex-1"
                 >
                   {MOVEMENT_TYPE_LABEL[option]}
-                </button>
+                </Chip>
               ),
             )}
           </div>
@@ -336,18 +335,15 @@ export default function AdjustStockModal({
           </label>
           <div className="mb-2 flex flex-wrap gap-1.5">
             {QUICK_REASONS[type].map((quick) => (
-              <button
+              <Chip
                 key={quick}
                 type="button"
                 onClick={() => setReason(quick)}
-                className={`rounded-md border px-2 py-1 text-[11px] transition-colors duration-150 ${
-                  reason === quick
-                    ? "border-lco-teal text-lco-teal"
-                    : "border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:hover:text-zinc-100"
-                }`}
+                selected={reason === quick}
+                size="xs"
               >
                 {quick}
-              </button>
+              </Chip>
             ))}
           </div>
           <textarea

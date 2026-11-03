@@ -43,6 +43,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X, Camera, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import IconButton from "@/app/components/ui/IconButton";
+import Button from "@/app/components/ui/Button";
 
 const SCANNER_ELEMENT_ID = "kasir-barcode-scanner-region";
 // Jeda antara satu scan berhasil & kamera aktif kembali — cukup lama supaya
@@ -197,22 +198,23 @@ export default function BarcodeScanModal({
                   <>
                     <AlertTriangle className="h-7 w-7 text-lco-coral" />
                     <p className="text-xs text-white/80">{cameraError}</p>
-                    <button
+                    <Button
                       onClick={handleActivateCamera}
-                      className="mt-1 rounded-md bg-lco-teal px-4 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:opacity-90"
+                      size="sm"
+                      className="mt-1"
                     >
                       Coba Lagi
-                    </button>
+                    </Button>
                   </>
                 ) : (
                   <>
                     <Camera className="h-8 w-8 text-white/60" />
-                    <button
+                    <Button
                       onClick={handleActivateCamera}
-                      className="rounded-md bg-lco-teal px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:opacity-90"
+                      size="lg"
                     >
                       Aktifkan Kamera
-                    </button>
+                    </Button>
                     <p className="text-[11px] text-white/50">
                       Browser akan minta izin akses kamera.
                     </p>

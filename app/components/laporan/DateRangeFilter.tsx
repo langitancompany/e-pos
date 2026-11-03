@@ -16,6 +16,7 @@
 import { useState } from "react";
 import { CalendarDays } from "lucide-react";
 import type { DateRange, ReportDatePreset } from "@/hooks/useReports";
+import Chip from "@/app/components/ui/Chip";
 
 const PRESETS: { key: Exclude<ReportDatePreset, "custom">; label: string }[] = [
   { key: "today", label: "Hari Ini" },
@@ -138,18 +139,14 @@ export function DateRangeFilter({
 
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         {PRESETS.map((p) => (
-          <button
+          <Chip
             key={p.key}
             type="button"
             onClick={() => onChange(p.key)}
-            className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
-              preset === p.key
-                ? "border-lco-teal text-lco-teal"
-                : "border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:hover:text-zinc-100"
-            }`}
+            selected={preset === p.key}
           >
             {p.label}
-          </button>
+          </Chip>
         ))}
       </div>
 

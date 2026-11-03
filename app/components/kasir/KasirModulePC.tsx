@@ -54,6 +54,7 @@ import type { CartItem } from "@/lib/pos/types";
 import type { Customer } from "@/hooks/useCustomers";
 import type { ProductWithCategory } from "@/hooks/useProducts";
 import IconButton from "@/app/components/ui/IconButton";
+import Button from "@/app/components/ui/Button";
 
 interface KasirModulePCProps {
   cashierName: string;
@@ -717,14 +718,15 @@ export default function KasirModulePC({
               {cart.length} item · {totalQty} qty
             </span>
           </div>
-          <button
+          <Button
             onClick={onClearCart}
             disabled={cart.length === 0}
-            className="flex items-center gap-1.5 rounded-md border border-lco-coral/40 bg-lco-coral/5 px-2.5 py-1 text-[11px] font-semibold text-lco-coral transition-colors duration-150 hover:bg-lco-coral/10 disabled:cursor-not-allowed disabled:opacity-40"
+            variant="outline-danger"
+            size="sm"
           >
             <RotateCcw className="h-3 w-3" />
             Bersihkan [F5]
-          </button>
+          </Button>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">

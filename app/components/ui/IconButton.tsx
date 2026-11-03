@@ -14,7 +14,8 @@
 // Props:
 //   variant  "plain" (default: hanya warna ikon berubah saat hover — cocok
 //            untuk tombol tutup) | "soft" (ada latar abu saat hover — cocok
-//            untuk tombol di baris tabel/daftar).
+//            untuk tombol di baris tabel/daftar) | "outlined" (ber-border —
+//            cocok untuk tombol pagination / stepper jumlah).
 //   tone     "neutral" (default) | "danger" (hover jadi merah).
 //   size     "sm" (p-1) | "md" (p-1.5, default) | "lg" (p-2).
 //   className hanya untuk margin/posisi (mis. "ml-auto", "shrink-0").
@@ -24,7 +25,7 @@
 
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 
-export type IconButtonVariant = "plain" | "soft";
+export type IconButtonVariant = "plain" | "soft" | "outlined";
 export type IconButtonTone = "neutral" | "danger";
 export type IconButtonSize = "sm" | "md" | "lg";
 
@@ -40,6 +41,12 @@ const VARIANT_CLASS: Record<IconButtonVariant, Record<IconButtonTone, string>> =
         "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100",
       danger:
         "text-zinc-400 hover:bg-lco-coral/10 hover:text-lco-coral",
+    },
+    outlined: {
+      neutral:
+        "border border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
+      danger:
+        "border border-lco-coral/40 text-lco-coral hover:bg-lco-coral/10",
     },
   };
 

@@ -56,6 +56,7 @@ import TabSwitcher from "@/app/components/ui/TabSwitcher";
 import Select from "@/app/components/ui/Select";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
+import IconButton from "@/app/components/ui/IconButton";
 
 const MAX_QTY = 999;
 const PX_PER_MM = 96 / 25.4;
@@ -819,22 +820,22 @@ export default function LabelBarcodeModule() {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              <button
+              <Button
                 type="button"
                 onClick={selectAllShown}
                 disabled={filteredProducts.length === 0}
-                className="rounded-md border border-zinc-200 px-2.5 py-1.5 font-medium transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                variant="secondary"
               >
                 Pilih semua yang tampil
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={() => setSelected({})}
                 disabled={selectedCount === 0}
-                className="rounded-md border border-zinc-200 px-2.5 py-1.5 font-medium transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                variant="secondary"
               >
                 Kosongkan
-              </button>
+              </Button>
               <span className="mx-1 hidden h-4 w-px bg-zinc-200 dark:bg-zinc-800 sm:block" />
               <span className="text-zinc-500 dark:text-zinc-400">
                 Jumlah semua:
@@ -847,22 +848,22 @@ export default function LabelBarcodeModule() {
                 onChange={(event) => setBulkQty(Number(event.target.value))}
                 className="w-16 rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-center text-xs outline-none focus:border-lco-teal dark:border-zinc-800 dark:bg-zinc-950"
               />
-              <button
+              <Button
                 type="button"
                 onClick={applyBulkQty}
                 disabled={selectedCount === 0}
-                className="rounded-md border border-zinc-200 px-2.5 py-1.5 font-medium transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                variant="secondary"
               >
                 Terapkan
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={applyStockQty}
                 disabled={selectedCount === 0}
-                className="rounded-md border border-zinc-200 px-2.5 py-1.5 font-medium transition-colors hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                variant="secondary"
               >
                 Sesuai stok
-              </button>
+              </Button>
             </div>
 
             {error && (
@@ -918,14 +919,14 @@ export default function LabelBarcodeModule() {
 
                         {isSelected && (
                           <div className="flex shrink-0 items-center gap-1">
-                            <button
+                            <IconButton
                               type="button"
                               onClick={() => setQty(product.id, qty - 1)}
                               aria-label="Kurangi"
-                              className="rounded-md border border-zinc-200 p-1.5 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                              variant="outlined"
                             >
                               <Minus className="h-3 w-3" />
-                            </button>
+                            </IconButton>
                             <input
                               type="number"
                               min={1}
@@ -936,14 +937,14 @@ export default function LabelBarcodeModule() {
                               }
                               className="w-14 rounded-md border border-zinc-200 bg-white px-1 py-1 text-center text-sm outline-none focus:border-lco-teal dark:border-zinc-800 dark:bg-zinc-950"
                             />
-                            <button
+                            <IconButton
                               type="button"
                               onClick={() => setQty(product.id, qty + 1)}
                               aria-label="Tambah"
-                              className="rounded-md border border-zinc-200 p-1.5 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                              variant="outlined"
                             >
                               <Plus className="h-3 w-3" />
-                            </button>
+                            </IconButton>
                           </div>
                         )}
                       </li>
@@ -972,21 +973,22 @@ export default function LabelBarcodeModule() {
 
             {/* Navigasi lembar */}
             <div className="mb-3 flex items-center justify-between gap-2">
-              <button
+              <Button
                 type="button"
                 onClick={() => setPageIndex(Math.max(0, safePageIndex - 1))}
                 disabled={safePageIndex <= 0}
-                className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                variant="secondary"
+                size="sm"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 Sebelumnya
-              </button>
+              </Button>
 
               <span className="text-xs font-medium tabular-nums">
                 Lembar {safePageIndex + 1} dari {previewSheets.length}
               </span>
 
-              <button
+              <Button
                 type="button"
                 onClick={() =>
                   setPageIndex(
@@ -994,11 +996,12 @@ export default function LabelBarcodeModule() {
                   )
                 }
                 disabled={safePageIndex >= previewSheets.length - 1}
-                className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-800 dark:hover:bg-zinc-900"
+                variant="secondary"
+                size="sm"
               >
                 Berikutnya
                 <ChevronRight className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             </div>
 
             {/* Area kertas */}

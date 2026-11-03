@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { clearStoredMenu } from "@/lib/pos/activeMenu";
+import Button from "@/app/components/ui/Button";
 
 // ── PERBAIKAN (tampilan login) ── Desain ulang total dari versi sebelumnya:
 // 1. Bug kontras: banyak elemen (judul, label, input) sebelumnya pakai
@@ -232,14 +233,16 @@ export default function LoginPage() {
               </p>
             )}
 
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 mt-1 rounded-md bg-lco-green hover:bg-lco-green-hover text-white text-sm font-semibold transition-colors duration-150 flex items-center justify-center gap-2 disabled:opacity-60"
+              size="lg"
+              fullWidth
+              className="mt-1"
             >
               {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
               Masuk
-            </button>
+            </Button>
           </form>
 
           <p className="mt-6 text-center text-xs text-zinc-400 dark:text-zinc-600">

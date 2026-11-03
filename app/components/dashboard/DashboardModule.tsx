@@ -96,6 +96,8 @@ import {
   type PeriodStats,
 } from "@/hooks/useDashboard";
 import { formatRupiah } from "@/lib/pos/cartLogic";
+import Button from "@/app/components/ui/Button";
+import Chip from "@/app/components/ui/Chip";
 
 /**
  * Hex tema LCO Flat — HARUS sama dengan app/globals.css §16.2.
@@ -387,14 +389,16 @@ function ActionCard({
       )}
 
       {isClickable && (
-        <button
+        <Button
           type="button"
           onClick={() => onNavigate?.(group.targetMenu)}
-          className="mt-3 flex items-center justify-center gap-1.5 rounded-md border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 transition-colors duration-150 hover:border-lco-teal hover:text-lco-teal dark:border-zinc-800 dark:text-zinc-400"
+          variant="secondary"
+          size="sm"
+          className="mt-3"
         >
           {actionCta(group.kind)}
           <ArrowRight className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -681,18 +685,15 @@ export default function DashboardModule({
 
             <div className="flex items-center gap-1.5">
               {([7, 30] as ChartRange[]).map((option) => (
-                <button
+                <Chip
                   key={option}
                   type="button"
                   onClick={() => setRange(option)}
-                  className={`rounded-md border px-2.5 py-1 font-mono text-[11px] font-medium tabular-nums transition-colors duration-150 ${
-                    range === option
-                      ? "border-lco-teal text-lco-teal"
-                      : "border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:hover:text-zinc-100"
-                  }`}
+                  selected={range === option}
+                  className="font-mono tabular-nums"
                 >
                   {option} Hari
-                </button>
+                </Chip>
               ))}
             </div>
           </div>

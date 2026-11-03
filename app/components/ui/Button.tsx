@@ -16,14 +16,20 @@
 // Props:
 //   variant   "primary" (hijau, aksi utama) | "secondary" (bergaris, aksi
 //             sekunder/batal) | "danger" (merah, aksi merusak) | "ghost"
-//             (tanpa latar, aksi ringan).
+//             (tanpa latar, aksi ringan) | "outline-danger" (merah bergaris,
+//             aksi merusak yang lebih ringan dari "danger", mis. Batalkan/Hapus).
 //   size      "sm" | "md" (default) | "lg".
 //   fullWidth true -> w-full.
 //   className hanya untuk margin/posisi (mis. "mt-5", "flex-1").
 
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 
-export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+export type ButtonVariant =
+  | "primary"
+  | "secondary"
+  | "danger"
+  | "outline-danger"
+  | "ghost";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
@@ -31,6 +37,8 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
   secondary:
     "border border-zinc-300 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900",
   danger: "bg-lco-coral text-white hover:bg-lco-coral/90",
+  "outline-danger":
+    "border border-lco-coral/40 bg-lco-coral/5 text-lco-coral hover:bg-lco-coral/10",
   ghost:
     "text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900",
 };

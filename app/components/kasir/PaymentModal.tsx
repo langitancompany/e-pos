@@ -52,6 +52,7 @@ import {
 } from "@/lib/midtrans/client";
 import Modal from "@/app/components/ui/Modal";
 import IconButton from "@/app/components/ui/IconButton";
+import Button from "@/app/components/ui/Button";
 
 // ── TAMBAHAN (bug: preview tidak sama dengan hasil cetak) ── Duplikat kecil
 // dari METHOD_LABELS/formatMethod() di printLogic.ts (tidak diexport dari
@@ -977,11 +978,13 @@ export default function PaymentModal({
             <div className="px-6 pb-6 pt-1 flex flex-col shrink-0">
               {onSendWhatsApp && (
                 <div className="w-full mb-3">
-                  <button
+                  <Button
                     type="button"
                     onClick={handleSendWhatsApp}
                     disabled={waStatus === "sending" || waStatus === "sent"}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-md border border-lco-green/40 text-lco-green hover:bg-lco-green/10 text-sm font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-70"
+                    variant="secondary"
+                    size="lg"
+                    fullWidth
                   >
                     {waStatus === "sending" ? (
                       <>
@@ -1001,7 +1004,7 @@ export default function PaymentModal({
                         WhatsApp
                       </>
                     )}
-                  </button>
+                  </Button>
                   {waStatus === "sent" && waMethod === "download-fallback" && (
                     <p className="mt-2 text-[11px] text-zinc-500 text-left">
                       Lampirkan gambar struk yang baru terunduh ke chat WhatsApp
@@ -1016,13 +1019,14 @@ export default function PaymentModal({
                 </div>
               )}
 
-              <button
+              <Button
                 type="button"
                 onClick={handleFinishTransaction}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-md bg-lco-green hover:bg-lco-green-hover text-white text-sm font-semibold transition-colors duration-150"
+                size="lg"
+                fullWidth
               >
                 Selesai <ArrowRight className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1194,13 +1198,14 @@ export default function PaymentModal({
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <button
+                  <Button
                     onClick={() => setPaidAmount(total)}
                     disabled={lockInputs}
-                    className="py-2 px-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 hover:border-lco-teal/50 rounded-md text-xs font-medium transition-colors duration-150 text-zinc-700 dark:text-zinc-300 disabled:cursor-not-allowed disabled:opacity-60"
+                    variant="secondary"
+                    size="sm"
                   >
                     Uang Pas
-                  </button>
+                  </Button>
                   <button
                     onClick={() => setPaidAmount(50000)}
                     disabled={lockInputs}
@@ -1590,31 +1595,36 @@ export default function PaymentModal({
                   </p>
                 )}
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
+                  <Button
                     type="button"
                     onClick={handleReopenSnap}
-                    className="flex items-center justify-center gap-1.5 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors duration-150"
+                    variant="secondary"
+                    size="sm"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Buka Pembayaran
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     onClick={handleCheckDigitalStatus}
                     disabled={checkingDigital}
-                    className="flex items-center justify-center gap-1.5 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 text-xs font-medium text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors duration-150 disabled:opacity-50"
+                    variant="secondary"
+                    size="sm"
                   >
                     <RefreshCw
                       className={`w-3.5 h-3.5 ${checkingDigital ? "animate-spin" : ""}`}
                     />
                     Cek Status
-                  </button>
+                  </Button>
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={handleCancelDigital}
                   disabled={cancellingDigital}
-                  className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-md border border-lco-coral/40 text-xs font-medium text-lco-coral hover:bg-lco-coral/10 transition-colors duration-150 disabled:opacity-50"
+                  variant="outline-danger"
+                  size="sm"
+                  fullWidth
+                  className="mt-2"
                 >
                   {cancellingDigital ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1622,7 +1632,7 @@ export default function PaymentModal({
                     <XCircle className="w-3.5 h-3.5" />
                   )}
                   Batalkan Pembayaran Digital
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -1660,10 +1670,11 @@ export default function PaymentModal({
       </div>
 
       <div className="p-5 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 shrink-0">
-        <button
+        <Button
           onClick={isSplit ? handleProcessSplitPayment : handleProcessPayment}
           disabled={!isPayable || isProcessing}
-          className="w-full py-3 rounded-md bg-lco-green hover:bg-lco-green-hover text-white text-sm font-semibold transition-colors duration-150 disabled:opacity-50 flex items-center justify-center gap-2"
+          size="lg"
+          fullWidth
         >
           {digitalPhase !== "idle" ? (
             <>
@@ -1688,7 +1699,7 @@ export default function PaymentModal({
           ) : (
             "Proses Pembayaran"
           )}
-        </button>
+        </Button>
       </div>
     </Modal>
   );

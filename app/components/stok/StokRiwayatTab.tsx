@@ -50,6 +50,8 @@ import {
 import Select from "@/app/components/ui/Select";
 import Input from "@/app/components/ui/Input";
 import IconButton from "@/app/components/ui/IconButton";
+import Button from "@/app/components/ui/Button";
+import Chip from "@/app/components/ui/Chip";
 
 export interface RiwayatFilters {
   types: StockMovementType[];
@@ -459,18 +461,14 @@ export default function StokRiwayatTab({
           <span className="mx-1 h-4 w-px bg-zinc-200 dark:bg-zinc-800" />
 
           {FILTER_TYPES.map((type) => (
-            <button
+            <Chip
               key={type}
               type="button"
               onClick={() => toggleType(type)}
-              className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
-                filters.types.includes(type)
-                  ? "border-lco-teal text-lco-teal"
-                  : "border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:hover:text-zinc-100"
-              }`}
+              selected={filters.types.includes(type)}
             >
               {MOVEMENT_TYPE_LABEL[type]}
-            </button>
+            </Chip>
           ))}
 
           {hasFilter && (
@@ -483,12 +481,14 @@ export default function StokRiwayatTab({
             </button>
           )}
 
-          <button
+          <Button
             type="button"
             onClick={handleExport}
             disabled={isExporting}
             title="Ekspor semua mutasi sesuai filter ke Excel"
-            className="ml-auto flex items-center gap-2 rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:hover:bg-zinc-900"
+            variant="secondary"
+            size="sm"
+            className="ml-auto"
           >
             {isExporting ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -496,7 +496,7 @@ export default function StokRiwayatTab({
               <FileSpreadsheet className="h-3.5 w-3.5" />
             )}
             Ekspor Excel
-          </button>
+          </Button>
         </div>
 
         {exportNote && (

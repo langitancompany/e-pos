@@ -67,17 +67,13 @@ import { AddModuleModal, PermissionMatrix } from "./PermissionMatrix";
 import Modal from "@/app/components/ui/Modal";
 import Input from "@/app/components/ui/Input";
 import IconButton from "@/app/components/ui/IconButton";
+import Button from "@/app/components/ui/Button";
+import Chip from "@/app/components/ui/Chip";
 
 const cardCls = "overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900";
 const thCls =
   "px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800";
 const labelCls = "mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400";
-const primaryBtn =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg bg-lco-green px-3.5 py-2 text-xs font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-60";
-const ghostBtn =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-zinc-600 transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900";
-const iconBtn =
-  "rounded-md border border-zinc-200 p-1.5 text-zinc-500 transition-colors duration-150 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:border-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100";
 
 const PER_PAGE = 10;
 
@@ -146,20 +142,19 @@ function ConfirmModal({
       <h3 className="mb-1.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{title}</h3>
       <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">{message}</p>
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onClose} disabled={busy} className={ghostBtn}>
+        <Button type="button" onClick={onClose} disabled={busy} variant="secondary" size="sm">
           Batal
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={onConfirm}
           disabled={busy}
-          className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold text-white transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-60 ${
-            danger ? "bg-lco-coral hover:bg-lco-coral/90" : "bg-lco-green hover:bg-lco-green-hover"
-          }`}
+          variant={danger ? "danger" : "primary"}
+          size="sm"
         >
           {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {confirmLabel}
-        </button>
+        </Button>
       </div>
     </Modal>
   );
@@ -310,7 +305,7 @@ function ProfileModal({
                 const isSuperOpt = opt.value === "super_admin";
                 const disabled = saving || rolesLocked || (isSuperOpt && !canGrantSuperAdmin);
                 return (
-                  <button
+                  <Chip
                     key={opt.value}
                     type="button"
                     disabled={disabled}
@@ -328,14 +323,12 @@ function ProfileModal({
                       if (next.length === 0) return; // minimal satu role
                       setForm({ ...form, roles: next });
                     }}
-                    className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 ${
-                      selected
-                        ? "border-lco-green bg-lco-green text-white"
-                        : "border-zinc-300 text-zinc-600 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                    }`}
+                    selected={selected}
+                    variant="solid"
+                    size="md"
                   >
                     {opt.label}
-                  </button>
+                  </Chip>
                 );
               })}
             </div>
@@ -347,13 +340,13 @@ function ProfileModal({
         </div>
 
         <div className="flex justify-end gap-3 border-t border-zinc-100 px-5 py-4 dark:border-zinc-800">
-          <button type="button" onClick={onClose} disabled={saving} className={ghostBtn}>
+          <Button type="button" onClick={onClose} disabled={saving} variant="secondary" size="sm">
             Batalkan
-          </button>
-          <button type="submit" disabled={saving} className={primaryBtn}>
+          </Button>
+          <Button type="submit" disabled={saving} size="sm">
             {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {saving ? "Menyimpan..." : isNew ? "Buat User" : "Simpan Profil"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
@@ -475,9 +468,9 @@ function DetailView({
                 <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">Data akun dan peran</p>
               </div>
             </div>
-            <button type="button" onClick={onEditProfile} disabled={!canEdit} className={ghostBtn}>
+            <Button type="button" onClick={onEditProfile} disabled={!canEdit} variant="secondary" size="sm">
               <Pencil className="h-3.5 w-3.5" /> Ubah Profil
-            </button>
+            </Button>
           </div>
           <dl className="m-5 divide-y divide-zinc-100 overflow-hidden rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
             {info.map(([k, v]) => (
@@ -488,7 +481,7 @@ function DetailView({
             ))}
           </dl>
           <div className="flex flex-wrap gap-2 px-5 pb-5">
-            <button
+            <Button
               type="button"
               onClick={onToggleActive}
               disabled={!canToggleActive}
@@ -499,11 +492,12 @@ function DetailView({
                     ? "Anda tidak bisa mengubah status akun ini"
                     : undefined
               }
-              className={ghostBtn}
+              variant="secondary"
+              size="sm"
             >
               {user.is_active ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
               {user.is_active ? "Nonaktifkan" : "Aktifkan Kembali"}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -520,9 +514,9 @@ function DetailView({
               </div>
             </div>
             {!superAdmin && !readOnly && (
-              <button type="button" onClick={onAddModule} className={`${primaryBtn} shrink-0`}>
+              <Button type="button" onClick={onAddModule} size="sm" className="shrink-0">
                 + Tambah Akses Modul
-              </button>
+              </Button>
             )}
           </div>
 
@@ -544,13 +538,13 @@ function DetailView({
                 Ada perubahan hak akses yang belum disimpan.
               </p>
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={onReset} disabled={saving} className={ghostBtn}>
+                <Button type="button" onClick={onReset} disabled={saving} variant="secondary" size="sm">
                   Batalkan
-                </button>
-                <button type="button" onClick={onSave} disabled={saving} className={primaryBtn}>
+                </Button>
+                <Button type="button" onClick={onSave} disabled={saving} size="sm">
                   {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                   {saving ? "Menyimpan..." : "Simpan Perubahan"}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -835,16 +829,16 @@ export default function PengaturanAdminTab() {
                 Kelola akun dan hak akses modul. Klik ikon kunci untuk melihat dan mengatur akses.
               </p>
             </div>
-            <button
+            <Button
               type="button"
               onClick={openNewUser}
               disabled={!canCreateUser}
               title={!canCreateUser ? "Butuh izin “Kelola User · Tambah”" : undefined}
-              className={primaryBtn}
+              size="sm"
             >
               <UserPlus className="h-4 w-4" />
               Tambah User
-            </button>
+            </Button>
           </div>
 
           <div className={cardCls}>
@@ -963,16 +957,16 @@ export default function PengaturanAdminTab() {
                         </td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button
+                            <IconButton
                               type="button"
                               onClick={() => openDetail(u)}
                               title="Atur Akses"
                               aria-label={`Atur akses ${u.full_name ?? "user"}`}
-                              className={iconBtn}
+                              variant="outlined"
                             >
                               <KeyRound className="h-3.5 w-3.5" />
-                            </button>
-                            <button
+                            </IconButton>
+                            <IconButton
                               type="button"
                               onClick={() => handleToggleActive(u)}
                               disabled={!canToggleActiveFor(u)}
@@ -984,10 +978,10 @@ export default function PengaturanAdminTab() {
                                     : "Aktifkan kembali"
                               }
                               aria-label={`${u.is_active ? "Nonaktifkan" : "Aktifkan"} ${u.full_name ?? "user"}`}
-                              className={iconBtn}
+                              variant="outlined"
                             >
                               {u.is_active ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
-                            </button>
+                            </IconButton>
                           </div>
                         </td>
                       </tr>
@@ -1002,24 +996,24 @@ export default function PengaturanAdminTab() {
                 {filtered.length} pengguna · halaman {curPage} dari {totalPages}
               </span>
               <div className="flex gap-1.5">
-                <button
+                <IconButton
                   type="button"
                   onClick={() => setPage(curPage - 1)}
                   disabled={curPage <= 1}
                   aria-label="Halaman sebelumnya"
-                  className={iconBtn}
+                  variant="outlined"
                 >
                   <ChevronLeft className="h-3.5 w-3.5" />
-                </button>
-                <button
+                </IconButton>
+                <IconButton
                   type="button"
                   onClick={() => setPage(curPage + 1)}
                   disabled={curPage >= totalPages}
                   aria-label="Halaman berikutnya"
-                  className={iconBtn}
+                  variant="outlined"
                 >
                   <ChevronRight className="h-3.5 w-3.5" />
-                </button>
+                </IconButton>
               </div>
             </div>
           </div>

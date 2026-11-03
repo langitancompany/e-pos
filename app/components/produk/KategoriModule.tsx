@@ -479,14 +479,15 @@ export default function KategoriModule() {
           </div>
 
           <div className="flex justify-end gap-3 border-t border-zinc-200 bg-zinc-50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/40">
-            <button
+            <Button
               type="button"
               onClick={closeForm}
               disabled={saving}
-              className="rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors duration-150 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:bg-zinc-900"
+              variant="secondary"
+              size="lg"
             >
               Batal
-            </button>
+            </Button>
 
             <Button
               type="button"

@@ -6,7 +6,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, ArrowLeft, Ban, Gift, Loader2, X } from "lucide-react";
+import { AlertTriangle, Ban, Gift, Loader2, X } from "lucide-react";
 import {
   GIFT_CATEGORY_LABEL,
   useGift,
@@ -20,6 +20,7 @@ import {
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
+import BackButton from "@/app/components/ui/BackButton";
 
 interface GiftDetailProps {
   giftId: string;
@@ -65,14 +66,7 @@ export default function GiftDetail({
     "rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950";
 
   const backButton = (
-    <button
-      type="button"
-      onClick={onBack}
-      className="mb-3 flex items-center gap-1.5 text-sm text-zinc-500 transition-colors duration-150 hover:text-zinc-900 dark:hover:text-zinc-100"
-    >
-      <ArrowLeft className="h-4 w-4" />
-      Kembali ke daftar hadiah
-    </button>
+    <BackButton onClick={onBack}>Kembali ke daftar hadiah</BackButton>
   );
 
   if (isLoading && !gift) {
@@ -149,14 +143,14 @@ export default function GiftDetail({
           </div>
 
           {canVoid && !isVoided && (
-            <button
+            <Button
               type="button"
               onClick={() => setShowVoid(true)}
-              className="flex items-center justify-center gap-2 rounded-md border border-lco-coral/50 px-3 py-2 text-sm font-medium text-lco-coral transition-colors duration-150 hover:bg-lco-coral/10"
+              variant="outline-danger"
             >
               <Ban className="h-4 w-4" />
               Batalkan Hadiah
-            </button>
+            </Button>
           )}
         </div>
 
@@ -298,15 +292,15 @@ export default function GiftDetail({
             >
               Kembali
             </Button>
-            <button
+            <Button
               type="button"
               onClick={handleVoid}
               disabled={isVoiding || reason.trim() === ""}
-              className="flex items-center gap-2 rounded-md bg-lco-coral px-4 py-2 text-sm font-semibold text-white transition-opacity duration-150 hover:opacity-90 disabled:opacity-50"
+              variant="danger"
             >
               {isVoiding && <Loader2 className="h-4 w-4 animate-spin" />}
               Ya, Batalkan
-            </button>
+            </Button>
           </div>
         </Modal>
       )}

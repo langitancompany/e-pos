@@ -27,6 +27,7 @@ import {
   type UserPermissions,
 } from "@/lib/pos/permissionModules";
 import IconButton from "@/app/components/ui/IconButton";
+import Button from "@/app/components/ui/Button";
 
 // ─── Switch ──────────────────────────────────────────────────────────────────
 
@@ -473,23 +474,22 @@ export function AddModuleModal({
         </div>
 
         <div className="flex justify-end gap-3 border-t border-zinc-100 px-5 py-4 dark:border-zinc-800">
-          <button
+          <Button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-zinc-200 px-4 py-2 text-sm font-semibold text-zinc-600 transition-colors duration-150 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            variant="secondary"
           >
             Batalkan
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={submit}
             disabled={available.length === 0}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 ${
-              selected.length === 0 ? "bg-lco-green/50 hover:bg-lco-green/60" : "bg-lco-green hover:bg-lco-green-hover"
-            }`}
+            size="lg"
+            className={selected.length === 0 ? "opacity-60" : ""}
           >
             {selected.length > 0 ? `Tambah Akses (${selected.length} Modul)` : "Tambah Akses"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

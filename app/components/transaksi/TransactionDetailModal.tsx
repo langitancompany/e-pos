@@ -53,6 +53,7 @@ import { usePrinterProfiles } from "@/hooks/usePrinterProfiles";
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import Modal from "@/app/components/ui/Modal";
 import IconButton from "@/app/components/ui/IconButton";
+import Button from "@/app/components/ui/Button";
 
 type PanelMode = "detail" | "retur" | "void";
 
@@ -958,23 +959,26 @@ export default function TransactionDetailModal({
                   className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal"
                 />
                 <div className="flex gap-3">
-                  <button
+                  <Button
                     onClick={() => setMode("detail")}
                     disabled={isSubmitting}
-                    className="flex-1 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-300 disabled:opacity-50"
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
                   >
                     Batal
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleSubmitReturn}
                     disabled={isSubmitting}
-                    className="flex-1 py-2 rounded-md bg-lco-green hover:bg-lco-green-hover text-white text-xs font-semibold transition-colors duration-150 disabled:opacity-50 flex items-center justify-center gap-2"
+                    size="sm"
+                    className="flex-1"
                   >
                     {isSubmitting && (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     )}
                     Proses Retur
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -996,23 +1000,27 @@ export default function TransactionDetailModal({
                   yang belum diretur akan dikembalikan.
                 </p>
                 <div className="flex gap-3">
-                  <button
+                  <Button
                     onClick={() => setMode("detail")}
                     disabled={isSubmitting}
-                    className="flex-1 py-2 rounded-md border border-zinc-300 dark:border-zinc-700 text-xs font-medium text-zinc-600 dark:text-zinc-300 disabled:opacity-50"
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
                   >
                     Batal
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleSubmitVoid}
                     disabled={isSubmitting}
-                    className="flex-1 py-2 rounded-md bg-lco-coral hover:opacity-90 text-white text-xs font-semibold transition-colors duration-150 disabled:opacity-50 flex items-center justify-center gap-2"
+                    variant="danger"
+                    size="sm"
+                    className="flex-1"
                   >
                     {isSubmitting && (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     )}
                     Ya, Void Transaksi
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -1024,16 +1032,17 @@ export default function TransactionDetailModal({
         <div className="p-5 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 shrink-0 flex flex-wrap gap-3">
           {/* Dropdown Cetak Ulang yang Mendukung Thermal dan Nota */}
           <div className="relative flex-1 min-w-32">
-            <button
+            <Button
               onClick={() => setIsPrintDropdownOpen(!isPrintDropdownOpen)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 hover:border-lco-teal hover:text-lco-teal text-xs font-semibold transition-colors duration-150"
+              variant="secondary"
+              fullWidth
             >
               <Printer className="w-4 h-4" />
               Cetak Ulang
               <ChevronDown
                 className={`w-3.5 h-3.5 transition-transform ${isPrintDropdownOpen ? "rotate-180" : ""}`}
               />
-            </button>
+            </Button>
 
             {isPrintDropdownOpen && (
               <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md shadow-lg overflow-hidden z-10">
@@ -1056,10 +1065,11 @@ export default function TransactionDetailModal({
           {/* ── TAMBAHAN (T-08 lanjutan) ── Kirim struk digital ke WhatsApp.
               Tombol tetap aktif walau `detail.customer_phone` kosong —
               lihat catatan di handleShareWhatsApp(). */}
-          <button
+          <Button
             onClick={handleShareWhatsApp}
             disabled={isSharingWa}
-            className="flex-1 min-w-32 flex items-center justify-center gap-2 py-2.5 rounded-md border border-lco-teal/50 bg-white dark:bg-zinc-950 text-lco-teal hover:bg-lco-teal/10 text-xs font-semibold transition-colors duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+            variant="secondary"
+            className="flex-1 min-w-32"
           >
             {isSharingWa ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -1067,7 +1077,7 @@ export default function TransactionDetailModal({
               <MessageCircle className="w-4 h-4" />
             )}
             Kirim WA
-          </button>
+          </Button>
 
           {canRetur && canStillReturn && (
             <button
@@ -1084,18 +1094,19 @@ export default function TransactionDetailModal({
             </button>
           )}
           {canVoid && canStillVoid && (
-            <button
+            <Button
               onClick={() => {
                 setActionError(null);
                 setActionSuccess(null);
                 setMode("void");
                 setIsPrintDropdownOpen(false);
               }}
-              className="flex-1 min-w-32 flex items-center justify-center gap-2 py-2.5 rounded-md border border-lco-coral/50 bg-white dark:bg-zinc-950 text-lco-coral hover:bg-lco-coral/10 text-xs font-semibold transition-colors duration-150"
+              variant="outline-danger"
+              className="flex-1 min-w-32"
             >
               <Ban className="w-4 h-4" />
               Void
-            </button>
+            </Button>
           )}
         </div>
       )}

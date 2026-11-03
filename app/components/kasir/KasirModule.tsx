@@ -1090,12 +1090,12 @@ export default function KasirModule({
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Gagal memuat produk: {error}
           </p>
-          <button
+          <Button
             onClick={refetch}
-            className="px-4 py-2 rounded-md bg-lco-green hover:bg-lco-green-hover text-white text-xs font-semibold transition-colors duration-150"
+            size="sm"
           >
             Coba Lagi
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -1758,21 +1758,24 @@ export default function KasirModule({
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <button
+                <Button
                   disabled={cart.length === 0 || isSavingTransaction}
                   onClick={openHoldModal}
-                  className="col-span-1 flex items-center justify-center gap-2 py-3 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-lco-mustard/20 hover:text-lco-mustard transition-colors duration-150 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  variant="secondary"
+                  size="lg"
+                  className="col-span-1"
                 >
                   <Clock className="w-4 h-4" />
                   <span className="text-xs">Tunda</span>
-                </button>
-                <button
+                </Button>
+                <Button
                   disabled={cart.length === 0 || isSavingTransaction}
                   onClick={() => {
                     setTransactionError(null);
                     setIsPaymentModalOpen(true);
                   }}
-                  className="col-span-2 flex items-center justify-center gap-2 py-3 rounded-md bg-lco-green hover:bg-lco-green-hover text-white transition-colors duration-150 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  size="lg"
+                  className="col-span-2"
                 >
                   {isSavingTransaction ? (
                     <>
@@ -1785,7 +1788,7 @@ export default function KasirModule({
                       <span className="text-sm">Bayar Sekarang</span>
                     </>
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1867,15 +1870,14 @@ export default function KasirModule({
             >
               Batal
             </Button>
-            <button
+            <Button
               type="button"
               onClick={handleConfirmHold}
               disabled={isHolding}
-              className="inline-flex items-center gap-2 rounded-md bg-lco-mustard px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isHolding && <Loader2 className="h-4 w-4 animate-spin" />}
               Tunda
-            </button>
+            </Button>
           </div>
         </Modal>
       )}

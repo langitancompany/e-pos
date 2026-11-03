@@ -34,6 +34,7 @@ import {
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
+import Chip from "@/app/components/ui/Chip";
 
 interface CashMovementModalProps {
   onClose: () => void;
@@ -139,13 +140,15 @@ export function CashMovementModal({
             </div>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
               type="button"
               onClick={handleRecordAnother}
-              className="flex-1 rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition-colors duration-150 hover:border-lco-teal hover:text-lco-teal dark:border-zinc-700 dark:text-zinc-200"
+              variant="secondary"
+              size="lg"
+              className="flex-1"
             >
               Catat Lagi
-            </button>
+            </Button>
             <Button
               type="button"
               onClick={onClose}
@@ -164,34 +167,29 @@ export function CashMovementModal({
           </p>
 
           <div className="mb-4 grid grid-cols-2 gap-2" role="group" aria-label="Jenis kas">
-            <button
+            <Chip
               type="button"
               onClick={() => handleTypeChange("IN")}
               disabled={isSubmitting}
               aria-pressed={!isOut}
-              className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors duration-150 disabled:opacity-60 ${
-                !isOut
-                  ? "border-lco-teal bg-lco-teal/5 text-lco-teal"
-                  : "border-zinc-200 text-zinc-500 hover:border-zinc-300 dark:border-zinc-800"
-              }`}
+              selected={!isOut}
+              size="lg"
             >
               <ArrowDownLeft className="h-4 w-4" />
               Kas Masuk
-            </button>
-            <button
+            </Chip>
+            <Chip
               type="button"
               onClick={() => handleTypeChange("OUT")}
               disabled={isSubmitting}
               aria-pressed={isOut}
-              className={`flex items-center justify-center gap-2 rounded-md border px-3 py-2.5 text-sm font-semibold transition-colors duration-150 disabled:opacity-60 ${
-                isOut
-                  ? "border-lco-coral/50 bg-lco-coral/5 text-lco-coral"
-                  : "border-zinc-200 text-zinc-500 hover:border-zinc-300 dark:border-zinc-800"
-              }`}
+              selected={isOut}
+              tone="danger"
+              size="lg"
             >
               <ArrowUpRight className="h-4 w-4" />
               Kas Keluar
-            </button>
+            </Chip>
           </div>
 
           <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
@@ -215,20 +213,18 @@ export function CashMovementModal({
           </label>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Kategori">
             {options.map((option) => (
-              <button
+              <Chip
                 key={option.value}
                 type="button"
                 onClick={() => setCategory(option.value)}
                 disabled={isSubmitting}
                 aria-pressed={category === option.value}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 disabled:opacity-60 ${
-                  category === option.value
-                    ? "border-lco-teal bg-lco-teal/5 text-lco-teal"
-                    : "border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:text-zinc-300"
-                }`}
+                selected={category === option.value}
+                shape="pill"
+                size="md"
               >
                 {option.label}
-              </button>
+              </Chip>
             ))}
           </div>
           {selectedOption && (

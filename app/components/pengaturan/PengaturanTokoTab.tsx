@@ -29,6 +29,7 @@ import { useSettings, type Settings } from "@/hooks/useSettings";
 import { normalizePromoUrl } from "@/lib/pos/receiptQr";
 import Select from "@/app/components/ui/Select";
 import Input from "@/app/components/ui/Input";
+import Button from "@/app/components/ui/Button";
 
 const inputClass =
   "w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800";
@@ -447,10 +448,10 @@ export default function PengaturanTokoTab() {
 
       {/* ── Aksi ── */}
       <div className="flex items-center gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-800">
-        <button
+        <Button
           type="submit"
           disabled={isSaving}
-          className="inline-flex items-center gap-2 rounded-md bg-lco-teal px-4 py-2.5 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-teal/90 disabled:cursor-not-allowed disabled:opacity-50"
+          size="lg"
         >
           {isSaving ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -458,7 +459,7 @@ export default function PengaturanTokoTab() {
             <Save className="h-4 w-4" />
           )}
           Simpan Perubahan
-        </button>
+        </Button>
 
         {saveSuccess && (
           <span className="flex items-center gap-1.5 text-sm text-lco-green">

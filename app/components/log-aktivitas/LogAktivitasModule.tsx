@@ -42,6 +42,7 @@ import {
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import { categoryLabel } from "@/hooks/useCashMovements";
 import Select from "@/app/components/ui/Select";
+import Chip from "@/app/components/ui/Chip";
 
 const ENTITY_FILTER_OPTIONS: {
   value: ActivityLogEntity | "all";
@@ -303,18 +304,15 @@ export default function LogAktivitasModule() {
             {ACTION_FILTER_OPTIONS.map(([action, label]) => {
               const isActive = selectedActions.includes(action);
               return (
-                <button
+                <Chip
                   key={action}
                   type="button"
                   onClick={() => toggleAction(action)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors duration-150 ${
-                    isActive
-                      ? "border-lco-teal bg-lco-teal/10 text-lco-teal"
-                      : "border-zinc-200 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-900"
-                  }`}
+                  selected={isActive}
+                  shape="pill"
                 >
                   {label}
-                </button>
+                </Chip>
               );
             })}
           </div>

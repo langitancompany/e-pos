@@ -242,11 +242,14 @@ export function CloseShiftModal({
         </div>
       )}
 
-      <button
+      <Button
         type="button"
         onClick={handleSubmit}
         disabled={isSubmitting}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-md bg-lco-coral px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:opacity-90 disabled:opacity-60"
+        variant="danger"
+        size="lg"
+        fullWidth
+        className="mt-5"
       >
         {isSubmitting ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -254,7 +257,7 @@ export function CloseShiftModal({
           <Lock className="h-4 w-4" />
         )}
         Tutup Sesi Kas
-      </button>
+      </Button>
     </Modal>
   );
 }

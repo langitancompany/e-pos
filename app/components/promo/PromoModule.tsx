@@ -34,7 +34,6 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import QRCode from "qrcode";
 import {
   AlertCircle,
-  ArrowLeft,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -77,6 +76,7 @@ import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
 import IconButton from "@/app/components/ui/IconButton";
+import BackButton from "@/app/components/ui/BackButton";
 
 // ── Helper tampilan ─────────────────────────────────────────────────────
 
@@ -758,14 +758,7 @@ function ScreenMediaManager({
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-zinc-100 p-4 dark:bg-zinc-950 md:p-6">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-600 transition-colors duration-150 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Daftar TV
-      </button>
+      <BackButton onClick={onBack}>Daftar TV</BackButton>
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
@@ -1401,14 +1394,14 @@ export default function PromoModule() {
                   </button>
                 </div>
 
-                <button
+                <Button
                   type="button"
                   onClick={() => setSelectedScreen(screen)}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-lco-green px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover"
+                  className="shrink-0"
                 >
                   <PlayCircle className="h-4 w-4" />
                   Kelola Media
-                </button>
+                </Button>
               </div>
             </div>
           ))}

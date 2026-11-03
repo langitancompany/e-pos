@@ -2460,29 +2460,52 @@ juga mengisi `profiles.email` yang kosong dari `auth.users`.
 
 ---
 
-## Sesi: Migrasi tombol ikon ke `IconButton`
+## Sesi: Migrasi tombol ke komponen UI bersama (`IconButton`, `Button`, `BackButton`)
 
-**File baru:** `app/components/ui/IconButton.tsx` — tombol yang isinya hanya ikon
-(tutup, hapus, ubah, kembali, dst.). `aria-label` WAJIB (dicek TypeScript).
-Varian: `plain` (default, hanya warna ikon berubah) | `soft` (latar abu saat
-hover); `tone`: `neutral` | `danger`; `size`: `sm` | `md` | `lg`.
+**Keputusan desain:** warna aksen tombol DISATUKAN ke hijau tema (`lco-green`).
+Tombol solid teal & mustard kini menjadi `Button variant="primary"` (hijau);
+tombol bergaris teal/hijau menjadi `secondary`. Merah tetap merah:
+`danger` (solid) dan `outline-danger` (bergaris, varian baru).
 
-**Dimigrasi:** 37 tombol ikon di 25 file (tombol tutup modal, hapus/ubah baris,
-stepper jumlah di keranjang). Beberapa tombol yang tadinya tanpa label kini
-punya `aria-label` ("Tutup", "Kurangi jumlah", "Tambah jumlah", dst.).
+**File baru di `app/components/ui/`:**
+- `IconButton.tsx` — tombol hanya-ikon, `aria-label` WAJIB. Varian `plain` |
+  `soft` | `outlined`; `tone` `neutral` | `danger`; `size` `sm` | `md` | `lg`.
+- `BackButton.tsx` — "← Kembali ke daftar ..." (menggantikan 7 salinan class).
+- `Chip.tsx` — tombol pilihan/filter dengan status terpilih (`selected` ->
+  `aria-pressed` otomatis). `variant` `outline` | `solid`; `tone` `primary` |
+  `danger`; `shape` `rounded` | `pill`; `size` `xs` | `sm` | `md` | `lg`.
+- `Button.tsx` — ditambah varian `outline-danger`.
 
-**Sengaja TIDAK dimigrasi (31 tombol ikon):** yang bergaya khusus — aksen
-hijau/teal/mustard, ber-border, ukuran tetap (w-10 h-10), class dinamis
-(`${...}`), atau className lewat variabel. Biarkan sampai ada keputusan desain.
-Efek visual kecil: tombol tutup yang sebelumnya tanpa padding kini `size="sm"`
-(p-1), jadi ikon X bergeser ±4px ke dalam.
+**Dimigrasi:** 42 tombol ikon, 63 tombol teks, 14 tombol berbasis konstanta
+class (`primaryBtn`, `ghostBtn`, `primaryButtonClass`, `dangerButtonClass`,
+`iconBtn` — konstantanya dihapus), 7 tombol Kembali. Tombol `<button>` mentah
+turun dari 252 menjadi ±124 (di luar 5 yang memang ada di dalam `ui/`).
+Beberapa tombol ikon yang tadinya tanpa label kini punya `aria-label`.
 
-**Belum dimigrasi (179 tombol teks):** sangat beragam (chip filter, baris daftar
-yang bisa diklik, tombol aksen teal/mustard, kartu produk). Yang layak
-dijadikan komponen berikutnya: tombol "Kembali" (`mb-3 flex items-center
-gap-1.5 text-sm text-zinc-500`, 6 tempat) dan tombol batal ghost
-(`px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100`).
+**Efek visual yang perlu dicek di browser:** (1) tombol teal/mustard solid kini
+hijau tua; (2) tombol tutup modal yang tadinya tanpa padding kini `p-1`, ikon X
+bergeser ±4px ke dalam; (3) ukuran/padding tombol dibulatkan ke ukuran
+`sm/md/lg` terdekat; `rounded-lg` pada tombol menjadi `rounded-md`.
+Layar yang paling padat dan sebaiknya dicek: Kasir, Pembayaran, Promo,
+Pengaturan > Pengguna, Detail Transaksi.
+
+**Chip:** 16 chip filter/toggle dimigrasi ke `Chip` (Dashboard, Laporan,
+Stok, Kas, Pelanggan, Log Aktivitas, Pengaturan). Efek visual: chip terpilih
+kini punya latar teal tipis + teks hijau tema (dulu hanya border teal),
+dan chip solid memakai hijau tema. Dua tombol konfirmasi di Pengaturan ikut
+dipindah ke `Button`.
+
+**Sengaja TIDAK dimigrasi (±109):** chip filter / toggle (class dinamis),
+baris daftar yang bisa diklik, kartu produk, tombol teks bergaya link,
+tab, dan tombol bergaya khusus di Dashboard/Kasir (mis. putih di atas banner).
+Itu bukan tombol aksi. Yang masih bisa dirapikan nanti: pil kategori Kasir
+(uppercase 10px, selected zinc-900), kartu pilihan metode bayar, switch
+(`PermissionMatrix`), tab bergaris bawah, toggle Aktif/Nonaktif TV di Promo
+(label `aria-label` berganti, jadi jangan dipasang `aria-pressed`), dan baris
+daftar yang bisa diklik (`ListRowButton`).
 
 **Catatan teknis:** `package-lock.json` tidak sinkron dengan `package.json`
 (kurang `@emnapi/runtime` & `@emnapi/core`), sehingga `npm ci` gagal. Jalankan
-`npm install` sekali lalu commit lockfile-nya.
+`npm install` sekali lalu commit lockfile-nya. `tsc --noEmit` menyisakan 4
+error lama yang bukan dari sesi ini (PengaturanModule.tsx x2, layout.tsx
+`LayoutProps`, permissionModules.ts).

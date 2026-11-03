@@ -18,6 +18,7 @@ import { useState, type FormEvent } from "react";
 import { Loader2, Search, ReceiptText, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatRupiah } from "@/lib/pos/cartLogic";
+import Button from "@/app/components/ui/Button";
 
 const supabase = createClient();
 
@@ -216,10 +217,10 @@ export default function CekStrukPage() {
               </div>
             )}
 
-            <button
+            <Button
               type="submit"
               disabled={isLoading}
-              className="w-full py-2 rounded-md bg-lco-green hover:bg-lco-green-hover text-white text-sm font-semibold transition-colors duration-150 flex items-center justify-center gap-2 disabled:opacity-60"
+              fullWidth
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -227,7 +228,7 @@ export default function CekStrukPage() {
                 <Search className="w-4 h-4" />
               )}
               Cek Struk
-            </button>
+            </Button>
           </form>
         </div>
 

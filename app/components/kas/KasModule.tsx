@@ -46,6 +46,7 @@ import {
 } from "@/app/components/kasir/CloseShiftModal";
 import Modal from "@/app/components/ui/Modal";
 import IconButton from "@/app/components/ui/IconButton";
+import Button from "@/app/components/ui/Button";
 
 function formatDateTime(isoString: string): string {
   return new Intl.DateTimeFormat("id-ID", {
@@ -146,19 +147,23 @@ function VoidCashMovementModal({
       )}
 
       <div className="mt-5 flex gap-2">
-        <button
+        <Button
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
-          className="flex-1 rounded-md border border-zinc-300 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition-colors duration-150 hover:border-zinc-400 disabled:opacity-60 dark:border-zinc-700 dark:text-zinc-200"
+          variant="secondary"
+          size="lg"
+          className="flex-1"
         >
           Kembali
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={handleConfirm}
           disabled={isSubmitting || !isValid}
-          className="flex flex-1 items-center justify-center gap-2 rounded-md border border-lco-coral/40 bg-lco-coral/5 px-4 py-2.5 text-sm font-semibold text-lco-coral transition-colors duration-150 hover:bg-lco-coral/10 disabled:opacity-60"
+          variant="outline-danger"
+          size="lg"
+          className="flex-1"
         >
           {isSubmitting ? (
             <>
@@ -168,7 +173,7 @@ function VoidCashMovementModal({
           ) : (
             "Batalkan Catatan"
           )}
-        </button>
+        </Button>
       </div>
     </Modal>
   );
@@ -356,13 +361,14 @@ export default function KasModule() {
                         </td>
                         <td className="px-5 py-3 text-right">
                           {!isVoided && (
-                            <button
+                            <Button
                               type="button"
                               onClick={() => setVoidTarget(movement)}
-                              className="rounded-md border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-zinc-600 transition-colors duration-150 hover:border-lco-coral/40 hover:text-lco-coral dark:border-zinc-800 dark:text-zinc-300"
+                              variant="secondary"
+                              size="sm"
                             >
                               Batalkan
-                            </button>
+                            </Button>
                           )}
                         </td>
                       </tr>

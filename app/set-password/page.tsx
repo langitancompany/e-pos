@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import Button from "@/app/components/ui/Button";
 
 export default function SetPasswordPage() {
   const router = useRouter();
@@ -137,14 +138,14 @@ export default function SetPasswordPage() {
                 <p className="text-xs text-lco-coral">{formError}</p>
               )}
 
-              <button
+              <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex w-full items-center justify-center gap-2 rounded-md bg-lco-green py-2 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:opacity-60"
+                fullWidth
               >
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 Simpan Password
-              </button>
+              </Button>
             </form>
           </>
         )}

@@ -793,11 +793,12 @@ export default function LaporanModule() {
             Piutang sekaligus (tiap sheet memakai rentang tab-nya), PDF =
             snapshot visual tab yang SEDANG aktif saja. */}
         <div className="relative">
-          <button
+          <Button
             type="button"
             onClick={() => setIsExportMenuOpen((open) => !open)}
             disabled={isExporting}
-            className="flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-2 text-xs font-medium text-zinc-600 transition-colors duration-150 hover:border-lco-teal hover:text-lco-teal disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-800 dark:text-zinc-400"
+            variant="secondary"
+            size="sm"
           >
             {isExporting ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -810,7 +811,7 @@ export default function LaporanModule() {
                 isExportMenuOpen ? "rotate-180" : ""
               }`}
             />
-          </button>
+          </Button>
 
           {isExportMenuOpen && (
             <div className="absolute right-0 z-10 mt-2 w-60 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-950">

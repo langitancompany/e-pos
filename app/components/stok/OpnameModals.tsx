@@ -43,10 +43,6 @@ const dialogClass =
 const inputClass =
   "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950";
 const labelClass = "mb-1 block text-xs font-medium text-zinc-500";
-const primaryButtonClass =
-  "flex w-full items-center justify-center gap-2 rounded-md bg-lco-green px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-60";
-const dangerButtonClass =
-  "flex w-full items-center justify-center gap-2 rounded-md bg-lco-coral px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-150 hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60";
 
 function ErrorBox({ message }: { message: string }) {
   return (
@@ -195,11 +191,13 @@ export function OpnameStartModal({
 
         {error && <ErrorBox message={error} />}
 
-        <button
+        <Button
           type="button"
           onClick={handleStart}
           disabled={isSaving || productCount === 0}
-          className={`${primaryButtonClass} mt-5`}
+          size="lg"
+          fullWidth
+          className="mt-5"
         >
           {isSaving ? (
             <>
@@ -209,7 +207,7 @@ export function OpnameStartModal({
           ) : (
             "Mulai Opname"
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -332,13 +330,15 @@ export function OpnameFinalizeModal({
             </div>
           </dl>
 
-          <button
+          <Button
             type="button"
             onClick={handleClose}
-            className={`${primaryButtonClass} mt-5`}
+            size="lg"
+            fullWidth
+            className="mt-5"
           >
             Tutup
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -442,11 +442,12 @@ export function OpnameFinalizeModal({
           >
             Kembali
           </Button>
-          <button
+          <Button
             type="button"
             onClick={handleFinalize}
             disabled={isSaving || stats.counted === 0}
-            className={primaryButtonClass}
+            size="lg"
+            fullWidth
           >
             {isSaving ? (
               <>
@@ -456,7 +457,7 @@ export function OpnameFinalizeModal({
             ) : (
               "Terapkan ke Stok"
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -534,11 +535,13 @@ export function OpnameCancelModal({
           >
             Kembali
           </Button>
-          <button
+          <Button
             type="button"
             onClick={handleCancel}
             disabled={isSaving || reason.trim() === ""}
-            className={dangerButtonClass}
+            variant="danger"
+            size="lg"
+            fullWidth
           >
             {isSaving ? (
               <>
@@ -548,7 +551,7 @@ export function OpnameCancelModal({
             ) : (
               "Batalkan Sesi"
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -655,14 +658,15 @@ export function OpnamePrintModal({
           >
             Batal
           </Button>
-          <button
+          <Button
             type="button"
             onClick={handlePrint}
             disabled={printCount === 0}
-            className={primaryButtonClass}
+            size="lg"
+            fullWidth
           >
             Cetak
-          </button>
+          </Button>
         </div>
       </div>
     </div>

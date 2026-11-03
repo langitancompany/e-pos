@@ -9,6 +9,7 @@ import { Loader2, Minus, Plus, X } from "lucide-react";
 import type { CustomerRecord } from "@/hooks/useCustomerAdmin";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
+import Chip from "@/app/components/ui/Chip";
 
 interface PoinAdjustModalProps {
   customer: CustomerRecord;
@@ -88,28 +89,23 @@ export default function PoinAdjustModal({
 
         <div className="space-y-4 px-5 py-4">
           <div className="grid grid-cols-2 gap-2">
-            <button
+            <Chip
               type="button"
               onClick={() => setMode("add")}
-              className={`inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                mode === "add"
-                  ? "border-lco-teal bg-lco-teal/10 text-lco-green dark:text-lco-teal"
-                  : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
-              }`}
+              selected={mode === "add"}
+              size="lg"
             >
               <Plus className="h-4 w-4" /> Tambah
-            </button>
-            <button
+            </Chip>
+            <Chip
               type="button"
               onClick={() => setMode("subtract")}
-              className={`inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                mode === "subtract"
-                  ? "border-lco-coral bg-lco-coral/10 text-lco-coral"
-                  : "border-zinc-300 text-zinc-600 dark:border-zinc-700 dark:text-zinc-300"
-              }`}
+              selected={mode === "subtract"}
+              tone="danger"
+              size="lg"
             >
               <Minus className="h-4 w-4" /> Kurangi
-            </button>
+            </Chip>
           </div>
 
           <div>
@@ -170,14 +166,14 @@ export default function PoinAdjustModal({
         </div>
 
         <div className="flex justify-end gap-2 border-t border-zinc-200 px-5 py-3 dark:border-zinc-800">
-          <button
+          <Button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-md px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 disabled:opacity-50 dark:text-zinc-300 dark:hover:bg-zinc-900"
+            variant="ghost"
           >
             Batal
-          </button>
+          </Button>
           <Button
             type="button"
             onClick={handleSubmit}

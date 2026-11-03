@@ -42,6 +42,7 @@ import Select from "@/app/components/ui/Select";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
 import IconButton from "@/app/components/ui/IconButton";
+import Chip from "@/app/components/ui/Chip";
 
 const PAGE_SIZE = 50;
 
@@ -295,21 +296,17 @@ export default function StokSaatIniTab({
 
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
           {STATUS_FILTERS.map((option) => (
-            <button
+            <Chip
               key={option.key}
               type="button"
               onClick={() => {
                 setStatusFilter(option.key);
                 setPage(0);
               }}
-              className={`rounded-md border px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
-                statusFilter === option.key
-                  ? "border-lco-teal text-lco-teal"
-                  : "border-zinc-200 text-zinc-500 hover:text-zinc-900 dark:border-zinc-800 dark:hover:text-zinc-100"
-              }`}
+              selected={statusFilter === option.key}
             >
               {option.label}
-            </button>
+            </Chip>
           ))}
 
           {hasFilter && (

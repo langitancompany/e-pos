@@ -36,6 +36,7 @@ import {
   type PrinterProfile,
   type PrinterStatus,
 } from "@/hooks/usePrinterProfiles";
+import Button from "@/app/components/ui/Button";
 
 const GHOST_ICON_CLASS =
   "inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-zinc-500 dark:hover:bg-zinc-900 dark:hover:text-zinc-200";
@@ -164,7 +165,7 @@ export default function PengaturanPrinterTab() {
           Cari Printer Aktif
         </p>
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button
             type="button"
             disabled={!bluetoothSupported || isScanning}
             title={
@@ -173,7 +174,6 @@ export default function PengaturanPrinterTab() {
                 : "Butuh Chrome/Edge terbaru (desktop atau Android)"
             }
             onClick={() => void handleScan("bluetooth")}
-            className="inline-flex items-center gap-2 rounded-lg bg-lco-green px-3.5 py-2 text-sm font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isScanning ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -181,15 +181,15 @@ export default function PengaturanPrinterTab() {
               <Bluetooth className="h-4 w-4" />
             )}
             Cari Printer Bluetooth
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             disabled={!usbSupported || isScanning}
             title={
               usbSupported ? undefined : "Butuh Chrome/Edge terbaru di desktop"
             }
             onClick={() => void handleScan("usb")}
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3.5 py-2 text-sm font-medium text-zinc-700 transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+            variant="secondary"
           >
             {isScanning ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -197,7 +197,7 @@ export default function PengaturanPrinterTab() {
               <Usb className="h-4 w-4" />
             )}
             Cari Printer USB
-          </button>
+          </Button>
         </div>
         <p className="mt-2.5 text-xs text-zinc-400 dark:text-zinc-500">
           Printer jaringan/LAN? Pasang sebagai printer default di pengaturan
@@ -414,11 +414,12 @@ function PrinterCard({
 
         <div className="flex items-center gap-1.5">
           {!isBrowserPrinter && (
-            <button
+            <Button
               type="button"
               disabled={isBusy}
               onClick={onTestConnection}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-2.5 py-2 text-xs font-medium text-zinc-700 transition-colors duration-150 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-900"
+              variant="secondary"
+              size="sm"
             >
               {isBusy ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -426,13 +427,13 @@ function PrinterCard({
                 <RefreshCw className="h-3.5 w-3.5" />
               )}
               Tes Koneksi
-            </button>
+            </Button>
           )}
-          <button
+          <Button
             type="button"
             disabled={isBusy}
             onClick={onTestPrint}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-lco-green px-2.5 py-2 text-xs font-medium text-white transition-colors duration-150 hover:bg-lco-green-hover disabled:cursor-not-allowed disabled:opacity-50"
+            size="sm"
           >
             {isBusy ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -440,7 +441,7 @@ function PrinterCard({
               <Zap className="h-3.5 w-3.5" />
             )}
             Tes Print
-          </button>
+          </Button>
         </div>
       </div>
     </div>
