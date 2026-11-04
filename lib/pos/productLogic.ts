@@ -303,6 +303,29 @@ export async function deleteProduct(
   return { success: true };
 }
 
+/** Hapus PERMANEN produk yang sudah ada di Sampah. Tidak bisa dibatalkan. */
+export async function permanentDeleteProduct(
+  productId: string,
+): Promise<DeleteProductResult> {
+  const { data, error } = await supabase.rpc("permanent_delete_product", {
+    p_product_id: productId,
+  });
+
+  if (error) {
+    console.error("permanent_delete_product RPC error:", error);
+    return {
+      success: false,
+      error: error.message || "Gagal menghapus permanen produk.",
+    };
+  }
+
+  if (!data?.success) {
+    return { success: false, error: "Produk gagal dihapus permanen." };
+  }
+
+  return { success: true };
+}
+
 /** Pulihkan produk dari Sampah (kosongkan `deleted_at`). */
 export async function restoreProduct(
   productId: string,

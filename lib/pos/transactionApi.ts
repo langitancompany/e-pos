@@ -771,6 +771,24 @@ export async function deleteTransaction(
   return { success: true, transaction_id: data.transaction_id };
 }
 
+/** Hapus PERMANEN transaksi yang sudah ada di Sampah. Tidak bisa dibatalkan. */
+export async function permanentDeleteTransaction(
+  transactionId: string,
+): Promise<void> {
+  const { data, error } = await supabase.rpc("permanent_delete_transaction", {
+    p_transaction_id: transactionId,
+  });
+
+  if (error) {
+    console.error("permanent_delete_transaction RPC error:", error);
+    throw new Error(error.message || "Gagal menghapus permanen transaksi.");
+  }
+
+  if (!data?.success) {
+    throw new Error("Transaksi gagal dihapus permanen.");
+  }
+}
+
 /** Pulihkan transaksi dari Sampah (kosongkan `deleted_at`). Admin only. */
 export async function restoreTransaction(
   transactionId: string,

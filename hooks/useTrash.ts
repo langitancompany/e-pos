@@ -22,8 +22,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { restoreProduct as restoreProductRpc } from "@/lib/pos/productLogic";
-import { restoreTransaction as restoreTransactionRpc } from "@/lib/pos/transactionApi";
+import {
+  restoreProduct as restoreProductRpc,
+  permanentDeleteProduct as permanentDeleteProductRpc,
+} from "@/lib/pos/productLogic";
+import {
+  restoreTransaction as restoreTransactionRpc,
+  permanentDeleteTransaction as permanentDeleteTransactionRpc,
+} from "@/lib/pos/transactionApi";
 import type { ProductType } from "@/lib/pos/types";
 
 const supabase = createClient();
@@ -59,6 +65,10 @@ interface UseTrashResult {
   restoreProduct: (productId: string) => Promise<void>;
   /** Pulihkan transaksi dari Sampah. Melempar Error kalau gagal (mis. bukan admin). */
   restoreTransaction: (transactionId: string) => Promise<void>;
+  /** Hapus PERMANEN produk di Sampah. Melempar Error kalau gagal. Tidak bisa dibatalkan. */
+  permanentDeleteProduct: (productId: string) => Promise<void>;
+  /** Hapus PERMANEN transaksi di Sampah. Melempar Error kalau gagal. Tidak bisa dibatalkan. */
+  permanentDeleteTransaction: (transactionId: string) => Promise<void>;
 }
 
 export function useTrash(): UseTrashResult {
@@ -136,6 +146,27 @@ export function useTrash(): UseTrashResult {
     [refetch],
   );
 
+  const permanentDeleteProduct = useCallback(
+    async (productId: string) => {
+      const result = await permanentDeleteProductRpc(productId);
+
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      refetch();
+    },
+    [refetch],
+  );
+
+  const permanentDeleteTransaction = useCallback(
+    async (transactionId: string) => {
+      await permanentDeleteTransactionRpc(transactionId);
+      refetch();
+    },
+    [refetch],
+  );
+
   return {
     products,
     transactions,
@@ -144,5 +175,7 @@ export function useTrash(): UseTrashResult {
     refetch,
     restoreProduct,
     restoreTransaction,
+    permanentDeleteProduct,
+    permanentDeleteTransaction,
   };
 }

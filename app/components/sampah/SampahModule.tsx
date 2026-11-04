@@ -27,8 +27,9 @@ import {
   RotateCcw,
   ShieldAlert,
   Trash2,
+  TriangleAlert,
 } from "lucide-react";
-import { useAuth, hasPermission } from "@/hooks/useAuth";
+import { useAuth, hasPermission, hasPermissionAction } from "@/hooks/useAuth";
 import {
   useTrash,
   type TrashedProduct,
@@ -37,8 +38,16 @@ import {
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import TabSwitcher from "@/app/components/ui/TabSwitcher";
 import Button from "@/app/components/ui/Button";
+import Modal, { ModalHeader } from "@/app/components/ui/Modal";
 
 type SampahTab = "produk" | "transaksi";
+
+// Target konfirmasi hapus permanen: satu baris, atau semua isi tab aktif.
+type PurgeTarget =
+  | { kind: "product"; item: TrashedProduct }
+  | { kind: "transaction"; item: TrashedTransaction }
+  | { kind: "all-products" }
+  | { kind: "all-transactions" };
 
 function formatDateTime(isoString: string): string {
   return new Intl.DateTimeFormat("id-ID", {
@@ -61,6 +70,8 @@ export default function SampahModule() {
   // migration 015 tetap terjaga — lihat komentar header migration 015 untuk
   // konteks kenapa admin+supervisor, bukan admin only).
   const canAccessTrash = hasPermission(user, "sampah");
+  // Hapus permanen = aksi "Hapus" menu Sampah, terpisah dari Pulihkan ("Ubah").
+  const canPurge = hasPermissionAction(user, "sampah", "delete");
 
   const {
     products,
@@ -69,6 +80,8 @@ export default function SampahModule() {
     error,
     restoreProduct,
     restoreTransaction,
+    permanentDeleteProduct,
+    permanentDeleteTransaction,
   } = useTrash();
 
   const [activeTab, setActiveTab] = useState<SampahTab>("produk");
@@ -78,6 +91,12 @@ export default function SampahModule() {
   // selagi satu baris lain masih diproses.
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Konfirmasi hapus permanen — aksi ini TIDAK bisa dibatalkan, jadi selalu
+  // lewat modal, tidak pernah langsung dari klik tombol.
+  const [purgeTarget, setPurgeTarget] = useState<PurgeTarget | null>(null);
+  const [isPurging, setIsPurging] = useState(false);
+  const [purgeError, setPurgeError] = useState<string | null>(null);
 
   const isEmpty = useMemo(
     () =>
@@ -114,6 +133,71 @@ export default function SampahModule() {
       );
     } finally {
       setRestoringId(null);
+    }
+  }
+
+  function openPurge(target: PurgeTarget) {
+    setPurgeError(null);
+    setPurgeTarget(target);
+  }
+
+  function closePurge() {
+    if (isPurging) return;
+    setPurgeTarget(null);
+    setPurgeError(null);
+  }
+
+  async function handleConfirmPurge() {
+    if (!purgeTarget) return;
+
+    setIsPurging(true);
+    setPurgeError(null);
+
+    // Hapus berurutan (bukan paralel) supaya kalau ada yang gagal, berhenti
+    // di situ dan pesan errornya jelas — yang sudah terhapus tetap terhapus.
+    let deleted = 0;
+
+    try {
+      if (purgeTarget.kind === "product") {
+        await permanentDeleteProduct(purgeTarget.item.id);
+      } else if (purgeTarget.kind === "transaction") {
+        await permanentDeleteTransaction(purgeTarget.item.id);
+      } else if (purgeTarget.kind === "all-products") {
+        for (const product of products) {
+          await permanentDeleteProduct(product.id);
+          deleted += 1;
+        }
+      } else {
+        for (const transaction of transactions) {
+          await permanentDeleteTransaction(transaction.id);
+          deleted += 1;
+        }
+      }
+
+      setPurgeTarget(null);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Gagal menghapus permanen.";
+      setPurgeError(
+        deleted > 0
+          ? `${deleted} data sudah terhapus, lalu berhenti karena: ${message}`
+          : message,
+      );
+    } finally {
+      setIsPurging(false);
+    }
+  }
+
+  function purgeDescription(target: PurgeTarget): string {
+    switch (target.kind) {
+      case "product":
+        return `Produk "${target.item.name}" (${target.item.sku}) akan dihapus permanen dari database. Riwayat penjualan yang memuat produk ini tetap ada, tetapi tidak lagi terhubung ke produk.`;
+      case "transaction":
+        return `Transaksi ${target.item.receipt_no} beserta item dan pembayarannya akan dihapus permanen dari database. Stok dan poin pelanggan tidak berubah.`;
+      case "all-products":
+        return `Semua ${products.length} produk di Sampah akan dihapus permanen dari database. Riwayat penjualan yang memuat produk-produk ini tetap ada, tetapi tidak lagi terhubung ke produk.`;
+      case "all-transactions":
+        return `Semua ${transactions.length} transaksi di Sampah akan dihapus permanen dari database beserta item dan pembayarannya. Stok dan poin pelanggan tidak berubah.`;
     }
   }
 
@@ -168,14 +252,20 @@ export default function SampahModule() {
 
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           Produk & transaksi yang dihapus tetap tersimpan di sini dan bisa
-          dipulihkan kapan saja — tidak ada penghapusan permanen.
+          dipulihkan kapan saja.
+          {canPurge &&
+            " Gunakan Hapus Permanen untuk membersihkannya dari database — tidak bisa dibatalkan."}
         </p>
       </div>
 
       {/* Tab switcher — gaya "segmented control" yang sama dengan Stok & Opname dan Pengaturan. */}
       <TabSwitcher
         tabs={[
-          { key: "produk", label: `Produk (${products.length})`, icon: Package },
+          {
+            key: "produk",
+            label: `Produk (${products.length})`,
+            icon: Package,
+          },
           {
             key: "transaksi",
             label: `Transaksi (${transactions.length})`,
@@ -202,6 +292,27 @@ export default function SampahModule() {
         <div className="mb-4 flex items-start gap-3 border border-lco-coral/30 bg-white p-4 text-sm text-lco-coral dark:bg-zinc-950">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>{actionError}</p>
+        </div>
+      )}
+
+      {canPurge && !isLoading && !isEmpty && (
+        <div className="mb-3 flex justify-end">
+          <Button
+            type="button"
+            variant="outline-danger"
+            size="sm"
+            onClick={() =>
+              openPurge({
+                kind:
+                  activeTab === "produk" ? "all-products" : "all-transactions",
+              })
+            }
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {activeTab === "produk"
+              ? "Kosongkan Sampah Produk"
+              : "Kosongkan Sampah Transaksi"}
+          </Button>
         </div>
       )}
 
@@ -292,20 +403,37 @@ export default function SampahModule() {
                     </td>
 
                     <td className="px-4 py-3 text-right">
-                      <Button
-                        type="button"
-                        onClick={() => handleRestoreProduct(product)}
-                        disabled={restoringId === product.id}
-                        variant="secondary"
-                        size="sm"
-                      >
-                        {restoringId === product.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <RotateCcw className="h-3.5 w-3.5" />
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => handleRestoreProduct(product)}
+                          disabled={restoringId === product.id}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          {restoringId === product.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          )}
+                          Pulihkan
+                        </Button>
+
+                        {canPurge && (
+                          <Button
+                            type="button"
+                            onClick={() =>
+                              openPurge({ kind: "product", item: product })
+                            }
+                            disabled={restoringId === product.id}
+                            variant="outline-danger"
+                            size="sm"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Hapus Permanen
+                          </Button>
                         )}
-                        Pulihkan
-                      </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -370,20 +498,40 @@ export default function SampahModule() {
                     </td>
 
                     <td className="px-4 py-3 text-right">
-                      <Button
-                        type="button"
-                        onClick={() => handleRestoreTransaction(transaction)}
-                        disabled={restoringId === transaction.id}
-                        variant="secondary"
-                        size="sm"
-                      >
-                        {restoringId === transaction.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <ArrowUpFromLine className="h-3.5 w-3.5" />
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => handleRestoreTransaction(transaction)}
+                          disabled={restoringId === transaction.id}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          {restoringId === transaction.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <ArrowUpFromLine className="h-3.5 w-3.5" />
+                          )}
+                          Pulihkan
+                        </Button>
+
+                        {canPurge && (
+                          <Button
+                            type="button"
+                            onClick={() =>
+                              openPurge({
+                                kind: "transaction",
+                                item: transaction,
+                              })
+                            }
+                            disabled={restoringId === transaction.id}
+                            variant="outline-danger"
+                            size="sm"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Hapus Permanen
+                          </Button>
                         )}
-                        Pulihkan
-                      </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -392,6 +540,60 @@ export default function SampahModule() {
           </div>
         )}
       </div>
+
+      {purgeTarget && (
+        <Modal size="md" aria-label="Konfirmasi hapus permanen">
+          <ModalHeader
+            title="Hapus Permanen?"
+            icon={<TriangleAlert className="h-4 w-4 text-lco-coral" />}
+            onClose={closePurge}
+            closeDisabled={isPurging}
+          />
+
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            {purgeDescription(purgeTarget)}
+          </p>
+
+          <p className="mt-3 text-sm font-medium text-lco-coral">
+            Tindakan ini tidak bisa dibatalkan dan datanya tidak bisa dipulihkan
+            lagi.
+          </p>
+
+          {purgeError && (
+            <div className="mt-4 flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-sm text-lco-coral dark:bg-zinc-950">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>{purgeError}</p>
+            </div>
+          )}
+
+          <div className="mt-5 flex gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              onClick={closePurge}
+              disabled={isPurging}
+            >
+              Batal
+            </Button>
+
+            <Button
+              type="button"
+              variant="danger"
+              className="flex-1"
+              onClick={handleConfirmPurge}
+              disabled={isPurging}
+            >
+              {isPurging ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Hapus Permanen
+            </Button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

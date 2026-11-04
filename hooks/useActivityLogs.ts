@@ -36,6 +36,9 @@ export type ActivityLogAction =
   | "product_restore"
   | "transaction_delete"
   | "transaction_restore"
+  // ── TAMBAHAN (migration 048) ── hapus permanen dari Sampah
+  | "product_permanent_delete"
+  | "transaction_permanent_delete"
   // ── TAMBAHAN (migration 040) ── kas masuk/keluar dari laci (entity "shift")
   | "cash_in"
   | "cash_out"
@@ -69,6 +72,8 @@ export const ACTIVITY_ACTION_LABEL: Record<ActivityLogAction, string> = {
   product_restore: "Pulihkan Produk",
   transaction_delete: "Hapus Transaksi",
   transaction_restore: "Pulihkan Transaksi",
+  product_permanent_delete: "Hapus Permanen Produk",
+  transaction_permanent_delete: "Hapus Permanen Transaksi",
   cash_in: "Kas Masuk",
   cash_out: "Kas Keluar",
   cash_void: "Batalkan Catatan Kas",
@@ -92,6 +97,8 @@ export function activityActionTone(
   if (
     action === "product_delete" ||
     action === "transaction_delete" ||
+    action === "product_permanent_delete" ||
+    action === "transaction_permanent_delete" ||
     action === "void_transaction" ||
     action === "cash_void" ||
     action === "opname_cancel" ||

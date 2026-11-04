@@ -142,7 +142,10 @@ export const MODULE_DEFS: ModuleDef[] = [
     label: "Sampah",
     group: "Lainnya",
     icon: Trash2,
-    columns: { edit: "Pulihkan produk/transaksi" },
+    columns: {
+      edit: "Pulihkan produk/transaksi",
+      delete: "Hapus permanen produk/transaksi",
+    },
   },
   { key: "log_aktivitas", label: "Log Aktivitas", group: "Lainnya", icon: ClipboardList, columns: {} },
   {
