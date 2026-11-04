@@ -1,7 +1,8 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-// Test hanya untuk logika murni (lib/**). Tidak butuh DOM, jadi environment "node".
+// Test untuk logika murni (lib/**, helper di app/components/**, dan fungsi murni di
+// hooks/**). Tidak butuh DOM, jadi environment "node".
 // Alias "@" harus sama dengan `paths` di tsconfig.json.
 export default defineConfig({
   resolve: {
@@ -9,6 +10,10 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["lib/**/*.test.ts"],
+    include: [
+      "lib/**/*.test.ts",
+      "app/**/*.test.ts",
+      "hooks/**/*.test.ts",
+    ],
   },
 });
