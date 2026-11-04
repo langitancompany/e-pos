@@ -16,6 +16,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { DateRange } from "@/hooks/useReports";
 import { chunkArray, fetchAllPages, ID_CHUNK_SIZE } from "@/lib/pos/paginate";
+import { useBranchScope } from "@/hooks/useActiveBranch";
+import { branchFilter } from "@/lib/pos/branches";
 import {
   buildReturnsReport,
   type ReturnTrxLite,
@@ -42,8 +44,11 @@ export function useReturnsReport(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── TAMBAHAN (migration 047) ── Retur untuk cabang terpilih.
+  const { branchId, ready } = useBranchScope();
+
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !ready) return;
     let isCancelled = false;
 
     async function load() {
@@ -56,6 +61,7 @@ export function useReturnsReport(
             .select(
               "id, receipt_no, total, created_at, cashier_id, void_reason, related_transaction_id",
             )
+            .match(branchFilter(branchId))
             .eq("status", "RETURN")
             .is("deleted_at", null)
             .gte("created_at", new Date(startMs).toISOString())
@@ -116,7 +122,7 @@ export function useReturnsReport(
     return () => {
       isCancelled = true;
     };
-  }, [enabled, startMs, endMs]);
+  }, [enabled, startMs, endMs, branchId, ready]);
 
   return { data, isLoading, error };
 }

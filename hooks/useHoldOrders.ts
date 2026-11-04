@@ -29,6 +29,8 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CartItem, Product } from "@/lib/pos/types";
 import { getAvailableStock } from "@/lib/pos/cartLogic";
+import { useBranchScope } from "@/hooks/useActiveBranch";
+import { branchFilter } from "@/lib/pos/branches";
 
 const supabase = createClient();
 
@@ -72,7 +74,11 @@ export function useHoldOrders(): UseHoldOrdersResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ── TAMBAHAN (migration 047) ── Pesanan tertunda dipisah per cabang.
+  const { branchId, ready } = useBranchScope();
+
   const fetchHeldOrders = useCallback(async () => {
+    if (!ready) return;
     setIsLoading(true);
     setError(null);
 
@@ -87,6 +93,7 @@ export function useHoldOrders(): UseHoldOrdersResult {
       .from("held_orders")
       .select("id, cashier_id, label, items, item_count, subtotal, created_at")
       .eq("cashier_id", authData.user.id)
+      .match(branchFilter(branchId))
       .order("created_at", { ascending: false });
 
     if (fetchError) {
@@ -96,7 +103,7 @@ export function useHoldOrders(): UseHoldOrdersResult {
       setHeldOrders((data ?? []) as HeldOrder[]);
     }
     setIsLoading(false);
-  }, []);
+  }, [branchId, ready]);
 
   useEffect(() => {
     fetchHeldOrders();
@@ -121,6 +128,7 @@ export function useHoldOrders(): UseHoldOrdersResult {
 
       const { error: insertError } = await supabase.from("held_orders").insert({
         cashier_id: authData.user.id,
+        ...(branchId ? { branch_id: branchId } : {}),
         label: label?.trim() || null,
         items: cart.map((item) => ({
           product_id: item.product.id,
@@ -136,7 +144,7 @@ export function useHoldOrders(): UseHoldOrdersResult {
 
       await fetchHeldOrders();
     },
-    [fetchHeldOrders],
+    [fetchHeldOrders, branchId],
   );
 
   const resumeHeldOrder = useCallback(

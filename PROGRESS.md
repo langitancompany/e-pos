@@ -2509,3 +2509,46 @@ daftar yang bisa diklik (`ListRowButton`).
 `npm install` sekali lalu commit lockfile-nya. `tsc --noEmit` menyisakan 4
 error lama yang bukan dari sesi ini (PengaturanModule.tsx x2, layout.tsx
 `LayoutProps`, permissionModules.ts).
+
+
+---
+
+## Sesi: Multi cabang (migration 047)
+
+**Ringkas:** aplikasi kini bisa punya beberapa cabang/toko. Cabang ditambah di
+Pengaturan > Toko & Struk (card "Cabang / Toko"). Batasan cabang per user diatur
+di Pengaturan > Pengguna > detail user, kartu "Batasan Cabang" di bawah
+Informasi Pengguna (BUKAN di matriks Hak Akses Modul). Daftar batasan kosong =
+user boleh mengakses SEMUA cabang. Pemilih cabang ada di Header, di kiri tombol
+Buka Kasir.
+
+**Database (`supabase/migrations/047_multi_branch.sql`, schema `e_pos`):**
+tabel `branches`; `profiles.branch_ids uuid[]` (kosong = semua); fungsi
+`can_access_branch()`; kolom `branch_id` di `shift_sessions`, `transactions`,
+`cash_movements`, `held_orders` (data lama di-backfill ke cabang utama);
+trigger yang mengisi `branch_id` transaksi & kas dari shift-nya (RPC
+`create_transaction`/`return_transaction`/`add_cash_movement` TIDAK diubah);
+policy RLS RESTRICTIVE per tabel; trigger penjaga `profiles` diperluas ke
+`branch_ids`. Super Admin selalu semua cabang.
+
+**Aplikasi:** `hooks/useActiveBranch.ts` (store cabang aktif, tersimpan di
+localStorage), `hooks/useBranches.ts` (CRUD), `lib/pos/branches.ts`,
+`BranchSwitcher`, `BranchesCard`, `BranchRestrictionCard`. `useSettings` menimpa
+nama/alamat/telepon toko dengan data cabang aktif (struk & judul kasir ikut
+cabang); form Toko & Struk memakai `useSettings({ raw: true })`.
+Difilter per cabang: transaksi, laporan (penjualan & shift), dashboard,
+wawasan penjualan, jam ramai, retur, sampah (transaksi), pesanan tertunda.
+Shift dibuka di cabang aktif dan mengunci kasir ke cabang itu sampai sesi ditutup.
+API `PATCH /api/admin/update-user` menerima `branchIds` (opsional) dengan aturan:
+tidak boleh mengubah akun sendiri, user yang dibatasi tidak bisa memberi akses
+di luar cabangnya / melepas batasan.
+
+**Belum dipisah per cabang (keputusan berikutnya):** katalog produk, kategori,
+pelanggan/poin, dan STOK (`products.stock`) masih satu untuk semua cabang;
+penerimaan stok, opname, hadiah, dan piutang (tempo) juga belum bercabang.
+Stok per cabang butuh tabel stok per (produk, cabang) dan perubahan RPC stok —
+sebaiknya dikerjakan sebagai fase terpisah.
+
+**Catatan:** `schema_e_pos.sql` adalah dump lama; jalankan 047 di database, lalu
+dump ulang bila ingin menyinkronkannya. `tsc --noEmit` hanya menyisakan 1 error
+lama (`LayoutProps` di `app/layout.tsx`).

@@ -12,9 +12,11 @@
 // di-export Sidebar.tsx (satu sumber kebenaran) — supaya kalau nanti ada
 // menu baru ditambah di sana, Header ini otomatis ikut tanpa perlu disentuh.
 
-import { Store, ShoppingCart } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { MENU_GROUPS } from "./Sidebar";
 import { useSettings } from "@/hooks/useSettings";
+// ── TAMBAHAN (migration 047, multi cabang) ── Pemilih cabang di kiri tombol Buka Kasir.
+import BranchSwitcher from "../branch/BranchSwitcher";
 
 interface HeaderProps {
   activeMenu: string;
@@ -82,10 +84,9 @@ export default function Header({ activeMenu, onOpenKasir }: HeaderProps) {
           toko kasir sudah cukup jelas dari konteks tablet yang dipakai; di
           layar sempit ruang lebih berharga untuk judul menu di kiri). */}
       <div className="flex shrink-0 items-center gap-2">
-        <div className="hidden shrink-0 items-center gap-1.5 rounded-full bg-lco-green/10 px-3 py-1.5 text-xs font-medium text-lco-green dark:bg-lco-teal/15 dark:text-lco-teal sm:flex">
-          <Store className="h-3.5 w-3.5 shrink-0" />
-          <span className="max-w-[180px] truncate">{settings.namaToko}</span>
-        </div>
+        {/* ── PERUBAHAN (migration 047) ── Badge nama toko statis diganti pemilih
+            cabang. Tetap tampil sebagai badge biasa kalau cuma ada satu cabang. */}
+        <BranchSwitcher fallbackName={settings.namaToko} />
         {/* ── TAMBAHAN (Kasir full-screen) ── Jalan masuk ke Kasir dari mana
             saja — begitu diklik, page.tsx pindah activeMenu="kasir" dan
             me-render KasirModule TANPA Sidebar/Header ini (full-screen). */}

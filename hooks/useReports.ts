@@ -67,6 +67,8 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 // ── TAMBAHAN (migration 040) ── total kas masuk/keluar per shift untuk tab Per Shift.
 import { fetchCashTotalsByShift } from "@/hooks/useCashMovements";
+import { useBranchScope } from "@/hooks/useActiveBranch";
+import { branchFilter } from "@/lib/pos/branches";
 
 const supabase = createClient();
 
@@ -321,6 +323,9 @@ export function useReports({
   const [receivablesError, setReceivablesError] = useState<string | null>(null);
   const [receivablesReloadToken, setReceivablesReloadToken] = useState(0);
 
+  // ── TAMBAHAN (migration 047) ── Penjualan & shift hanya untuk cabang terpilih.
+  const { branchId, ready } = useBranchScope();
+
   const refetchReceivables = useCallback(
     () => setReceivablesReloadToken((t) => t + 1),
     [],
@@ -328,6 +333,7 @@ export function useReports({
 
   // ── 1. Harian/Bulanan — mengikuti `salesRange` ───────────────────────────
   useEffect(() => {
+    if (!ready) return;
     let isCancelled = false;
     const rangeStart = new Date(salesStartMs);
     const rangeEnd = new Date(salesEndMs);
@@ -340,6 +346,7 @@ export function useReports({
         const { data: trxData, error: trxError } = await supabase
           .from("transactions")
           .select("id, total, status, created_at, related_transaction_id")
+          .match(branchFilter(branchId))
           .in("status", ["PAID", "RETURN"])
           .is("deleted_at", null)
           .gte("created_at", rangeStart.toISOString())
@@ -430,10 +437,11 @@ export function useReports({
     return () => {
       isCancelled = true;
     };
-  }, [salesStartMs, salesEndMs]);
+  }, [salesStartMs, salesEndMs, branchId, ready]);
 
   // ── 2. Per Shift — mengikuti `shiftRange` ────────────────────────────────
   useEffect(() => {
+    if (!ready) return;
     let isCancelled = false;
     const rangeStart = new Date(shiftStartMs);
     const rangeEnd = new Date(shiftEndMs);
@@ -448,6 +456,7 @@ export function useReports({
           .select(
             "id, cashier_id, opened_at, closed_at, status, opening_cash, expected_cash, actual_cash, difference",
           )
+          .match(branchFilter(branchId))
           .gte("opened_at", rangeStart.toISOString())
           .lte("opened_at", rangeEnd.toISOString())
           .order("opened_at", { ascending: false });
@@ -511,7 +520,7 @@ export function useReports({
     return () => {
       isCancelled = true;
     };
-  }, [shiftStartMs, shiftEndMs]);
+  }, [shiftStartMs, shiftEndMs, branchId, ready]);
 
   // ── 3. Piutang/Tempo — TANPA rentang, lihat catatan #2 di header ─────────
   useEffect(() => {

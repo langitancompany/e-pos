@@ -24,6 +24,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { DateRange, SalesSummary } from "@/hooks/useReports";
 import { CASH_CATEGORIES } from "@/hooks/useCashMovements";
+import { useBranchScope } from "@/hooks/useActiveBranch";
+import { branchFilter } from "@/lib/pos/branches";
 import {
   buildCashOut,
   buildPaymentMix,
@@ -103,11 +105,16 @@ interface PeriodData {
  * hanya kalau `withDetails` — kolom produk untuk "produk terlaris" serta
  * pembayaran untuk bauran metode bayar.
  */
-async function loadPeriod(range: DateRange, withDetails: boolean): Promise<PeriodData> {
+async function loadPeriod(
+  range: DateRange,
+  withDetails: boolean,
+  branchId: string | null,
+): Promise<PeriodData> {
   const transactions = await fetchAll<TransactionLite>((from, to) =>
     supabase
       .from("transactions")
       .select("id, total, status, related_transaction_id")
+      .match(branchFilter(branchId))
       .in("status", ["PAID", "RETURN"])
       .is("deleted_at", null)
       .gte("created_at", range.start.toISOString())
@@ -155,11 +162,12 @@ async function loadPeriod(range: DateRange, withDetails: boolean): Promise<Perio
   return { summary: summarizeSales(transactions, items), items, payments };
 }
 
-async function loadCashOut(range: DateRange): Promise<CashOutSummary> {
+async function loadCashOut(range: DateRange, branchId: string | null): Promise<CashOutSummary> {
   const rows = await fetchAll<CashOutLite>((from, to) =>
     supabase
       .from("cash_movements")
       .select("id, category, amount")
+      .match(branchFilter(branchId))
       .eq("type", "OUT")
       .is("voided_at", null)
       .gte("created_at", range.start.toISOString())
@@ -183,9 +191,11 @@ export function useSalesInsights(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cashOutError, setCashOutError] = useState<string | null>(null);
+  // ── TAMBAHAN (migration 047) ── Wawasan penjualan untuk cabang terpilih.
+  const { branchId, ready } = useBranchScope();
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !ready) return;
     let isCancelled = false;
 
     async function load() {
@@ -198,9 +208,9 @@ export function useSalesInsights(
 
       try {
         const [current, previous, cash] = await Promise.all([
-          loadPeriod(range, true),
-          loadPeriod(compareRange, false),
-          loadCashOut(range).then(
+          loadPeriod(range, true, branchId),
+          loadPeriod(compareRange, false, branchId),
+          loadCashOut(range, branchId).then(
             (summary) => ({ summary, message: null as string | null }),
             (err: unknown) => ({
               summary: null as CashOutSummary | null,
@@ -233,7 +243,7 @@ export function useSalesInsights(
     return () => {
       isCancelled = true;
     };
-  }, [enabled, startMs, endMs]);
+  }, [enabled, startMs, endMs, branchId, ready]);
 
   return { data, isLoading, error, cashOutError };
 }

@@ -15,6 +15,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { DateRange } from "@/hooks/useReports";
 import { fetchAllPages } from "@/lib/pos/paginate";
 import { buildTraffic, type SaleLite, type TrafficReport } from "@/lib/pos/reportTraffic";
+import { useBranchScope } from "@/hooks/useActiveBranch";
+import { branchFilter } from "@/lib/pos/branches";
 
 const supabase = createClient();
 
@@ -36,8 +38,11 @@ export function useHourlyTraffic(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── TAMBAHAN (migration 047) ── Lalu lintas jam untuk cabang terpilih.
+  const { branchId, ready } = useBranchScope();
+
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !ready) return;
     let isCancelled = false;
 
     async function load() {
@@ -48,6 +53,7 @@ export function useHourlyTraffic(
           supabase
             .from("transactions")
             .select("id, total, created_at")
+            .match(branchFilter(branchId))
             .eq("status", "PAID")
             .is("related_transaction_id", null)
             .is("deleted_at", null)
@@ -72,7 +78,7 @@ export function useHourlyTraffic(
     return () => {
       isCancelled = true;
     };
-  }, [enabled, startMs, endMs]);
+  }, [enabled, startMs, endMs, branchId, ready]);
 
   return { data, isLoading, error };
 }

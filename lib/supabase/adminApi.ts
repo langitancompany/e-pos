@@ -20,10 +20,46 @@ import { sanitizePermissions, type UserPermissions } from "@/lib/pos/permissionM
 export const fail = (error: string, status: number) =>
   NextResponse.json({ error }, { status });
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * ── TAMBAHAN (migration 047) ── Rapikan input `branchIds` dari body request:
+ * bukan array -> null (artinya "tidak dikirim / tidak diubah"); selain itu
+ * buang nilai bukan-UUID dan duplikat.
+ */
+export function sanitizeBranchIds(input: unknown): string[] | null {
+  if (!Array.isArray(input)) return null;
+  const out: string[] = [];
+  for (const v of input) {
+    if (typeof v === "string" && UUID_RE.test(v) && !out.includes(v)) out.push(v);
+  }
+  return out;
+}
+
+/**
+ * ── TAMBAHAN (migration 047) ── Aturan pemberian batasan cabang oleh non-Super-Admin:
+ * pemanggil yang sendiri dibatasi ke cabang tertentu tidak boleh memberi akses
+ * ke cabang di luar miliknya, dan tidak boleh MENGHAPUS batasan (= semua cabang).
+ * Mengembalikan pesan error, atau null bila lolos.
+ */
+export function findBranchEscalation(
+  newBranchIds: string[],
+  callerBranchIds: string[],
+): string | null {
+  if (callerBranchIds.length === 0) return null; // pemanggil tanpa batasan
+  if (newBranchIds.length === 0) {
+    return "Akun Anda dibatasi ke cabang tertentu, jadi Anda tidak bisa memberi akses ke semua cabang.";
+  }
+  const outside = newBranchIds.find((id) => !callerBranchIds.includes(id));
+  return outside ? "Anda tidak bisa memberi akses ke cabang yang tidak bisa Anda akses." : null;
+}
+
 export interface AdminCaller {
   callerId: string;
   callerIsSuperAdmin: boolean;
   callerPermissions: UserPermissions;
+  /** ── TAMBAHAN (migration 047) ── Batasan cabang pemanggil; kosong = semua cabang. */
+  callerBranchIds: string[];
   /** Client ANON milik pemanggil (tunduk RLS) — untuk RPC pengecekan izin. */
   supabaseUser: SupabaseClient;
   /** Client SERVICE ROLE — bypass RLS, pakai hanya setelah otorisasi lolos. */
@@ -96,7 +132,7 @@ export async function authorizeAdminCaller(
 
   const { data: callerProfile } = await supabaseAdmin
     .from("profiles")
-    .select("roles, permissions")
+    .select("roles, permissions, branch_ids")
     .eq("id", caller.id)
     .single();
 
@@ -106,6 +142,7 @@ export async function authorizeAdminCaller(
     callerId: caller.id,
     callerIsSuperAdmin: roles.includes("super_admin"),
     callerPermissions: sanitizePermissions(callerProfile?.permissions),
+    callerBranchIds: Array.isArray(callerProfile?.branch_ids) ? callerProfile.branch_ids : [],
     supabaseUser,
     supabaseAdmin,
   };

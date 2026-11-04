@@ -10,6 +10,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+// ── TAMBAHAN (migration 047, multi cabang) ── Identitas toko mengikuti cabang aktif.
+import { useActiveBranch } from "@/hooks/useActiveBranch";
 
 const supabase = createClient();
 
@@ -129,7 +131,20 @@ interface UseSettingsResult {
   ) => Promise<void>;
 }
 
-export function useSettings(): UseSettingsResult {
+/**
+ * ── PERUBAHAN (migration 047, multi cabang) ── Secara bawaan `namaToko`,
+ * `alamat`, dan `telepon` DITIMPA data cabang yang sedang dipilih (kalau cabang
+ * mengisinya), sehingga judul kasir, badge header, dan struk otomatis memakai
+ * identitas cabang tanpa mengubah satu pun pemanggil lama. Alamat/telepon
+ * cabang yang kosong jatuh ke nilai global di Pengaturan > Toko.
+ *
+ * `{ raw: true }` mengembalikan nilai global apa adanya — WAJIB dipakai form
+ * Pengaturan > Toko & Struk supaya yang diedit dan disimpan benar-benar
+ * pengaturan global, bukan data cabang.
+ */
+export function useSettings(options: { raw?: boolean } = {}): UseSettingsResult {
+  const raw = options.raw === true;
+  const { activeBranch } = useActiveBranch();
   const [rows, setRows] = useState<SettingRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -159,7 +174,16 @@ export function useSettings(): UseSettingsResult {
     fetchSettings();
   }, [fetchSettings]);
 
-  const settings = useMemo(() => parseSettings(rows), [rows]);
+  const settings = useMemo(() => {
+    const base = parseSettings(rows);
+    if (raw || !activeBranch) return base;
+    return {
+      ...base,
+      namaToko: activeBranch.name || base.namaToko,
+      alamat: activeBranch.address ?? base.alamat,
+      telepon: activeBranch.phone ?? base.telepon,
+    };
+  }, [rows, raw, activeBranch]);
 
   const updateSetting = useCallback(
     async <K extends keyof Settings>(field: K, value: Settings[K]) => {

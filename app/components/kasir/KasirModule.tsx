@@ -89,6 +89,9 @@ import {
 // ── TAMBAHAN (T-11 bagian 1) ── Hold order / "Tunda" — lihat komentar header
 // hooks/useHoldOrders.ts untuk pembagian tanggung jawab lengkap.
 import { useHoldOrders } from "@/hooks/useHoldOrders";
+// ── TAMBAHAN (migration 047, multi cabang) ── Cabang aktif untuk sesi kasir.
+import { useActiveBranch } from "@/hooks/useActiveBranch";
+import Select from "@/app/components/ui/Select";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
@@ -176,6 +179,22 @@ export default function KasirModule({
     openShift,
     closeShift,
   } = useShifts();
+  // ── TAMBAHAN (migration 047, multi cabang) ── Selama sesi kas terbuka, kasir
+  // WAJIB bekerja di cabang tempat sesi itu dibuka (transaksi & kas ikut cabang
+  // sesi). Kalau cabang di Header sempat diganti, kembalikan ke cabang sesi.
+  // Pindah cabang = tutup sesi kas dulu, lalu buka sesi baru di cabang lain.
+  const {
+    branches: branchChoices,
+    activeBranch,
+    activeBranchId,
+    setActiveBranch,
+  } = useActiveBranch();
+  const shiftBranchId = activeShift?.branch_id ?? null;
+  useEffect(() => {
+    if (shiftBranchId && shiftBranchId !== activeBranchId) {
+      setActiveBranch(shiftBranchId);
+    }
+  }, [shiftBranchId, activeBranchId, setActiveBranch]);
   // ── TAMBAHAN (migration 040) ── Catatan kas masuk/keluar untuk shift aktif.
   // `summary` hanya dipakai untuk pengingat di modal Tutup Sesi Kas — TIDAK
   // pernah menampilkan "kas seharusnya" (penutupan kas dibuat "buta").
@@ -1135,6 +1154,37 @@ export default function KasirModule({
                 </IconButton>
               )}
             </div>
+
+            {/* ── TAMBAHAN (migration 047) ── Cabang tempat sesi ini dibuka. Layar
+                Kasir tidak punya Header, jadi pilihan cabang disediakan di sini. */}
+            {branchChoices.length > 0 && (
+              <div className="mb-4">
+                <label className="mb-1 block text-xs font-medium text-zinc-500">
+                  Cabang
+                </label>
+                {branchChoices.filter((b) => b.is_active).length > 1 ? (
+                  <Select
+                    fullWidth
+                    value={activeBranchId ?? ""}
+                    onChange={(e) => setActiveBranch(e.target.value)}
+                    disabled={isStartingSession}
+                    aria-label="Cabang untuk sesi kasir ini"
+                  >
+                    {branchChoices
+                      .filter((b) => b.is_active)
+                      .map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                  </Select>
+                ) : (
+                  <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
+                    {activeBranch?.name ?? "—"}
+                  </p>
+                )}
+              </div>
+            )}
 
             <label className="mb-1 block text-xs font-medium text-zinc-500">
               Modal awal kas

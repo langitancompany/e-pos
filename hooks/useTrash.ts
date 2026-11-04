@@ -31,6 +31,8 @@ import {
   permanentDeleteTransaction as permanentDeleteTransactionRpc,
 } from "@/lib/pos/transactionApi";
 import type { ProductType } from "@/lib/pos/types";
+import { useBranchScope } from "@/hooks/useActiveBranch";
+import { branchFilter } from "@/lib/pos/branches";
 
 const supabase = createClient();
 
@@ -79,8 +81,12 @@ export function useTrash(): UseTrashResult {
   const [reloadToken, setReloadToken] = useState(0);
 
   const refetch = useCallback(() => setReloadToken((t) => t + 1), []);
+  // ── TAMBAHAN (migration 047) ── Transaksi terhapus hanya untuk cabang terpilih
+  // (produk tetap satu katalog bersama).
+  const { branchId, ready } = useBranchScope();
 
   useEffect(() => {
+    if (!ready) return;
     let isCancelled = false;
 
     async function load() {
@@ -96,6 +102,7 @@ export function useTrash(): UseTrashResult {
         supabase
           .from("transactions")
           .select("id, receipt_no, status, total, customer_name, created_at, deleted_at")
+          .match(branchFilter(branchId))
           .not("deleted_at", "is", null)
           .order("deleted_at", { ascending: false }),
       ]);
@@ -123,7 +130,7 @@ export function useTrash(): UseTrashResult {
     return () => {
       isCancelled = true;
     };
-  }, [reloadToken]);
+  }, [reloadToken, branchId, ready]);
 
   const restoreProduct = useCallback(
     async (productId: string) => {

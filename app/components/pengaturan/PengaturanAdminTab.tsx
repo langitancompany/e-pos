@@ -64,6 +64,8 @@ import {
 } from "@/lib/pos/permissionModules";
 import { holdsPermission, permissionsEqual } from "@/lib/pos/permissionRules";
 import { AddModuleModal, PermissionMatrix } from "./PermissionMatrix";
+// ── TAMBAHAN (migration 047, multi cabang) ── Batasan cabang per pengguna.
+import BranchRestrictionCard from "./BranchRestrictionCard";
 import Modal from "@/app/components/ui/Modal";
 import Input from "@/app/components/ui/Input";
 import IconButton from "@/app/components/ui/IconButton";
@@ -372,6 +374,7 @@ function DetailView({
   onSave,
   onReset,
   onToggleActive,
+  branchSection,
 }: {
   user: AdminUserRow;
   isSelf: boolean;
@@ -391,6 +394,8 @@ function DetailView({
   onSave: () => void;
   onReset: () => void;
   onToggleActive: () => void;
+  /** ── TAMBAHAN (migration 047) ── Kartu Batasan Cabang, tampil di bawah Informasi Pengguna. */
+  branchSection?: ReactNode;
 }) {
   const name = user.full_name || "(tanpa nama)";
   const info: [string, ReactNode][] = [
@@ -454,7 +459,8 @@ function DetailView({
       </div>
 
       <div className="grid grid-cols-1 items-start gap-4 md:gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        {/* Kiri: Informasi pengguna */}
+        {/* Kiri: Informasi pengguna + Batasan Cabang (migration 047) */}
+        <div className="space-y-4 md:space-y-6">
         <div className={cardCls}>
           <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-5 py-4 dark:border-zinc-800">
             <div className="flex min-w-0 items-center gap-3">
@@ -497,6 +503,8 @@ function DetailView({
               {user.is_active ? "Nonaktifkan" : "Aktifkan Kembali"}
             </Button>
           </div>
+        </div>
+        {branchSection}
         </div>
 
         {/* Kanan: Hak akses modul */}
@@ -817,6 +825,31 @@ export default function PengaturanAdminTab() {
           onSave={savePermissions}
           onReset={() => setDraft(savedPerms)}
           onToggleActive={() => handleToggleActive(selectedUser)}
+          branchSection={
+            <BranchRestrictionCard
+              key={selectedUser.id}
+              branchIds={selectedUser.branch_ids}
+              superAdmin={targetIsSuperAdmin}
+              canEdit={canEditUser && (callerIsSuperAdmin || (!targetIsSuperAdmin && !editingSelf))}
+              readOnlyReason={
+                !canEditUser
+                  ? "Izin “Kelola User · Ubah” diperlukan untuk mengubah batasan cabang."
+                  : editingSelf
+                    ? "Anda tidak bisa mengubah batasan cabang akun Anda sendiri."
+                    : "Hanya Super Admin yang boleh mengubah akun Super Admin."
+              }
+              onSave={(branchIds) =>
+                saveUser(selectedUser.id, {
+                  fullName: selectedUser.full_name ?? "",
+                  roles: selectedUser.roles,
+                  // Pakai izin yang TERSIMPAN (bukan draft) supaya perubahan matriks
+                  // yang belum disimpan tidak ikut tertulis.
+                  permissions: selectedUser.permissions,
+                  branchIds,
+                })
+              }
+            />
+          }
         />
       ) : (
         <>

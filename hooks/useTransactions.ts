@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useBranchScope } from "@/hooks/useActiveBranch";
+import { branchFilter } from "@/lib/pos/branches";
 import { createClient } from "@/lib/supabase/client"; // ganti sesuai path client Supabase project kamu
 
 // ── Enum ini HARUS sinkron persis dengan enum Postgres `payment_method` & `transaction_status`.
@@ -50,6 +52,8 @@ interface UseTransactionsResult {
 }
 
 export function useTransactions(): UseTransactionsResult {
+  // ── TAMBAHAN (migration 047) ── Hanya transaksi cabang yang sedang dipilih.
+  const { branchId, ready } = useBranchScope();
   const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +62,7 @@ export function useTransactions(): UseTransactionsResult {
   const refetch = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
+    if (!ready) return;
     let isCancelled = false;
     const supabase = createClient();
 
@@ -99,6 +104,7 @@ export function useTransactions(): UseTransactionsResult {
           transaction_items ( count )
         `
         )
+        .match(branchFilter(branchId))
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
@@ -140,7 +146,7 @@ export function useTransactions(): UseTransactionsResult {
     return () => {
       isCancelled = true;
     };
-  }, [reloadToken]);
+  }, [reloadToken, branchId, ready]);
 
   return { transactions, isLoading, error, refetch };
 }

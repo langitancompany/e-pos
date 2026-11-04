@@ -32,6 +32,8 @@ export interface AdminUserRow {
   email: string | null;
   roles: string[];
   permissions: UserPermissions;
+  /** ── TAMBAHAN (migration 047) ── Batasan cabang; kosong = semua cabang. */
+  branch_ids: string[];
   is_active: boolean;
   created_at: string;
 }
@@ -42,6 +44,8 @@ interface SaveUserFields {
   password?: string;
   roles: string[];
   permissions: UserPermissions;
+  /** ── TAMBAHAN (migration 047) ── Tidak diisi = batasan cabang tidak diubah. */
+  branchIds?: string[];
 }
 
 interface UseAdminUsersResult {
@@ -113,7 +117,7 @@ export function useAdminUsers(): UseAdminUsersResult {
 
     const { data, error: fetchError } = await supabase
       .from("profiles")
-      .select("id, full_name, email, is_active, created_at, roles, permissions")
+      .select("id, full_name, email, is_active, created_at, roles, permissions, branch_ids")
       .order("created_at", { ascending: true });
 
     if (fetchError) {
@@ -129,6 +133,7 @@ export function useAdminUsers(): UseAdminUsersResult {
           created_at: row.created_at,
           roles: normalizeRoles(row.roles),
           permissions: resolvePermissions(row.permissions),
+          branch_ids: Array.isArray(row.branch_ids) ? (row.branch_ids as string[]) : [],
         })),
       );
     }
@@ -154,6 +159,7 @@ export function useAdminUsers(): UseAdminUsersResult {
           password: fields.password ?? "",
           roles: fields.roles,
           permissions: fields.permissions,
+          ...(fields.branchIds ? { branchIds: fields.branchIds } : {}),
         },
         "Gagal menyimpan perubahan user.",
       );

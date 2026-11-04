@@ -19,13 +19,13 @@
 //      hanya boleh MENAMBAH izin yang ia sendiri punya (mengurangi boleh).
 
 import { NextResponse, type NextRequest } from "next/server";
-import { authorizeAdminCaller, fail } from "@/lib/supabase/adminApi";
+import { authorizeAdminCaller, fail, findBranchEscalation, sanitizeBranchIds } from "@/lib/supabase/adminApi";
 import { normalizeRoles } from "@/lib/pos/roles";
 import { sanitizePermissions } from "@/lib/pos/permissionModules";
 import { findPermissionEscalation, permissionsEqual } from "@/lib/pos/permissionRules";
 
 export async function PATCH(request: NextRequest) {
-  let body: { id?: string; fullName?: string; password?: string; roles?: unknown; permissions?: unknown };
+  let body: { id?: string; fullName?: string; password?: string; roles?: unknown; permissions?: unknown; branchIds?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -37,6 +37,8 @@ export async function PATCH(request: NextRequest) {
   const password = body.password ?? "";
   const roles = normalizeRoles(body.roles);
   const permissions = sanitizePermissions(body.permissions);
+  // ── TAMBAHAN (migration 047) ── null = tidak dikirim -> batasan cabang tidak diubah.
+  const branchIds = sanitizeBranchIds(body.branchIds);
 
   if (!id) return fail("id user wajib.", 400);
   if (!fullName) return fail("Nama tidak boleh kosong.", 400);
@@ -45,11 +47,11 @@ export async function PATCH(request: NextRequest) {
 
   const auth = await authorizeAdminCaller(request, "edit");
   if ("response" in auth) return auth.response;
-  const { callerId, callerIsSuperAdmin, callerPermissions, supabaseAdmin } = auth;
+  const { callerId, callerIsSuperAdmin, callerPermissions, callerBranchIds, supabaseAdmin } = auth;
 
   const { data: target } = await supabaseAdmin
     .from("profiles")
-    .select("id, full_name, roles, permissions")
+    .select("id, full_name, roles, permissions, branch_ids")
     .eq("id", id)
     .maybeSingle();
   if (!target) return fail("User tidak ditemukan.", 404);
@@ -61,7 +63,11 @@ export async function PATCH(request: NextRequest) {
   const rolesChanged = [...oldRoles].sort().join(",") !== [...roles].sort().join(",");
   const permsChanged = !permissionsEqual(permissions, currentPerms);
 
-  if ((wasSuper || willBeSuper) && !callerIsSuperAdmin && (rolesChanged || permsChanged)) {
+  const oldBranchIds: string[] = Array.isArray(target.branch_ids) ? target.branch_ids : [];
+  const branchesChanged =
+    branchIds !== null && [...oldBranchIds].sort().join(",") !== [...branchIds].sort().join(",");
+
+  if ((wasSuper || willBeSuper) && !callerIsSuperAdmin && (rolesChanged || permsChanged || branchesChanged)) {
     return fail("Hanya Super Admin yang boleh mengubah akun atau role Super Admin.", 403);
   }
 
@@ -80,11 +86,23 @@ export async function PATCH(request: NextRequest) {
   }
 
   if (!callerIsSuperAdmin) {
-    if (id === callerId && (rolesChanged || permsChanged)) {
-      return fail("Anda tidak bisa mengubah role atau izin akun Anda sendiri.", 403);
+    if (id === callerId && (rolesChanged || permsChanged || branchesChanged)) {
+      return fail("Anda tidak bisa mengubah role, izin, atau batasan cabang akun Anda sendiri.", 403);
+    }
+    if (branchesChanged && branchIds) {
+      const branchOver = findBranchEscalation(branchIds, callerBranchIds);
+      if (branchOver) return fail(branchOver, 403);
     }
     const over = findPermissionEscalation(permissions, currentPerms, callerPermissions);
     if (over) return fail(`Anda tidak bisa memberi izin yang tidak Anda miliki: ${over}`, 403);
+  }
+
+  // ── TAMBAHAN (migration 047) ── Pastikan semua cabang yang dipilih benar-benar ada.
+  if (branchesChanged && branchIds && branchIds.length > 0) {
+    const { data: found } = await supabaseAdmin.from("branches").select("id").in("id", branchIds);
+    if ((found?.length ?? 0) !== branchIds.length) {
+      return fail("Ada cabang yang dipilih tidak ditemukan. Muat ulang halaman lalu coba lagi.", 400);
+    }
   }
 
   const { error: updateError } = await supabaseAdmin
@@ -93,6 +111,7 @@ export async function PATCH(request: NextRequest) {
       full_name: fullName,
       roles,
       permissions,
+      ...(branchIds !== null ? { branch_ids: branchIds } : {}),
     })
     .eq("id", id);
 
@@ -121,6 +140,20 @@ export async function PATCH(request: NextRequest) {
         old_roles: oldRoles,
         new_roles: roles,
         permissions_changed: permsChanged,
+      },
+    });
+  }
+
+  if (branchesChanged) {
+    await supabaseAdmin.from("activity_logs").insert({
+      user_id: callerId,
+      action: "user_branch_change",
+      entity: "user",
+      entity_id: id,
+      meta: {
+        target_name: fullName,
+        old_branch_ids: oldBranchIds,
+        new_branch_ids: branchIds,
       },
     });
   }

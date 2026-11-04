@@ -20,6 +20,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getActiveBranchId } from "@/hooks/useActiveBranch";
 
 const supabase = createClient();
 
@@ -36,6 +37,8 @@ export interface ShiftSession {
   actual_cash: number | null;
   difference: number | null;
   status: ShiftStatus;
+  /** ── TAMBAHAN (migration 047) ── Cabang tempat shift dibuka (null = data lama/belum ada cabang). */
+  branch_id: string | null;
 }
 
 export interface CloseShiftResult {
@@ -116,7 +119,7 @@ export function useShifts(): UseShiftsResult {
       const { data, error: fetchError } = await supabase
         .from("shift_sessions")
         .select(
-          "id, cashier_id, opened_at, opening_cash, closed_at, expected_cash, actual_cash, difference, status",
+          "id, cashier_id, opened_at, opening_cash, closed_at, expected_cash, actual_cash, difference, status, branch_id",
         )
         .eq("cashier_id", user.id)
         .order("opened_at", { ascending: false })
@@ -164,6 +167,9 @@ export function useShifts(): UseShiftsResult {
         .insert({
           cashier_id: user.id,
           opening_cash: openingCash,
+          // ── TAMBAHAN (migration 047) ── Shift terikat ke cabang yang sedang dipilih;
+          // transaksi & kas masuk/keluar selama shift ini otomatis ikut cabang ini.
+          ...(getActiveBranchId() ? { branch_id: getActiveBranchId() } : {}),
         });
 
       if (insertError) {

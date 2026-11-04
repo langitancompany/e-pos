@@ -31,12 +31,15 @@ import Select from "@/app/components/ui/Select";
 import Input from "@/app/components/ui/Input";
 import Button from "@/app/components/ui/Button";
 import Textarea from "@/app/components/ui/Textarea";
+// ── TAMBAHAN (migration 047, multi cabang) ── Card daftar cabang/toko.
+import BranchesCard from "./BranchesCard";
 
 const labelClass =
   "mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400";
 
 export default function PengaturanTokoTab() {
-  const { settings, isLoading, error, updateSetting } = useSettings();
+  // raw: form ini mengedit pengaturan GLOBAL, bukan identitas cabang aktif.
+  const { settings, isLoading, error, updateSetting } = useSettings({ raw: true });
 
   const [form, setForm] = useState<Settings>(settings);
   // Dipakai supaya sinkronisasi awal dari `settings` -> `form` cuma terjadi
@@ -130,6 +133,9 @@ export default function PengaturanTokoTab() {
   }
 
   return (
+    <div className="space-y-4">
+    {/* ── TAMBAHAN (migration 047) ── Daftar cabang/toko di paling atas. */}
+    <BranchesCard />
     <form
       onSubmit={handleSubmit}
       className="space-y-6 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900"
@@ -479,5 +485,6 @@ export default function PengaturanTokoTab() {
         )}
       </div>
     </form>
+    </div>
   );
 }

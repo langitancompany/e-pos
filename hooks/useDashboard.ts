@@ -65,6 +65,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useBranchScope } from "@/hooks/useActiveBranch";
+import { branchFilter } from "@/lib/pos/branches";
 
 const supabase = createClient();
 
@@ -234,8 +236,11 @@ export function useDashboard(): UseDashboardResult {
   const [reloadToken, setReloadToken] = useState(0);
 
   const refetch = useCallback(() => setReloadToken((t) => t + 1), []);
+  // ── TAMBAHAN (migration 047) ── Statistik penjualan & shift untuk cabang terpilih.
+  const { branchId, ready } = useBranchScope();
 
   useEffect(() => {
+    if (!ready) return;
     let isCancelled = false;
 
     async function load() {
@@ -257,6 +262,7 @@ export function useDashboard(): UseDashboardResult {
         const { data: trxData, error: trxError } = await supabase
           .from("transactions")
           .select("id, total, status, created_at, related_transaction_id")
+          .match(branchFilter(branchId))
           .in("status", ["PAID", "RETURN"])
           .is("deleted_at", null)
           .gte("created_at", windowStart.toISOString())
@@ -436,7 +442,7 @@ export function useDashboard(): UseDashboardResult {
           .sort((a, b) => b.value - a.value);
 
         // ── 5. Action List ──────────────────────────────────────────────────
-        const actionGroups = await loadActionGroups(todayStart);
+        const actionGroups = await loadActionGroups(todayStart, branchId);
 
         if (isCancelled) return;
 
@@ -469,7 +475,7 @@ export function useDashboard(): UseDashboardResult {
     return () => {
       isCancelled = true;
     };
-  }, [reloadToken]);
+  }, [reloadToken, branchId, ready]);
 
   // Array/objek hasil agregasi dikembalikan apa adanya; useMemo di sini hanya
   // menjaga identitas objek pembungkus supaya konsumen yang memakainya sebagai
@@ -502,11 +508,14 @@ export function useDashboard(): UseDashboardResult {
 //   ditutup" otomatis menyesuaikan role TANPA cek role di sini — memang disengaja.
 // - `payments` mengikuti akses transaksinya.
 
-async function loadActionGroups(todayStart: Date): Promise<ActionGroup[]> {
+async function loadActionGroups(
+  todayStart: Date,
+  branchId: string | null,
+): Promise<ActionGroup[]> {
   const [lowStock, receivables, openShifts] = await Promise.all([
     loadLowStock(),
     loadReceivables(todayStart),
-    loadStaleShifts(todayStart),
+    loadStaleShifts(todayStart, branchId),
   ]);
 
   // Kelompok kosong dibuang — Action List hanya menampilkan yang benar-benar
@@ -655,13 +664,17 @@ async function loadReceivables(todayStart: Date): Promise<ActionGroup | null> {
   };
 }
 
-async function loadStaleShifts(todayStart: Date): Promise<ActionGroup | null> {
+async function loadStaleShifts(
+  todayStart: Date,
+  branchId: string | null,
+): Promise<ActionGroup | null> {
   // Shift yang masih OPEN padahal dibuka SEBELUM hari ini = lupa ditutup.
   // Shift yang dibuka hari ini dan masih terbuka itu normal (kasir sedang kerja),
   // jadi sengaja tidak ikut dihitung.
   const { data, error } = await supabase
     .from("shift_sessions")
     .select("id, cashier_id, opened_at, opening_cash")
+    .match(branchFilter(branchId))
     .eq("status", "OPEN")
     .lt("opened_at", todayStart.toISOString())
     .order("opened_at", { ascending: true });
