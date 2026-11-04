@@ -83,6 +83,12 @@ const PengaturanModule = dynamic(
   },
 );
 
+// ── TAMBAHAN (migration 048) ── Modul Outlet: kelola cabang beserta pajak,
+// poin member, dan format struk tiap outlet (menu Administrasi > Outlet).
+const OutletModule = dynamic(() => import("./components/outlet/OutletModule"), {
+  ssr: false,
+});
+
 // ── TAMBAHAN (Layar Promosi) ── Modul pengelola media TV toko, admin+supervisor
 // (layar blokirnya sendiri sudah di dalam PromoModule.tsx). WAJIB `ssr: false`:
 // modul ini membaca `window.location` langsung saat render.
@@ -235,6 +241,7 @@ export default function LCOPOS() {
           {isMenuRestored && activeMenu === "log-aktivitas" && (
             <LogAktivitasModule />
           )}
+          {isMenuRestored && activeMenu === "outlet" && <OutletModule />}
           {isMenuRestored && activeMenu === "pengaturan" && (
             <PengaturanModule />
           )}

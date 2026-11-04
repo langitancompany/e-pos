@@ -42,6 +42,8 @@ export interface ReceiptData {
   storePhone?: string;
   /** Dari `settings.footerStruk`. Kosong/undefined -> fallback "Terima kasih atas kunjungan Anda". */
   footerText?: string;
+  /** Dari header struk outlet (migration 048). Kosong/undefined -> tidak dicetak. */
+  headerText?: string;
   /** Nomor struk asli, mis. LCO-STR/26/09/000001. Wajib — sebelumnya tidak pernah ditampilkan. */
   receiptNo: string;
   /** ISO datetime transaksi. Kalau tidak dikirim (transaksi baru), pakai waktu sekarang. */
@@ -175,6 +177,7 @@ function buildShiftOpenHtml(
         ${brand ? "" : `<div class="text-center font-bold">${escapeHtml(data.storeName || "Langitan.co")}</div>`}
         ${data.storeAddress ? `<div class="text-center">${escapeHtml(data.storeAddress)}</div>` : ""}
         ${data.storePhone ? `<div class="text-center">${escapeHtml(data.storePhone)}</div>` : ""}
+        ${data.headerText ? `<div class="text-center">${escapeHtml(data.headerText)}</div>` : ""}
         <div class="divider"></div>
 
         <table>
@@ -300,6 +303,7 @@ export const printThermalReceipt = (
         ${brand ? "" : `<div class="text-center font-bold" style="font-size: 16px;">${escapeHtml(data.storeName || "Langitan.co")}</div>`}
         ${data.storeAddress ? `<div class="text-center">${escapeHtml(data.storeAddress)}</div>` : ""}
         ${data.storePhone ? `<div class="text-center">${escapeHtml(data.storePhone)}</div>` : ""}
+        ${data.headerText ? `<div class="text-center">${escapeHtml(data.headerText)}</div>` : ""}
         <div class="divider"></div>
 
         <table>
@@ -495,6 +499,7 @@ export const printA6Nota = (data: ReceiptData, paperSize: "A6" | "A5" = "A6") =>
           <h1>${escapeHtml((data.storeName || "Langitan.co").toUpperCase())}</h1>
           ${data.storeAddress ? `<p>${escapeHtml(data.storeAddress)}</p>` : ""}
           ${data.storePhone ? `<p>${escapeHtml(data.storePhone)}</p>` : ""}
+          ${data.headerText ? `<p>${escapeHtml(data.headerText)}</p>` : ""}
         </div>
 
         <table class="info-table">
@@ -766,6 +771,7 @@ function buildShareReceiptElement(data: ReceiptData): HTMLDivElement {
       <div style="text-align:center;font-weight:bold;font-size:20px;letter-spacing:0.5px;">${escapeHtml((data.storeName || "Langitan.co").toUpperCase())}</div>
       ${data.storeAddress ? `<div style="text-align:center;font-size:12px;color:#52525b;">${escapeHtml(data.storeAddress)}</div>` : ""}
       ${data.storePhone ? `<div style="text-align:center;font-size:12px;color:#52525b;margin-bottom:14px;">${escapeHtml(data.storePhone)}</div>` : ""}
+      ${data.headerText ? `<div style="text-align:center;font-size:12px;color:#52525b;margin-bottom:14px;">${escapeHtml(data.headerText)}</div>` : ""}
       <div style="border-top:1px dashed #a1a1aa;margin:10px 0;"></div>
       <table style="width:100%;font-size:13px;border-collapse:collapse;">
         <tr><td style="padding:2px 0;">No. Struk</td><td style="text-align:right;">${escapeHtml(data.receiptNo)}</td></tr>

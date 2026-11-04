@@ -95,8 +95,10 @@ interface KasirModulePCProps {
   usePoints: boolean;
   onToggleUsePoints: (value: boolean) => void;
   pointsBeingUsed: number;
-  /** Nilai Rupiah 1 poin (konstanta LOYALTY_POINT_VALUE di KasirModule.tsx). */
+  /** Nilai Rupiah 1 poin outlet aktif (Administrasi > Outlet > Pajak & Poin). */
   loyaltyPointValue: number;
+  /** Program poin member aktif di outlet ini. False -> info poin disembunyikan. */
+  loyaltyEnabled: boolean;
 
   manualDiscountInput: string;
   onManualDiscountInputChange: (value: string) => void;
@@ -240,6 +242,7 @@ export default function KasirModulePC({
   onToggleUsePoints,
   pointsBeingUsed,
   loyaltyPointValue,
+  loyaltyEnabled,
   manualDiscountInput,
   onManualDiscountInputChange,
   onOpenBiayaTambahan,
@@ -935,7 +938,7 @@ export default function KasirModulePC({
 
             {/* Info poin loyalitas — menempati slot yang sama dengan kotak
                 peringatan poin di screenshot rujukan. */}
-            {selectedCustomer && points > 0 && (
+            {loyaltyEnabled && selectedCustomer && points > 0 && (
               <div
                 className={`rounded-md border p-2 ${
                   usePoints

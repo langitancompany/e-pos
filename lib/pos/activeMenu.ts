@@ -28,6 +28,7 @@ export const VALID_MENU_KEYS = [
   "laporan",
   "sampah",
   "log-aktivitas",
+  "outlet",
   "pengaturan",
 ] as const;
 

@@ -1,26 +1,20 @@
 "use client";
 
-// app/components/pengaturan/PengaturanTokoTab.tsx
-// ── TAMBAHAN ── Sub-tab "Toko & Struk" di PengaturanModule.tsx (PRD §17 T-10).
-// Form edit tabel `settings` (T-01, migration 005) — nama toko, alamat,
-// telepon, footer struk, PPN (enabled+rate), pembulatan kembalian, modal awal
-// shift default, format cetak default (struk/nota), ukuran kertas nota &
-// thermal, dan tampil/sembunyi harga modal.
+// app/components/outlet/OutletUmumPanel.tsx
+// ── DIPINDAHKAN (migration 048) ── Dulu tab "Toko & Struk" di Pengaturan
+// (PengaturanTokoTab.tsx). Sekarang bagian dari menu Outlet, lewat tombol
+// "Pengaturan Umum" di halaman Kelola outlet.
 //
-// Reuse penuh `hooks/useSettings.ts` yang sudah ada sejak T-01 — tidak ada
-// hook/RPC baru di file ini. RLS `settings` (migration 005) sudah admin-only
-// untuk INSERT/UPDATE, jadi kalaupun modul ini someday diakses non-admin
-// (harusnya tidak, gate-nya di PengaturanModule.tsx), `updateSetting()` akan
-// gagal dengan error dari Postgres, bukan diam-diam berhasil.
+// Yang SUDAH per outlet dan karena itu dihapus dari form ini (diatur di form
+// "Pengaturan outlet"): nama toko, telepon, alamat, footer struk, PPN, dan
+// ukuran kertas thermal.
+// Yang MASIH berlaku untuk SEMUA outlet (tabel `settings` global): pembulatan
+// kembalian tunai, modal awal kas, format cetak default, ukuran kertas nota,
+// pembayaran digital, promosi QR di struk, dan tampil harga modal.
 //
-// Pola form: state lokal terpisah dari `settings` (bukan controlled langsung
-// dari hook), disinkronkan SEKALI lewat useEffect saat fetch pertama selesai
-// (`isLoading` true -> false) — supaya user boleh mengetik tanpa form
-// "ke-reset" tiap kali `settings` berubah referensinya (mis. re-render lain
-// yang tidak terkait). Submit membandingkan field yang BERUBAH saja terhadap
-// `settings` asli, lalu panggil `updateSetting()` satu per satu HANYA untuk
-// field yang berubah — bukan semua field sekaligus (mengurangi jumlah row
-// UPDATE & baris `updated_by`/`updated_at` yang tersentuh tanpa perlu).
+// Form edit tabel `settings` lewat `hooks/useSettings.ts` (mode raw = nilai
+// global apa adanya, tanpa ditimpa outlet). Submit hanya mengirim field yang
+// berubah. RLS `settings` admin-only untuk INSERT/UPDATE.
 
 import MoneyInput from "@/app/components/ui/MoneyInput";
 import { useEffect, useState } from "react";
@@ -31,13 +25,11 @@ import Select from "@/app/components/ui/Select";
 import Input from "@/app/components/ui/Input";
 import Button from "@/app/components/ui/Button";
 import Textarea from "@/app/components/ui/Textarea";
-// ── TAMBAHAN (migration 047, multi cabang) ── Card daftar cabang/toko.
-import BranchesCard from "./BranchesCard";
 
 const labelClass =
   "mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400";
 
-export default function PengaturanTokoTab() {
+export default function OutletUmumPanel() {
   // raw: form ini mengedit pengaturan GLOBAL, bukan identitas cabang aktif.
   const { settings, isLoading, error, updateSetting } = useSettings({ raw: true });
 
@@ -134,8 +126,6 @@ export default function PengaturanTokoTab() {
 
   return (
     <div className="space-y-4">
-    {/* ── TAMBAHAN (migration 047) ── Daftar cabang/toko di paling atas. */}
-    <BranchesCard />
     <form
       onSubmit={handleSubmit}
       className="space-y-6 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900"
@@ -147,97 +137,6 @@ export default function PengaturanTokoTab() {
           nilai default sementara.
         </div>
       )}
-
-      {/* ── Identitas toko ── */}
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          Identitas Toko
-        </h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={labelClass}>Nama Toko</label>
-            <Input
-              type="text"
-              value={form.namaToko}
-              onChange={(e) => updateField("namaToko", e.target.value)}
-              disabled={isSaving}
-              size="lg"
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Telepon</label>
-            <Input
-              type="text"
-              value={form.telepon}
-              onChange={(e) => updateField("telepon", e.target.value)}
-              disabled={isSaving}
-              placeholder="mis. 0812xxxxxxx"
-              size="lg"
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelClass}>Alamat</label>
-            <Textarea
-              size="lg"
-              value={form.alamat}
-              onChange={(e) => updateField("alamat", e.target.value)}
-              disabled={isSaving}
-              rows={2}
-              
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={labelClass}>Footer Struk</label>
-            <Textarea
-              size="lg"
-              value={form.footerStruk}
-              onChange={(e) => updateField("footerStruk", e.target.value)}
-              disabled={isSaving}
-              rows={2}
-              
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── PPN ── */}
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-          Pajak (PPN)
-        </h3>
-        <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
-          <input
-            type="checkbox"
-            checked={form.ppnEnabled}
-            onChange={(e) => updateField("ppnEnabled", e.target.checked)}
-            disabled={isSaving}
-            className="h-4 w-4 rounded border-zinc-300 text-lco-green focus:ring-lco-teal"
-          />
-          <div>
-            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-              Aktifkan baris PPN
-            </p>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Kalau aktif, baris pajak muncul di layar Kasir & struk sesuai
-              persentase di bawah.
-            </p>
-          </div>
-        </label>
-        <div className="mt-3 max-w-xs">
-          <label className={labelClass}>Persentase PPN (%)</label>
-          <Input
-            size="lg"
-            type="number"
-            min={0}
-            max={100}
-            step="0.1"
-            value={form.ppnRate}
-            onChange={(e) => updateField("ppnRate", Number(e.target.value))}
-            disabled={isSaving || !form.ppnEnabled}
-            className="font-mono tabular-nums"
-          />
-        </div>
-      </div>
 
       {/* ── Kasir & Shift ── */}
       <div>
@@ -283,7 +182,7 @@ export default function PengaturanTokoTab() {
         <h3 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
           Format Cetak
         </h3>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass}>Format Default</label>
             <Select
@@ -318,24 +217,6 @@ export default function PengaturanTokoTab() {
             >
               <option value="A6">A6</option>
               <option value="A5">A5</option>
-            </Select>
-          </div>
-          <div>
-            <label className={labelClass}>Ukuran Kertas Thermal</label>
-            <Select
-              size="lg"
-              fullWidth
-              value={form.paperThermal}
-              onChange={(e) =>
-                updateField(
-                  "paperThermal",
-                  e.target.value as Settings["paperThermal"],
-                )
-              }
-              disabled={isSaving}
-            >
-              <option value="58mm">58mm</option>
-              <option value="80mm">80mm</option>
             </Select>
           </div>
         </div>

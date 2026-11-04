@@ -167,7 +167,7 @@ export default function TransactionDetailModal({
   // tapi Void cuma untuk supervisor ke atas).
   const canRetur = hasPermissionAction(user, "retur_void", "create");
   const canVoid = hasPermissionAction(user, "retur_void", "delete");
-  const { settings: posSettings } = useSettings();
+  const { settings: posSettings, outlet } = useSettings();
   const { printReceipt } = usePrinterProfiles();
 
   const [detail, setDetail] = useState<TransactionDetail | null>(null);
@@ -258,6 +258,7 @@ export default function TransactionDetailModal({
       storeAddress: posSettings.alamat,
       storePhone: posSettings.telepon,
       footerText: posSettings.footerStruk,
+      headerText: outlet.headerStruk || undefined,
       ...getReceiptPromo(posSettings),
       receiptNo: txDetail.receipt_no,
       createdAt: txDetail.created_at,

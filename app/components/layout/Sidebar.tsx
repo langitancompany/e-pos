@@ -29,6 +29,7 @@ import {
   Trash2,
   ClipboardList,
   Settings,
+  Store,
   Sun,
   Moon,
   Loader2,
@@ -232,6 +233,15 @@ export const MENU_GROUPS: SidebarMenuGroup[] = [
     // cuma dikasih satu tab pun tetap melihat menunya.
     label: "Administrasi",
     items: [
+      // ── TAMBAHAN (migration 048) ── Kelola outlet/cabang: profil, pajak &
+      // poin, format struk per outlet. Memakai permission `pengaturan_toko`
+      // (sama dengan kartu cabang yang dulu ada di Pengaturan > Toko & Struk).
+      {
+        key: "outlet",
+        label: "Outlet",
+        icon: Store,
+        permissions: ["pengaturan_toko"],
+      },
       {
         key: "pengaturan",
         label: "Pengaturan",

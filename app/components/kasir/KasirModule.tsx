@@ -109,11 +109,10 @@ const SPLIT_METHOD_LABELS: Record<PaymentMethod, string> = {
   TEMPO: "Piutang",
 };
 
-// ── TAMBAHAN (Kasir: pelanggan + poin loyalitas) ── Nilai tukar 1 poin
-// loyalitas ke Rupiah potongan harga. Ubah angka ini kalau pemilik toko mau
-// rate lain — tidak perlu migration baru (lihat catatan header migration
-// 033_customers_loyalty.sql).
-const LOYALTY_POINT_VALUE = 100;
+// ── PERUBAHAN (migration 048) ── Nilai tukar 1 poin loyalitas ke Rupiah dulu
+// konstanta 100 di sini. Sekarang per outlet (Administrasi > Outlet > Pajak &
+// Poin): `outlet.loyaltyPointValue` dari useSettings. Server memakai nilai yang
+// sama (loyalty_point_value_for_user, migration 048) saat memvalidasi potongan.
 
 interface KasirModuleProps {
   // ── PERUBAHAN (buka/tutup shift sepenuhnya di layar Kasir) ── Prop lama
@@ -172,7 +171,8 @@ export default function KasirModule({
   const manualDiscount =
     Number(manualDiscountInput.replace(/[^0-9]/g, "")) || 0;
 
-  const { settings: posSettings } = useSettings();
+  const { settings: posSettings, outlet } = useSettings();
+  const loyaltyPointValue = outlet.loyaltyPointValue;
   const {
     activeShift,
     isLoading: isShiftLoading,
@@ -556,12 +556,19 @@ export default function KasirModule({
   // yang dikirim ke createTransaction() sebagai `pointsRedeemed` (server yang
   // memotong saldo — migration 036), bukan seluruh saldo poin pelanggan.
   const pointsBeingUsed = useMemo(() => {
-    if (!usePoints || !selectedCustomer) return 0;
+    if (!outlet.loyaltyEnabled || !usePoints || !selectedCustomer) return 0;
     const maxAffordablePoints = Math.floor(
-      (subtotal + tax) / LOYALTY_POINT_VALUE,
+      (subtotal + tax) / loyaltyPointValue,
     );
     return Math.min(selectedCustomer.loyalty_points, maxAffordablePoints);
-  }, [usePoints, selectedCustomer, subtotal, tax]);
+  }, [
+    outlet.loyaltyEnabled,
+    usePoints,
+    selectedCustomer,
+    subtotal,
+    tax,
+    loyaltyPointValue,
+  ]);
   // ── PERUBAHAN (mode PC: "Diskon Faktur") ── discount sekarang GABUNGAN dari
   // 2 sumber ADDITIF — poin loyalitas (pointsBeingUsed, sudah ada) + nominal
   // yang diketik manual kasir di kolom "Diskon Faktur" (manualDiscount, baru).
@@ -570,10 +577,10 @@ export default function KasirModule({
   // diskon manual otomatis lebih kecil (loyalitas dianggap "lebih prioritas"
   // karena sudah dipilih kasir lebih dulu di alur normal).
   const discount = useMemo(() => {
-    const loyaltyPart = pointsBeingUsed * LOYALTY_POINT_VALUE;
+    const loyaltyPart = pointsBeingUsed * loyaltyPointValue;
     const remainingCap = Math.max(subtotal + tax - loyaltyPart, 0);
     return loyaltyPart + Math.min(manualDiscount, remainingCap);
-  }, [pointsBeingUsed, manualDiscount, subtotal, tax]);
+  }, [pointsBeingUsed, manualDiscount, subtotal, tax, loyaltyPointValue]);
   const grandTotal = subtotal - discount + tax;
 
   // ── TAMBAHAN (menu Pelanggan) ── Daftarkan member baru otomatis dari form
@@ -680,6 +687,7 @@ export default function KasirModule({
         storeAddress: posSettings.alamat,
         storePhone: posSettings.telepon,
         footerText: posSettings.footerStruk,
+        headerText: outlet.headerStruk || undefined,
         ...getReceiptPromo(posSettings),
         receiptNo: result.receipt_no,
         createdAt: new Date().toISOString(),
@@ -800,6 +808,7 @@ export default function KasirModule({
         storeAddress: posSettings.alamat,
         storePhone: posSettings.telepon,
         footerText: posSettings.footerStruk,
+        headerText: outlet.headerStruk || undefined,
         ...getReceiptPromo(posSettings),
         receiptNo: result.receipt_no,
         createdAt: new Date().toISOString(),
@@ -907,6 +916,7 @@ export default function KasirModule({
         storeAddress: posSettings.alamat,
         storePhone: posSettings.telepon,
         footerText: posSettings.footerStruk,
+        headerText: outlet.headerStruk || undefined,
         receiptNo: `BUKA-${now.getTime()}`,
         createdAt: now.toISOString(),
         cashierName: user?.full_name ?? user?.email ?? null,
@@ -1332,7 +1342,8 @@ export default function KasirModule({
           usePoints={usePoints}
           onToggleUsePoints={setUsePoints}
           pointsBeingUsed={pointsBeingUsed}
-          loyaltyPointValue={LOYALTY_POINT_VALUE}
+          loyaltyPointValue={loyaltyPointValue}
+          loyaltyEnabled={outlet.loyaltyEnabled}
           manualDiscountInput={manualDiscountInput}
           onManualDiscountInputChange={setManualDiscountInput}
           onOpenBiayaTambahan={() => setIsBiayaTambahanModalOpen(true)}
@@ -1430,7 +1441,8 @@ export default function KasirModule({
 
               {/* ── TAMBAHAN (Fase 2: notifikasi poin loyalitas) ── Muncul kalau
               pelanggan terpilih punya poin, dan belum dipakai/ditutup. */}
-              {selectedCustomer &&
+              {outlet.loyaltyEnabled &&
+                selectedCustomer &&
                 selectedCustomer.loyalty_points > 0 &&
                 !usePoints &&
                 !isLoyaltyNoticeDismissed && (
@@ -1455,7 +1467,7 @@ export default function KasirModule({
                     </button>
                   </div>
                 )}
-              {usePoints && selectedCustomer && (
+              {outlet.loyaltyEnabled && usePoints && selectedCustomer && (
                 <div className="flex items-center gap-3 rounded-md border border-lco-teal/30 bg-lco-teal/10 px-3 py-2 text-xs text-zinc-700 dark:text-zinc-300">
                   <Sparkles className="w-4 h-4 shrink-0 text-lco-teal" />
                   <span className="flex-1">
@@ -1877,7 +1889,7 @@ export default function KasirModule({
         // OTOMATIS oleh PaymentModal begitu layar sukses muncul, bukan lewat
         // klik tombol "Cetak" manual lagi.
         receipt={lastReceipt}
-        onPrint={handlePrintReceipt}
+        onPrint={outlet.autoPrint ? handlePrintReceipt : undefined}
         digitalEnabled={posSettings.digitalPaymentEnabled}
       />
 

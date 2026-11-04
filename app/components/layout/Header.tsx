@@ -29,6 +29,7 @@ interface HeaderProps {
 // ── TAMBAHAN ── Keterangan singkat di bawah judul menu (opsional per menu).
 // Menu yang tidak terdaftar di sini tampil seperti biasa tanpa keterangan.
 const MENU_DESCRIPTIONS: Record<string, string> = {
+  outlet: "Atur informasi toko, pajak, poin member, dan struk untuk setiap cabang.",
   "label-barcode":
     "Cetak label barcode / QR untuk ditempel di produk, supaya kasir tinggal scan.",
 };

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 // ── TAMBAHAN (migration 047, multi cabang) ── Identitas toko mengikuti cabang aktif.
 import { useActiveBranch } from "@/hooks/useActiveBranch";
+import { branchSettingsOverlay } from "@/lib/pos/branches";
 
 const supabase = createClient();
 
@@ -116,8 +117,40 @@ function parseSettings(rows: SettingRow[]): Settings {
   return result;
 }
 
+/**
+ * ── TAMBAHAN (migration 048) ── Pengaturan yang hanya ada PER OUTLET (tidak ada
+ * padanan di tabel `settings` global). Tanpa outlet aktif / migration belum
+ * jalan, nilainya meniru perilaku lama: tanpa header struk, auto-cetak
+ * menyala, poin aktif dengan aturan lama (10.000 = 1 poin, 1 poin = Rp 100).
+ */
+export interface OutletSettings {
+  /** Teks di bagian atas struk, di bawah nama toko. Kosong = tidak dicetak. */
+  headerStruk: string;
+  /** Cetak struk otomatis setelah pembayaran berhasil. */
+  autoPrint: boolean;
+  /** Program poin member aktif di outlet ini. */
+  loyaltyEnabled: boolean;
+  /** Rp belanja untuk mendapat 1 poin (server yang menghitung perolehan poin). */
+  loyaltySpendPerPoint: number;
+  /** Nilai rupiah 1 poin saat ditukar jadi potongan. */
+  loyaltyPointValue: number;
+  /** Zona waktu IANA outlet, mis. "Asia/Jakarta". */
+  timezone: string;
+}
+
+export const DEFAULT_OUTLET_SETTINGS: OutletSettings = {
+  headerStruk: "",
+  autoPrint: true,
+  loyaltyEnabled: true,
+  loyaltySpendPerPoint: 10000,
+  loyaltyPointValue: 100,
+  timezone: "Asia/Jakarta",
+};
+
 interface UseSettingsResult {
   settings: Settings;
+  /** Pengaturan khusus outlet aktif (header struk, auto-cetak, poin, zona waktu). */
+  outlet: OutletSettings;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -135,7 +168,8 @@ interface UseSettingsResult {
  * ── PERUBAHAN (migration 047, multi cabang) ── Secara bawaan `namaToko`,
  * `alamat`, dan `telepon` DITIMPA data cabang yang sedang dipilih (kalau cabang
  * mengisinya), sehingga judul kasir, badge header, dan struk otomatis memakai
- * identitas cabang tanpa mengubah satu pun pemanggil lama. Alamat/telepon
+ * identitas cabang tanpa mengubah satu pun pemanggil lama. Migration 048
+ * menambah PPN, lebar kertas, dan footer struk ke daftar itu. Alamat/telepon
  * cabang yang kosong jatuh ke nilai global di Pengaturan > Toko.
  *
  * `{ raw: true }` mengembalikan nilai global apa adanya — WAJIB dipakai form
@@ -177,13 +211,39 @@ export function useSettings(options: { raw?: boolean } = {}): UseSettingsResult 
   const settings = useMemo(() => {
     const base = parseSettings(rows);
     if (raw || !activeBranch) return base;
-    return {
+    const identity = {
       ...base,
       namaToko: activeBranch.name || base.namaToko,
       alamat: activeBranch.address ?? base.alamat,
       telepon: activeBranch.phone ?? base.telepon,
     };
+    // ── PERUBAHAN (migration 048) ── PPN, lebar kertas, dan footer struk juga
+    // mengikuti outlet aktif. Footer outlet kosong -> pakai footer global.
+    // `o` null = database belum di-migrate -> pengaturan global tetap berlaku.
+    const o = branchSettingsOverlay(activeBranch);
+    if (!o) return identity;
+    return {
+      ...identity,
+      ppnEnabled: o.ppnEnabled,
+      ppnRate: o.ppnRate,
+      paperThermal: o.paperThermal,
+      footerStruk: o.footerStruk ?? base.footerStruk,
+    };
   }, [rows, raw, activeBranch]);
+
+  const outlet = useMemo<OutletSettings>(() => {
+    if (raw || !activeBranch) return DEFAULT_OUTLET_SETTINGS;
+    const o = branchSettingsOverlay(activeBranch);
+    if (!o) return DEFAULT_OUTLET_SETTINGS;
+    return {
+      headerStruk: o.headerStruk,
+      autoPrint: o.autoPrint,
+      loyaltyEnabled: o.loyaltyEnabled,
+      loyaltySpendPerPoint: o.loyaltySpendPerPoint,
+      loyaltyPointValue: o.loyaltyPointValue,
+      timezone: o.timezone,
+    };
+  }, [raw, activeBranch]);
 
   const updateSetting = useCallback(
     async <K extends keyof Settings>(field: K, value: Settings[K]) => {
@@ -218,5 +278,5 @@ export function useSettings(options: { raw?: boolean } = {}): UseSettingsResult 
     [fetchSettings],
   );
 
-  return { settings, isLoading, error, refetch: fetchSettings, updateSetting };
+  return { settings, outlet, isLoading, error, refetch: fetchSettings, updateSetting };
 }

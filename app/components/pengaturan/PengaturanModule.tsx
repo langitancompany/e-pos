@@ -3,8 +3,8 @@
 // app/components/pengaturan/PengaturanModule.tsx
 // ── TAMBAHAN ── Modul Pengaturan Admin (PRD §17 T-10, §4.1 "Pengaturan
 // Admin", §5 baris `settings` = admin only). Tiga sub-tab:
-// - "Toko & Struk"     — edit `settings` (PPN, footer, logo, ukuran kertas,
-//                        format cetak default) lewat PengaturanTokoTab.tsx.
+// - (migration 048) "Toko & Struk" DIPINDAHKAN ke menu Outlet. Pengaturan
+//                        tinggal "Pengguna" dan "Printer".
 // - "Pengaturan Admin" — daftar user dari `profiles`, ubah role, aktifkan/
 //                        nonaktifkan, reset password, lewat
 //                        PengaturanAdminTab.tsx.
@@ -47,12 +47,11 @@
 import { useEffect, useState } from "react";
 import { Loader2, Printer, ShieldAlert, Store, Users } from "lucide-react";
 import { hasPermission, useAuth } from "@/hooks/useAuth";
-import PengaturanTokoTab from "./PengaturanTokoTab";
 import PengaturanAdminTab from "./PengaturanAdminTab";
 import PengaturanPrinterTab from "./PengaturanPrinterTab";
 import TabSwitcher from "@/app/components/ui/TabSwitcher";
 
-type PengaturanTab = "toko" | "admin" | "printer";
+type PengaturanTab = "admin" | "printer";
 
 // ── REVISI (migration 028) ── Tiap tab sekarang bawa permission_key
 // sendiri (katalog `permissions`, migration 028) — dipakai `visibleTabs`
@@ -63,12 +62,6 @@ const TABS: {
   icon: typeof Store;
   permission: string;
 }[] = [
-  {
-    key: "toko",
-    label: "Toko & Struk",
-    icon: Store,
-    permission: "pengaturan_toko",
-  },
   // ── REVISI (migration 038) ── Tab "Pengaturan Admin" + tab "Role" digabung
   // jadi satu tab "Pengguna": daftar user + hak akses PER USER (bukan lagi per
   // role). Permission key tetap `pengaturan_admin`.
@@ -105,7 +98,11 @@ export default function PengaturanModule() {
   const visiblePermissionTabs = TABS.filter((tab) =>
     hasPermission(user, tab.permission),
   );
-  const canAccessSettings = visiblePermissionTabs.length > 0;
+  // ── PERUBAHAN (migration 048) ── Tab "Toko & Struk" pindah ke Outlet, tapi
+  // gate halaman tetap menerima pemegang `pengaturan_toko` supaya mereka masih
+  // bisa membuka tab Printer seperti sebelumnya.
+  const canAccessSettings =
+    visiblePermissionTabs.length > 0 || hasPermission(user, "pengaturan_toko");
   // ── TAMBAHAN (Setting Printer) ── PRINTER_TAB ditempel manual di akhir
   // (bukan ikut TABS.filter di atas) — lihat komentar di deklarasinya.
   // Cuma muncul kalau user sudah lolos gate 3 permission lain, supaya user
@@ -163,7 +160,8 @@ export default function PengaturanModule() {
           Pengaturan
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Pengaturan toko/struk, kelola user & hak akses, dan kelola printer
+          Kelola user & hak akses dan kelola printer. Pengaturan toko, pajak,
+          dan struk ada di menu Outlet.
         </p>
       </div>
 
@@ -184,7 +182,6 @@ export default function PengaturanModule() {
           CSS hidden), jadi tab yang tidak aktif memang UNMOUNT — state
           form di tiap tab otomatis reset tiap kali tab dibuka lagi.
           Konsisten dengan pola tab lain di project ini. */}
-      {activeTab === "toko" && <PengaturanTokoTab />}
       {activeTab === "admin" && <PengaturanAdminTab />}
       {/* ── TAMBAHAN (Setting Printer) ── */}
       {activeTab === "printer" && <PengaturanPrinterTab />}
