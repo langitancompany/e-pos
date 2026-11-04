@@ -52,7 +52,10 @@ export type ActivityLogAction =
   | "stock_receive_void"
   // ── TAMBAHAN (migration 044) ── hadiah/oleh-oleh (entity "gift")
   | "gift_give"
-  | "gift_void";
+  | "gift_void"
+  // ── TAMBAHAN (hapus user & outlet) ──
+  | "user_delete"
+  | "branch_delete";
 
 export type ActivityLogEntity =
   | "transaction"
@@ -84,6 +87,8 @@ export const ACTIVITY_ACTION_LABEL: Record<ActivityLogAction, string> = {
   stock_receive_void: "Batalkan Barang Masuk",
   gift_give: "Hadiah / Oleh-oleh",
   gift_void: "Batalkan Hadiah",
+  user_delete: "Hapus User",
+  branch_delete: "Hapus Outlet",
 };
 
 /** Warna chip ringkas: merah untuk aksi "menghilangkan", hijau untuk "mengembalikan", abu untuk netral. */
@@ -103,7 +108,9 @@ export function activityActionTone(
     action === "cash_void" ||
     action === "opname_cancel" ||
     action === "stock_receive_void" ||
-    action === "gift_void"
+    action === "gift_void" ||
+    action === "user_delete" ||
+    action === "branch_delete"
   ) {
     return "destructive";
   }

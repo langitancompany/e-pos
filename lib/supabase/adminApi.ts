@@ -67,12 +67,12 @@ export interface AdminCaller {
 }
 
 /**
- * Validasi pemanggil untuk aksi `create` / `edit` pada modul pengaturan_admin.
+ * Validasi pemanggil untuk aksi `create` / `edit` / `delete` pada modul pengaturan_admin.
  * Mengembalikan `{ response }` (siap dikirim) bila ditolak.
  */
 export async function authorizeAdminCaller(
   request: NextRequest,
-  action: "create" | "edit",
+  action: "create" | "edit" | "delete",
 ): Promise<{ response: NextResponse } | AdminCaller> {
   const cookieStore = request.cookies;
   const supabaseUser = createServerClient(
@@ -109,7 +109,9 @@ export async function authorizeAdminCaller(
       response: fail(
         action === "create"
           ? "Anda tidak punya izin untuk membuat user baru."
-          : "Anda tidak punya izin untuk mengubah user.",
+          : action === "delete"
+            ? "Anda tidak punya izin untuk menghapus user."
+            : "Anda tidak punya izin untuk mengubah user.",
         403,
       ),
     };

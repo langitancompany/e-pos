@@ -7,7 +7,9 @@
 // Beda dengan `useActiveBranch` (hanya cabang AKTIF yang boleh diakses user, untuk
 // pemilih cabang & filter data), hook ini memuat SEMUA cabang yang terlihat oleh
 // user untuk layar pengaturan. RLS: tambah = izin pengaturan_toko.create, ubah =
-// pengaturan_toko.edit. Cabang tidak bisa dihapus (data transaksi merujuk ke sana).
+// pengaturan_toko.edit. ── TAMBAHAN (migration 049) ── Hapus cabang lewat RPC
+// delete_branch (izin pengaturan_toko.delete): hanya cabang yang belum punya
+// riwayat; cabang yang sudah dipakai transaksi cukup dinonaktifkan.
 
 "use client";
 
@@ -174,5 +176,28 @@ export function useBranches() {
     [branches, refreshAll],
   );
 
-  return { branches, isLoading, error, refetch: fetchAll, addBranch, updateBranch, setBranchActive };
+  const deleteBranch = useCallback(
+    async (id: string) => {
+      const { error: rpcError } = await supabase.rpc("delete_branch", { p_branch_id: id });
+      if (rpcError) {
+        if (/function .*delete_branch|Could not find the function/i.test(rpcError.message)) {
+          throw new Error("Database belum diperbarui. Jalankan migration 049_delete_branch.sql di Supabase terlebih dulu.");
+        }
+        throw new Error(friendlyError(rpcError.message));
+      }
+      await refreshAll();
+    },
+    [refreshAll],
+  );
+
+  return {
+    branches,
+    isLoading,
+    error,
+    refetch: fetchAll,
+    addBranch,
+    updateBranch,
+    setBranchActive,
+    deleteBranch,
+  };
 }

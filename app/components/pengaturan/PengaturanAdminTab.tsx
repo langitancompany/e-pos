@@ -25,8 +25,9 @@
 // Tambah User SAMA dengan Konveksi: admin mengisi nama, email, PASSWORD, dan
 // role langsung — tidak ada email undangan. Password user diganti admin lewat
 // "Ubah Profil" (kosongkan bila tidak diubah); email login tidak bisa diubah.
-// Aktifkan/nonaktifkan dipertahankan: user tidak pernah dihapus permanen
-// (transaksi merujuk ke profilnya) — dinonaktifkan.
+// Aktifkan/nonaktifkan dipertahankan. Hapus permanen (izin Kelola User · Hapus)
+// hanya berhasil untuk user yang belum punya riwayat — transaksi merujuk ke
+// profilnya, jadi user yang sudah bekerja cukup dinonaktifkan.
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
@@ -42,6 +43,7 @@ import {
   Pencil,
   Search,
   ShieldCheck,
+  Trash2,
   UserCheck,
   UserPlus,
   UserRound,
@@ -368,12 +370,14 @@ function DetailView({
   canGrant,
   canEdit,
   canToggleActive,
+  canDelete,
   onBack,
   onEditProfile,
   onAddModule,
   onSave,
   onReset,
   onToggleActive,
+  onDelete,
   branchSection,
 }: {
   user: AdminUserRow;
@@ -388,12 +392,14 @@ function DetailView({
   canGrant: CanGrant | undefined;
   canEdit: boolean;
   canToggleActive: boolean;
+  canDelete: boolean;
   onBack: () => void;
   onEditProfile: () => void;
   onAddModule: () => void;
   onSave: () => void;
   onReset: () => void;
   onToggleActive: () => void;
+  onDelete: () => void;
   /** ── TAMBAHAN (migration 047) ── Kartu Batasan Cabang, tampil di bawah Informasi Pengguna. */
   branchSection?: ReactNode;
 }) {
@@ -502,6 +508,11 @@ function DetailView({
               {user.is_active ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
               {user.is_active ? "Nonaktifkan" : "Aktifkan Kembali"}
             </Button>
+            {canDelete && (
+              <Button type="button" onClick={onDelete} variant="danger" size="sm">
+                <Trash2 className="h-3.5 w-3.5" /> Hapus User
+              </Button>
+            )}
           </div>
         </div>
         {branchSection}
@@ -564,7 +575,7 @@ function DetailView({
 
 export default function PengaturanAdminTab() {
   const { user: currentUser } = useAuth();
-  const { users, isLoading, error: usersError, saveUser, setUserActive, createUser } = useAdminUsers();
+  const { users, isLoading, error: usersError, saveUser, setUserActive, deleteUser, createUser } = useAdminUsers();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<UserPermissions>(DEFAULT_PERMISSIONS);
@@ -584,6 +595,8 @@ export default function PengaturanAdminTab() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<AdminUserRow | null>(null);
   const [togglingActive, setTogglingActive] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [discardOpen, setDiscardOpen] = useState(false);
 
   // ─── Turunan ────────────────────────────────────────────────────────────────
@@ -622,6 +635,12 @@ export default function PengaturanAdminTab() {
     : editingSelf
       ? "Anda tidak bisa mengubah izin akun Anda sendiri. Minta Super Admin atau user lain yang berwenang."
       : "Hanya Super Admin yang boleh mengubah akun Super Admin.";
+
+  // ── TAMBAHAN (hapus user) ── Izin "Kelola User · Hapus"; bukan akun sendiri;
+  // akun Super Admin hanya oleh Super Admin. Server menegakkan ulang + cek riwayat.
+  const canDeleteUser = hasPermissionAction(currentUser, "pengaturan_admin", "delete");
+  const canDeleteFor = (u: AdminUserRow) =>
+    canDeleteUser && u.id !== currentUser?.id && (callerIsSuperAdmin || !u.roles.includes("super_admin"));
 
   const canToggleActiveFor = (u: AdminUserRow) =>
     canEditUser && u.id !== currentUser?.id && (callerIsSuperAdmin || !u.roles.includes("super_admin"));
@@ -778,6 +797,22 @@ export default function PengaturanAdminTab() {
     }
   };
 
+  // ─── Hapus user ─────────────────────────────────────────────────────────────
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setActionError(null);
+    try {
+      await deleteUser(deleteTarget.id);
+      if (selectedId === deleteTarget.id) closeDetail();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Gagal menghapus user.");
+    } finally {
+      setDeleteTarget(null);
+      setDeleting(false);
+    }
+  };
+
   // ─── Daftar: cari + halaman ─────────────────────────────────────────────────
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -819,12 +854,14 @@ export default function PengaturanAdminTab() {
           canGrant={canGrant}
           canEdit={canEditUser && (callerIsSuperAdmin || !targetIsSuperAdmin)}
           canToggleActive={canToggleActiveFor(selectedUser)}
+          canDelete={canDeleteFor(selectedUser)}
           onBack={backToList}
           onEditProfile={openEditProfile}
           onAddModule={() => setAddOpen(true)}
           onSave={savePermissions}
           onReset={() => setDraft(savedPerms)}
           onToggleActive={() => handleToggleActive(selectedUser)}
+          onDelete={() => setDeleteTarget(selectedUser)}
           branchSection={
             <BranchRestrictionCard
               key={selectedUser.id}
@@ -1013,6 +1050,18 @@ export default function PengaturanAdminTab() {
                             >
                               {u.is_active ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
                             </IconButton>
+                            {canDeleteFor(u) && (
+                              <IconButton
+                                type="button"
+                                onClick={() => setDeleteTarget(u)}
+                                title="Hapus user"
+                                aria-label={`Hapus ${u.full_name ?? "user"}`}
+                                variant="outlined"
+                                tone="danger"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </IconButton>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1080,6 +1129,18 @@ export default function PengaturanAdminTab() {
           busy={togglingActive}
           onConfirm={confirmDeactivate}
           onClose={() => setDeactivateTarget(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Hapus user permanen?"
+          message={`${deleteTarget.full_name ?? "User ini"}${deleteTarget.email ? ` (${deleteTarget.email})` : ""} akan dihapus permanen dan tidak bisa dikembalikan. Hanya user yang belum pernah dipakai bertransaksi yang bisa dihapus; kalau sudah punya riwayat, gunakan Nonaktifkan.`}
+          confirmLabel="Hapus Permanen"
+          danger
+          busy={deleting}
+          onConfirm={confirmDelete}
+          onClose={() => setDeleteTarget(null)}
         />
       )}
 

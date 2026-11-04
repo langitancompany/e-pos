@@ -33,12 +33,14 @@ import {
   FileText,
   ArrowLeft,
   Settings2,
+  Trash2,
 } from "lucide-react";
 import { hasPermission, hasPermissionAction, useAuth } from "@/hooks/useAuth";
 import { useBranches } from "@/hooks/useBranches";
 import { useActiveBranch } from "@/hooks/useActiveBranch";
 import { timezoneLabel, type Branch } from "@/lib/pos/branches";
 import Button from "@/app/components/ui/Button";
+import Modal from "@/app/components/ui/Modal";
 import OutletFormModal, { type OutletFormTab } from "./OutletFormModal";
 import OutletUmumPanel from "./OutletUmumPanel";
 
@@ -72,23 +74,27 @@ function OutletCard({
   branch,
   isCurrent,
   canEdit,
+  canDelete,
   busy,
   onSettings,
   onReceipt,
   onUse,
   onToggle,
+  onDelete,
 }: {
   branch: Branch;
   isCurrent: boolean;
   canEdit: boolean;
+  canDelete: boolean;
   busy: boolean;
   onSettings: () => void;
   onReceipt: () => void;
   onUse: () => void;
   onToggle: () => void;
+  onDelete: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const showMenu = (branch.is_active && !isCurrent) || canEdit;
+  const showMenu = (branch.is_active && !isCurrent) || canEdit || canDelete;
 
   return (
     <li
@@ -246,6 +252,22 @@ function OutletCard({
                     </button>
                   </li>
                 )}
+                {canDelete && (
+                  <li role="none">
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-lco-coral hover:bg-lco-coral/10"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onDelete();
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Hapus outlet
+                    </button>
+                  </li>
+                )}
               </ul>
             )}
           </div>
@@ -257,13 +279,15 @@ function OutletCard({
 
 export default function OutletModule() {
   const { user, isLoading: isAuthLoading } = useAuth();
-  const { branches, isLoading, error, addBranch, updateBranch, setBranchActive } = useBranches();
+  const { branches, isLoading, error, addBranch, updateBranch, setBranchActive, deleteBranch } = useBranches();
   const { activeBranchId, setActiveBranch } = useActiveBranch();
 
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<{ branch: Branch | null; tab: OutletFormTab } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   // "umum" = pengaturan yang berlaku untuk semua outlet (dulu Pengaturan > Toko & Struk).
   const [view, setView] = useState<"daftar" | "umum">("daftar");
@@ -271,6 +295,7 @@ export default function OutletModule() {
   const canView = hasPermission(user, "pengaturan_toko");
   const canCreate = hasPermissionAction(user, "pengaturan_toko", "create");
   const canEdit = hasPermissionAction(user, "pengaturan_toko", "edit");
+  const canDelete = hasPermissionAction(user, "pengaturan_toko", "delete");
 
   const counts = useMemo(
     () => ({
@@ -303,6 +328,20 @@ export default function OutletModule() {
       setActionError(err instanceof Error ? err.message : "Gagal mengubah status outlet.");
     } finally {
       setBusyId(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setActionError(null);
+    try {
+      await deleteBranch(deleteTarget.id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Gagal menghapus outlet.");
+    } finally {
+      setDeleteTarget(null);
+      setDeleting(false);
     }
   }
 
@@ -456,11 +495,13 @@ export default function OutletModule() {
                 branch={b}
                 isCurrent={b.id === activeBranchId}
                 canEdit={canEdit}
+                canDelete={canDelete}
                 busy={busyId === b.id}
                 onSettings={() => setEditing({ branch: b, tab: "profil" })}
                 onReceipt={() => setEditing({ branch: b, tab: "struk" })}
                 onUse={() => setActiveBranch(b.id)}
                 onToggle={() => handleToggle(b)}
+                onDelete={() => setDeleteTarget(b)}
               />
             ))}
             {canCreate && filter !== "inactive" && query.trim() === "" && (
@@ -490,6 +531,26 @@ export default function OutletModule() {
       )}
 
       </>
+      )}
+
+      {deleteTarget && (
+        <Modal size="sm" padding="md" layout="plain" aria-label="Hapus outlet permanen">
+          <h3 className="mb-1.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Hapus outlet permanen?</h3>
+          <p className="mb-4 text-sm text-zinc-600 dark:text-zinc-400">
+            {deleteTarget.name} akan dihapus permanen dan tidak bisa dikembalikan. Hanya outlet yang belum
+            punya shift, transaksi, atau catatan kas yang bisa dihapus; kalau sudah punya riwayat, gunakan
+            Nonaktifkan outlet.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" onClick={() => setDeleteTarget(null)} disabled={deleting} variant="secondary" size="sm">
+              Batal
+            </Button>
+            <Button type="button" onClick={handleDelete} disabled={deleting} variant="danger" size="sm">
+              {deleting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Hapus Permanen
+            </Button>
+          </div>
+        </Modal>
       )}
 
       {editing && (

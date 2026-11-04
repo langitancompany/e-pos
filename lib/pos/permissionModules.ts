@@ -153,7 +153,10 @@ export const MODULE_DEFS: ModuleDef[] = [
     label: "Pengaturan Toko",
     group: "Administrasi",
     icon: Store,
-    columns: { edit: "Ubah pengaturan toko & struk" },
+    columns: {
+      edit: "Ubah pengaturan toko & struk",
+      delete: "Hapus outlet yang belum punya riwayat",
+    },
   },
   {
     key: "pengaturan_admin",
@@ -163,6 +166,7 @@ export const MODULE_DEFS: ModuleDef[] = [
     columns: {
       create: "Tambah user baru",
       edit: "Ubah role & hak akses, aktif/nonaktifkan user",
+      delete: "Hapus user permanen (hanya yang belum punya riwayat)",
     },
   },
 ];

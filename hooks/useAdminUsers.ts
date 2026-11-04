@@ -14,8 +14,10 @@
 //   - Password user diganti admin lewat `saveUser({ password })`; tombol kirim
 //     reset password dihapus. Email login tidak bisa diubah.
 //   - `setUserActive` (RPC admin_set_user_active) tidak berubah.
-// User tidak pernah dihapus permanen (transaksi merujuk ke profilnya) — cukup
-// dinonaktifkan.
+// ── TAMBAHAN (hapus user) ── `deleteUser` -> DELETE /api/admin/delete-user.
+// Hapus permanen HANYA untuk user yang belum punya riwayat (transaksi, shift,
+// mutasi stok, log aktivitas, ...); server menolak sisanya dan menyarankan
+// nonaktifkan, supaya data transaksi tidak ikut hilang.
 
 "use client";
 
@@ -57,6 +59,8 @@ interface UseAdminUsersResult {
   saveUser: (userId: string, fields: SaveUserFields) => Promise<void>;
   /** Aktifkan/nonaktifkan user (bukan diri sendiri — ditolak RPC). */
   setUserActive: (userId: string, isActive: boolean) => Promise<void>;
+  /** Hapus permanen user yang belum punya riwayat (aturan dicek server). */
+  deleteUser: (userId: string) => Promise<void>;
   /**
    * Buat user baru dengan email + password dari admin (tanpa email undangan).
    * Panggil API route server, BUKAN RPC/`.update()` langsung, karena butuh
@@ -74,7 +78,7 @@ interface UseAdminUsersResult {
 
 async function callAdminApi(
   url: string,
-  method: "POST" | "PATCH",
+  method: "POST" | "PATCH" | "DELETE",
   payload: unknown,
   fallbackMessage: string,
 ): Promise<{ user_id?: string }> {
@@ -186,6 +190,14 @@ export function useAdminUsers(): UseAdminUsersResult {
     [fetchUsers],
   );
 
+  const deleteUser = useCallback(
+    async (userId: string) => {
+      await callAdminApi("/api/admin/delete-user", "DELETE", { id: userId }, "Gagal menghapus user.");
+      await fetchUsers();
+    },
+    [fetchUsers],
+  );
+
   const createUser = useCallback(
     async (fields: {
       fullName: string;
@@ -221,6 +233,7 @@ export function useAdminUsers(): UseAdminUsersResult {
     refetch: fetchUsers,
     saveUser,
     setUserActive,
+    deleteUser,
     createUser,
   };
 }
