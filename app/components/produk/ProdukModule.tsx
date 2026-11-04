@@ -270,11 +270,7 @@ export default function ProdukModule() {
         </div>
 
         {activeTab === "produk" && canCreateProduct && (
-          <Button
-            type="button"
-            onClick={openForm}
-            size="lg"
-          >
+          <Button type="button" onClick={openForm} size="lg">
             <Plus className="h-4 w-4" />
             Tambah Produk
           </Button>
@@ -288,7 +284,9 @@ export default function ProdukModule() {
       <TabSwitcher
         tabs={[
           { key: "produk", label: "Daftar Produk" },
-          ...(canManageProducts ? [{ key: "kategori" as const, label: "Kategori" }] : []),
+          ...(canManageProducts
+            ? [{ key: "kategori" as const, label: "Kategori" }]
+            : []),
         ]}
         value={activeTab}
         onChange={setActiveTab}
@@ -397,11 +395,7 @@ export default function ProdukModule() {
                 </p>
 
                 {!search && canCreateProduct && (
-                  <Button
-                    type="button"
-                    onClick={openForm}
-                    className="mt-4"
-                  >
+                  <Button type="button" onClick={openForm} className="mt-4">
                     <Plus className="h-4 w-4" />
                     Tambah Produk
                   </Button>
@@ -490,14 +484,7 @@ export default function ProdukModule() {
 
                           <td className="px-4 py-3">
                             {product.category ? (
-                              <span className="inline-flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
-                                <span
-                                  className="h-2 w-2 shrink-0 rounded-full"
-                                  style={{
-                                    backgroundColor:
-                                      product.category.color || "#a1a1aa",
-                                  }}
-                                />
+                              <span className="text-zinc-600 dark:text-zinc-400">
                                 {product.category.name}
                               </span>
                             ) : (
@@ -624,11 +611,7 @@ export default function ProdukModule() {
           konsisten sebagai satu keluarga modal, walau ukurannya jauh lebih
           kecil (bukan form). */}
       {deletingProduct && (
-        <Modal
-          size="sm"
-          padding="md"
-          layout="plain"
-        >
+        <Modal size="sm" padding="md" layout="plain">
           <div className="mb-3 flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lco-coral/10 text-lco-coral">
               <Trash2 className="h-4 w-4" />

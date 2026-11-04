@@ -104,8 +104,6 @@ export interface CategorySlice {
   name: string;
   /** Nilai penjualan bersih kategori ini (Rupiah). */
   value: number;
-  /** Warna dari tabel `categories`, null kalau kategori tidak punya warna. */
-  color: string | null;
 }
 
 export type ActionKind = "low_stock" | "due_receivable" | "open_shift";
@@ -322,13 +320,13 @@ export function useDashboard(): UseDashboardResult {
 
         const { data: categoryData, error: categoryError } = await supabase
           .from("categories")
-          .select("id, name, color");
+          .select("id, name");
 
         if (categoryError) throw new Error(categoryError.message);
 
-        const categoryMeta = new Map<string, { name: string; color: string | null }>();
+        const categoryMeta = new Map<string, { name: string }>();
         for (const row of categoryData ?? []) {
-          categoryMeta.set(row.id, { name: row.name, color: row.color ?? null });
+          categoryMeta.set(row.id, { name: row.name });
         }
 
         if (isCancelled) return;
@@ -433,7 +431,6 @@ export function useDashboard(): UseDashboardResult {
               categoryId,
               name: meta?.name ?? "Tanpa Kategori",
               value,
-              color: meta?.color ?? null,
             };
           })
           .sort((a, b) => b.value - a.value);

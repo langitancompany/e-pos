@@ -806,10 +806,7 @@ export default function DashboardModule({
                         {pieData.map((slice, index) => (
                           <Cell
                             key={`${slice.categoryId ?? "none"}-${index}`}
-                            fill={
-                              slice.color ??
-                              PIE_FALLBACK[index % PIE_FALLBACK.length]
-                            }
+                            fill={PIE_FALLBACK[index % PIE_FALLBACK.length]}
                           />
                         ))}
                       </Pie>
@@ -838,7 +835,6 @@ export default function DashboardModule({
                           className="h-2 w-2 shrink-0 rounded-sm"
                           style={{
                             backgroundColor:
-                              slice.color ??
                               PIE_FALLBACK[index % PIE_FALLBACK.length],
                           }}
                         />

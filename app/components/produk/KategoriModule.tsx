@@ -20,14 +20,12 @@ const supabase = createClient();
 
 type CategoryForm = {
   name: string;
-  color: string;
   sort_order: string;
   is_active: boolean;
 };
 
 const DEFAULT_FORM: CategoryForm = {
   name: "",
-  color: "",
   sort_order: "0",
   is_active: true,
 };
@@ -52,7 +50,7 @@ export default function KategoriModule() {
 
     const { data, error: fetchError } = await supabase
       .from("categories")
-      .select("id, name, color, sort_order, is_active")
+      .select("id, name, sort_order, is_active")
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
 
@@ -82,7 +80,6 @@ export default function KategoriModule() {
     setEditingId(category.id);
     setForm({
       name: category.name,
-      color: category.color ?? "",
       sort_order: String(category.sort_order ?? 0),
       is_active: category.is_active,
     });
@@ -105,7 +102,6 @@ export default function KategoriModule() {
     setSuccess("");
 
     const name = form.name.trim();
-    const color = form.color.trim();
     const sortOrder = Number(form.sort_order);
 
     if (!name) {
@@ -122,7 +118,6 @@ export default function KategoriModule() {
 
     const payload = {
       name,
-      color: color || null,
       sort_order: sortOrder,
       is_active: form.is_active,
     };
@@ -213,11 +208,7 @@ export default function KategoriModule() {
           </p>
         </div>
 
-        <Button
-          type="button"
-          onClick={openCreateForm}
-          size="lg"
-        >
+        <Button type="button" onClick={openCreateForm} size="lg">
           <Plus size={18} />
           Tambah Kategori
         </Button>
@@ -259,9 +250,6 @@ export default function KategoriModule() {
                     Kategori
                   </th>
                   <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
-                    Warna
-                  </th>
-                  <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
                     Urutan
                   </th>
                   <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -280,21 +268,9 @@ export default function KategoriModule() {
                     className="transition-colors duration-150 hover:bg-zinc-50 dark:hover:bg-zinc-900/40"
                   >
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="h-3 w-3 rounded-full border border-zinc-200 dark:border-zinc-700"
-                          style={{
-                            backgroundColor: category.color || "#a1a1aa",
-                          }}
-                        />
-                        <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                          {category.name}
-                        </span>
-                      </div>
-                    </td>
-
-                    <td className="px-5 py-4 font-mono text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
-                      {category.color || "-"}
+                      <span className="font-medium text-zinc-900 dark:text-zinc-100">
+                        {category.name}
+                      </span>
                     </td>
 
                     <td className="px-5 py-4 font-mono text-sm tabular-nums text-zinc-600 dark:text-zinc-400">
@@ -350,11 +326,7 @@ export default function KategoriModule() {
       </div>
 
       {showForm && (
-        <Modal
-          size="md"
-          padding="none"
-          layout="clip"
-        >
+        <Modal size="md" padding="none" layout="clip">
           <div className="flex items-center justify-between border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
             <div>
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
@@ -398,43 +370,6 @@ export default function KategoriModule() {
                 placeholder="Contoh: Kaos"
                 size="lg"
               />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Warna
-              </label>
-
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={form.color || "#49bfb4"}
-                  onChange={(e) =>
-                    setForm((current) => ({
-                      ...current,
-                      color: e.target.value,
-                    }))
-                  }
-                  disabled={saving}
-                  className="h-10 w-12 cursor-pointer rounded-md border border-zinc-300 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
-                />
-
-                <Input
-                  type="text"
-                  value={form.color}
-                  onChange={(e) =>
-                    setForm((current) => ({
-                      ...current,
-                      color: e.target.value,
-                    }))
-                  }
-                  disabled={saving}
-                  placeholder="#49bfb4"
-                  size="lg"
-                  fullWidth={false}
-                  className="flex-1 font-mono uppercase"
-                />
-              </div>
             </div>
 
             <div>

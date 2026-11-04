@@ -39,7 +39,6 @@ export interface Product {
 export interface Category {
   id: string;
   name: string;
-  color: string | null;
   sort_order: number;
   is_active: boolean;
 }

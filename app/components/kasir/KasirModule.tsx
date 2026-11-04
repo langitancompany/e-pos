@@ -1090,10 +1090,7 @@ export default function KasirModule({
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
             Gagal memuat produk: {error}
           </p>
-          <Button
-            onClick={refetch}
-            size="sm"
-          >
+          <Button onClick={refetch} size="sm">
             Coba Lagi
           </Button>
         </div>
@@ -1482,12 +1479,6 @@ export default function KasirModule({
                         : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800"
                     }`}
                   >
-                    {cat.color && (
-                      <span
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{ backgroundColor: cat.color }}
-                      />
-                    )}
                     {cat.name}
                   </button>
                 ))}
@@ -1842,18 +1833,14 @@ export default function KasirModule({
 
       {/* ── TAMBAHAN (T-11 bagian 1) ── Modal konfirmasi "Tunda". */}
       {isHoldModalOpen && (
-        <Modal
-          size="sm"
-          padding="md"
-          layout="plain"
-        >
+        <Modal size="sm" padding="md" layout="plain">
           <h3 className="mb-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
             Tunda Transaksi
           </h3>
           <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
-            {getCartItemCount(cart)} item, {formatRupiah(subtotal)} —
-            keranjang akan dikosongkan dan bisa dilanjutkan lagi lewat ikon
-            riwayat di atas keranjang.
+            {getCartItemCount(cart)} item, {formatRupiah(subtotal)} — keranjang
+            akan dikosongkan dan bisa dilanjutkan lagi lewat ikon riwayat di
+            atas keranjang.
           </p>
 
           <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
@@ -1895,11 +1882,7 @@ export default function KasirModule({
 
       {/* ── TAMBAHAN (T-11 bagian 1) ── Modal daftar held order — lanjutkan/hapus. */}
       {isHeldListOpen && (
-        <Modal
-          size="md"
-          padding="none"
-          layout="flex"
-        >
+        <Modal size="md" padding="none" layout="flex">
           <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               Pesanan Tertunda
@@ -1914,9 +1897,7 @@ export default function KasirModule({
           </div>
 
           {heldListError && (
-            <p className="mx-4 mt-3 text-xs text-lco-coral">
-              {heldListError}
-            </p>
+            <p className="mx-4 mt-3 text-xs text-lco-coral">{heldListError}</p>
           )}
 
           <div className="flex-1 overflow-y-auto p-4">
