@@ -114,22 +114,6 @@ function relativeScreenTime(iso: string): string {
 const LABEL_CLASS =
   "mb-1 block text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 dark:text-zinc-400";
 
-
-const ICON_BUTTON_BASE =
-  "inline-flex h-8 w-8 items-center justify-center rounded-md border border-zinc-200 transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-800";
-
-const ICON_BUTTON_CLASS = `${ICON_BUTTON_BASE} text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100`;
-
-const ICON_BUTTON_DANGER_CLASS = `${ICON_BUTTON_BASE} text-zinc-600 hover:bg-lco-coral/10 hover:text-lco-coral dark:text-zinc-400 dark:hover:bg-lco-coral/10 dark:hover:text-lco-coral`;
-
-// Aksi sekunder di kartu TV (rename/hapus) — tanpa kotak/border, cuma
-// ikon polos + latar saat hover, supaya tidak bersaing dengan CTA utama.
-const CARD_GHOST_ICON_CLASS =
-  "inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-zinc-500 dark:hover:bg-zinc-900 dark:hover:text-zinc-200";
-
-const CARD_GHOST_ICON_DANGER_CLASS =
-  "inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors duration-150 hover:bg-lco-coral/10 hover:text-lco-coral disabled:cursor-not-allowed disabled:opacity-40 dark:text-zinc-500";
-
 // ── Kode QR ─────────────────────────────────────────────────────────────
 
 /**
@@ -931,7 +915,7 @@ function ScreenMediaManager({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1.5">
-                  <button
+                  <IconButton
                     type="button"
                     title="Naikkan urutan"
                     aria-label="Naikkan urutan"
@@ -939,11 +923,12 @@ function ScreenMediaManager({
                     onClick={() =>
                       void runAction(() => moveItem(item.id, "up"))
                     }
-                    className={ICON_BUTTON_CLASS}
+                    variant="outlined"
+                    className="h-8 w-8"
                   >
                     <ChevronUp className="h-4 w-4" />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton
                     type="button"
                     title="Turunkan urutan"
                     aria-label="Turunkan urutan"
@@ -951,11 +936,12 @@ function ScreenMediaManager({
                     onClick={() =>
                       void runAction(() => moveItem(item.id, "down"))
                     }
-                    className={ICON_BUTTON_CLASS}
+                    variant="outlined"
+                    className="h-8 w-8"
                   >
                     <ChevronDown className="h-4 w-4" />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton
                     type="button"
                     title={
                       item.is_active ? "Sembunyikan dari TV" : "Tayangkan di TV"
@@ -969,15 +955,16 @@ function ScreenMediaManager({
                         updateMedia(item.id, { is_active: !item.is_active }),
                       )
                     }
-                    className={ICON_BUTTON_CLASS}
+                    variant="outlined"
+                    className="h-8 w-8"
                   >
                     {item.is_active ? (
                       <Eye className="h-4 w-4" />
                     ) : (
                       <EyeOff className="h-4 w-4" />
                     )}
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton
                     type="button"
                     title="Ubah judul / durasi"
                     aria-label="Ubah judul / durasi"
@@ -987,11 +974,12 @@ function ScreenMediaManager({
                       setSuccessMessage("");
                       setFormTarget({ mode: "edit", item });
                     }}
-                    className={ICON_BUTTON_CLASS}
+                    variant="outlined"
+                    className="h-8 w-8"
                   >
                     <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton
                     type="button"
                     title="Hapus"
                     aria-label="Hapus"
@@ -1000,10 +988,12 @@ function ScreenMediaManager({
                       setDeleteError("");
                       setDeletingItem(item);
                     }}
-                    className={ICON_BUTTON_DANGER_CLASS}
+                    variant="outlined"
+                    tone="danger"
+                    className="h-8 w-8"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </IconButton>
                 </div>
               </li>
             ))}
@@ -1356,16 +1346,17 @@ export default function PromoModule() {
               {/* Footer: aksi sekunder (ikon polos) di kiri, CTA utama di kanan */}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-0.5">
-                  <button
+                  <IconButton
                     type="button"
                     title="Link & kode QR"
                     aria-label="Link & kode QR"
                     onClick={() => setLinkModalScreen(screen)}
-                    className={CARD_GHOST_ICON_CLASS}
+                    variant="soft"
+                    className="h-8 w-8"
                   >
                     <QrCode className="h-4 w-4" />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton
                     type="button"
                     title="Ubah nama"
                     aria-label="Ubah nama"
@@ -1375,11 +1366,12 @@ export default function PromoModule() {
                       setSuccessMessage("");
                       setScreenFormTarget({ mode: "rename", screen });
                     }}
-                    className={CARD_GHOST_ICON_CLASS}
+                    variant="soft"
+                    className="h-8 w-8"
                   >
                     <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton
                     type="button"
                     title="Hapus TV"
                     aria-label="Hapus TV"
@@ -1388,10 +1380,12 @@ export default function PromoModule() {
                       setDeleteError("");
                       setDeletingScreen(screen);
                     }}
-                    className={CARD_GHOST_ICON_DANGER_CLASS}
+                    variant="soft"
+                    tone="danger"
+                    className="h-8 w-8"
                   >
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </IconButton>
                 </div>
 
                 <Button

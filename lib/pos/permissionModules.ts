@@ -183,7 +183,7 @@ export const DEFAULT_PERMISSIONS: UserPermissions = Object.fromEntries(
     d.key,
     Object.fromEntries(fieldsOf(d).map((f) => [f, d.key === "kasir" && f === "view"])),
   ]),
-) as UserPermissions;
+) as unknown as UserPermissions;
 
 /**
  * Samakan data mentah dari database dengan definisi modul saat ini: modul/aksi

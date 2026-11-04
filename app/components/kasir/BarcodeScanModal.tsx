@@ -44,6 +44,7 @@ import { useEffect, useRef, useState } from "react";
 import { X, Camera, AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
 import IconButton from "@/app/components/ui/IconButton";
 import Button from "@/app/components/ui/Button";
+import Modal from "@/app/components/ui/Modal";
 
 const SCANNER_ELEMENT_ID = "kasir-barcode-scanner-region";
 // Jeda antara satu scan berhasil & kamera aktif kembali — cukup lama supaya
@@ -160,95 +161,93 @@ export default function BarcodeScanModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 p-4">
-      <div className="w-full max-w-sm overflow-hidden rounded-xl bg-white dark:bg-zinc-950">
-        <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            <Camera className="h-4 w-4 text-lco-teal" />
-            Scan Barcode
-          </h3>
-          <IconButton
-            onClick={onClose}
-            aria-label="Tutup"
-            size="sm"
-          >
-            <X className="h-4 w-4" />
-          </IconButton>
-        </div>
+    <Modal size="sm" padding="none" layout="clip" aria-label="Scan barcode">
+      <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+          <Camera className="h-4 w-4 text-lco-teal" />
+          Scan Barcode
+        </h3>
+        <IconButton
+          onClick={onClose}
+          aria-label="Tutup"
+          size="sm"
+        >
+          <X className="h-4 w-4" />
+        </IconButton>
+      </div>
 
-        <div className="p-4">
-          {/* Elemen kamera SELALU dirender selama modal terbuka (bukan cuma
-              saat phase === "running") — Html5Qrcode butuh elemen ini SUDAH
-              ada di DOM pas start() dipanggil. Overlay di atasnya yang
-              berubah-ubah sesuai phase, bukan elemen kamera-nya sendiri. */}
-          <div className="relative min-h-[250px] overflow-hidden rounded-md bg-black">
-            <div
-              id={SCANNER_ELEMENT_ID}
-              className="[&_video]:w-full [&_video]:h-full [&_video]:object-cover"
-            />
+      <div className="p-4">
+        {/* Elemen kamera SELALU dirender selama modal terbuka (bukan cuma
+            saat phase === "running") — Html5Qrcode butuh elemen ini SUDAH
+            ada di DOM pas start() dipanggil. Overlay di atasnya yang
+            berubah-ubah sesuai phase, bukan elemen kamera-nya sendiri. */}
+        <div className="relative min-h-[250px] overflow-hidden rounded-md bg-black">
+          <div
+            id={SCANNER_ELEMENT_ID}
+            className="[&_video]:w-full [&_video]:h-full [&_video]:object-cover"
+          />
 
-            {phase !== "running" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-900 p-4 text-center">
-                {phase === "starting" ? (
-                  <>
-                    <Loader2 className="h-6 w-6 animate-spin text-white" />
-                    <p className="text-xs text-white/70">Membuka kamera...</p>
-                  </>
-                ) : phase === "error" ? (
-                  <>
-                    <AlertTriangle className="h-7 w-7 text-lco-coral" />
-                    <p className="text-xs text-white/80">{cameraError}</p>
-                    <Button
-                      onClick={handleActivateCamera}
-                      size="sm"
-                      className="mt-1"
-                    >
-                      Coba Lagi
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Camera className="h-8 w-8 text-white/60" />
-                    <Button
-                      onClick={handleActivateCamera}
-                      size="lg"
-                    >
-                      Aktifkan Kamera
-                    </Button>
-                    <p className="text-[11px] text-white/50">
-                      Browser akan minta izin akses kamera.
-                    </p>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {phase === "running" && (
-            <p className="mt-2 text-center text-[11px] text-zinc-400">
-              Arahkan kamera ke barcode produk.
-            </p>
-          )}
-
-          {/* ── Feedback hasil scan terakhir (diisi KasirModule setelah lookup produk). ── */}
-          {feedback && (
-            <div
-              className={`mt-3 flex items-center gap-2 rounded-md p-2.5 text-xs ${
-                feedback.type === "success"
-                  ? "border border-lco-green/30 bg-lco-green/5 text-lco-green"
-                  : "border border-lco-coral/30 bg-lco-coral/5 text-lco-coral"
-              }`}
-            >
-              {feedback.type === "success" ? (
-                <CheckCircle2 className="h-4 w-4 shrink-0" />
+          {phase !== "running" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-900 p-4 text-center">
+              {phase === "starting" ? (
+                <>
+                  <Loader2 className="h-6 w-6 animate-spin text-white" />
+                  <p className="text-xs text-white/70">Membuka kamera...</p>
+                </>
+              ) : phase === "error" ? (
+                <>
+                  <AlertTriangle className="h-7 w-7 text-lco-coral" />
+                  <p className="text-xs text-white/80">{cameraError}</p>
+                  <Button
+                    onClick={handleActivateCamera}
+                    size="sm"
+                    className="mt-1"
+                  >
+                    Coba Lagi
+                  </Button>
+                </>
               ) : (
-                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <>
+                  <Camera className="h-8 w-8 text-white/60" />
+                  <Button
+                    onClick={handleActivateCamera}
+                    size="lg"
+                  >
+                    Aktifkan Kamera
+                  </Button>
+                  <p className="text-[11px] text-white/50">
+                    Browser akan minta izin akses kamera.
+                  </p>
+                </>
               )}
-              <span>{feedback.message}</span>
             </div>
           )}
         </div>
+
+        {phase === "running" && (
+          <p className="mt-2 text-center text-[11px] text-zinc-400">
+            Arahkan kamera ke barcode produk.
+          </p>
+        )}
+
+        {/* ── Feedback hasil scan terakhir (diisi KasirModule setelah lookup produk). ── */}
+        {feedback && (
+          <div
+            className={`mt-3 flex items-center gap-2 rounded-md p-2.5 text-xs ${
+              feedback.type === "success"
+                ? "border border-lco-green/30 bg-lco-green/5 text-lco-green"
+                : "border border-lco-coral/30 bg-lco-coral/5 text-lco-coral"
+            }`}
+          >
+            {feedback.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+            )}
+            <span>{feedback.message}</span>
+          </div>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 }

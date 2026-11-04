@@ -36,6 +36,7 @@ import PoinAdjustModal from "./PoinAdjustModal";
 import Select from "@/app/components/ui/Select";
 import Button from "@/app/components/ui/Button";
 import Chip from "@/app/components/ui/Chip";
+import Input from "@/app/components/ui/Input";
 
 // Nilai 1 poin = Rp 100. HARUS sama dengan LOYALTY_POINT_VALUE di
 // app/components/kasir/KasirModule.tsx (konstanta itu tidak di-export);
@@ -340,14 +341,14 @@ export default function PelangganModule() {
         <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-            <input
+            <Input
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setVisibleCount(PAGE_SIZE);
               }}
               placeholder="Cari no. HP atau nama…"
-              className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm outline-none placeholder:text-zinc-400 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              className="pl-9"
             />
           </div>
 

@@ -35,13 +35,9 @@ import Select from "@/app/components/ui/Select";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
 import IconButton from "@/app/components/ui/IconButton";
+import Textarea from "@/app/components/ui/Textarea";
+import Modal from "@/app/components/ui/Modal";
 
-const overlayClass =
-  "fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4";
-const dialogClass =
-  "max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950";
-const inputClass =
-  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950";
 const labelClass = "mb-1 block text-xs font-medium text-zinc-500";
 
 function ErrorBox({ message }: { message: string }) {
@@ -133,83 +129,80 @@ export function OpnameStartModal({
   };
 
   return (
-    <div className={overlayClass}>
-      <div className={dialogClass}>
-        <ModalHeader title="Mulai Opname Baru" onClose={onClose} />
+    <Modal size="lg">
+      <ModalHeader title="Mulai Opname Baru" onClose={onClose} />
 
-        <div className="space-y-4">
-          <div>
-            <label className={labelClass}>Nama sesi (opsional)</label>
-            <Input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Contoh: Opname rak kaos akhir bulan"
-              disabled={isSaving}
-            />
-          </div>
+      <div className="space-y-4">
+        <div>
+          <label className={labelClass}>Nama sesi (opsional)</label>
+          <Input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Contoh: Opname rak kaos akhir bulan"
+            disabled={isSaving}
+          />
+        </div>
 
-          <div>
-            <label className={labelClass}>Cakupan produk</label>
-            <Select
-              fullWidth
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              disabled={isSaving}
-            >
-              <option value="">Semua produk berstok</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  Kategori: {category.name}
-                </option>
-              ))}
-            </Select>
-            <p className="mt-1 text-[11px] text-zinc-400">
-              {formatNumber(productCount)} produk akan masuk daftar hitung.
-              Produk jasa dan produk yang sudah dihapus tidak ikut.
-            </p>
-          </div>
-
-          <div>
-            <label className={labelClass}>Catatan (opsional)</label>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={2}
-              className={inputClass}
-              disabled={isSaving}
-            />
-          </div>
-
-          <p className="rounded-md border border-zinc-200 p-3 text-[11px] leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-            Toko tetap boleh berjualan selama opname. Selisih dihitung terhadap
-            stok sistem pada saat tiap produk dihitung, jadi penjualan di
-            tengah opname tidak dianggap selisih. Satu produk hanya bisa ada di
-            satu sesi yang sedang berjalan.
+        <div>
+          <label className={labelClass}>Cakupan produk</label>
+          <Select
+            fullWidth
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            disabled={isSaving}
+          >
+            <option value="">Semua produk berstok</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                Kategori: {category.name}
+              </option>
+            ))}
+          </Select>
+          <p className="mt-1 text-[11px] text-zinc-400">
+            {formatNumber(productCount)} produk akan masuk daftar hitung.
+            Produk jasa dan produk yang sudah dihapus tidak ikut.
           </p>
         </div>
 
-        {error && <ErrorBox message={error} />}
+        <div>
+          <label className={labelClass}>Catatan (opsional)</label>
+          <Textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            disabled={isSaving}
+          />
+        </div>
 
-        <Button
-          type="button"
-          onClick={handleStart}
-          disabled={isSaving || productCount === 0}
-          size="lg"
-          fullWidth
-          className="mt-5"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Membuat sesi...
-            </>
-          ) : (
-            "Mulai Opname"
-          )}
-        </Button>
+        <p className="rounded-md border border-zinc-200 p-3 text-[11px] leading-relaxed text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+          Toko tetap boleh berjualan selama opname. Selisih dihitung terhadap
+          stok sistem pada saat tiap produk dihitung, jadi penjualan di
+          tengah opname tidak dianggap selisih. Satu produk hanya bisa ada di
+          satu sesi yang sedang berjalan.
+        </p>
       </div>
-    </div>
+
+      {error && <ErrorBox message={error} />}
+
+      <Button
+        type="button"
+        onClick={handleStart}
+        disabled={isSaving || productCount === 0}
+        size="lg"
+        fullWidth
+        className="mt-5"
+      >
+        {isSaving ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Membuat sesi...
+          </>
+        ) : (
+          "Mulai Opname"
+        )}
+      </Button>
+    </Modal>
   );
 }
 
@@ -282,185 +275,181 @@ export function OpnameFinalizeModal({
 
   if (result) {
     return (
-      <div className={overlayClass}>
-        <div className={dialogClass}>
-          <ModalHeader title={`Opname #${result.number} Selesai`} onClose={handleClose} />
+      <Modal size="lg">
+        <ModalHeader title={`Opname #${result.number} Selesai`} onClose={handleClose} />
 
-          <div className="flex items-start gap-2 text-sm text-lco-green dark:text-lco-teal">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>Selisih sudah diterapkan ke stok dan tercatat di riwayat mutasi.</span>
-          </div>
-
-          <dl className="mt-4 space-y-2 text-sm">
-            <div className="flex items-center justify-between">
-              <dt className="text-zinc-500">Produk disesuaikan</dt>
-              <dd className="font-mono tabular-nums">
-                {formatNumber(result.adjusted_count)}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between">
-              <dt className="text-zinc-500">Produk cocok (tanpa selisih)</dt>
-              <dd className="font-mono tabular-nums">
-                {formatNumber(result.matched_count)}
-              </dd>
-            </div>
-            <div className="flex items-center justify-between">
-              <dt className="text-zinc-500">Belum dihitung (tidak diubah)</dt>
-              <dd className="font-mono tabular-nums">
-                {formatNumber(result.uncounted_count)}
-              </dd>
-            </div>
-            {result.skipped_count > 0 && (
-              <div className="flex items-center justify-between">
-                <dt className="text-zinc-500">Dilewati (produk dihapus / jadi jasa)</dt>
-                <dd className="font-mono tabular-nums">
-                  {formatNumber(result.skipped_count)}
-                </dd>
-              </div>
-            )}
-            <div className="flex items-center justify-between border-t border-zinc-200 pt-2 dark:border-zinc-800">
-              <dt className="font-medium">Selisih nilai</dt>
-              <dd
-                className={`font-mono font-semibold tabular-nums ${deltaColorClass(result.diff_value)}`}
-              >
-                {result.diff_value === 0
-                  ? formatRupiah(0)
-                  : `${result.diff_value > 0 ? "+" : "-"}${formatRupiah(Math.abs(result.diff_value))}`}
-              </dd>
-            </div>
-          </dl>
-
-          <Button
-            type="button"
-            onClick={handleClose}
-            size="lg"
-            fullWidth
-            className="mt-5"
-          >
-            Tutup
-          </Button>
+        <div className="flex items-start gap-2 text-sm text-lco-green dark:text-lco-teal">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>Selisih sudah diterapkan ke stok dan tercatat di riwayat mutasi.</span>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={overlayClass}>
-      <div className={dialogClass}>
-        <ModalHeader title={`Selesaikan Opname #${sessionNumber}`} onClose={onClose} />
-
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Tinjau ringkasan di bawah. Setelah diterapkan, stok berubah dan sesi
-          ini tidak bisa diubah lagi.
-        </p>
 
         <dl className="mt-4 space-y-2 text-sm">
           <div className="flex items-center justify-between">
-            <dt className="text-zinc-500">Produk dihitung</dt>
+            <dt className="text-zinc-500">Produk disesuaikan</dt>
             <dd className="font-mono tabular-nums">
-              {formatNumber(stats.counted)} dari {formatNumber(stats.total)}
+              {formatNumber(result.adjusted_count)}
             </dd>
           </div>
           <div className="flex items-center justify-between">
-            <dt className="text-zinc-500">Cocok dengan stok sistem</dt>
-            <dd className="font-mono tabular-nums">{formatNumber(stats.matched)}</dd>
-          </div>
-          <div className="flex items-center justify-between">
-            <dt className="text-zinc-500">Ada selisih</dt>
-            <dd className="font-mono tabular-nums">{formatNumber(stats.withDiff)}</dd>
-          </div>
-          <div className="flex items-center justify-between">
-            <dt className="text-zinc-500">Stok lebih / kurang</dt>
+            <dt className="text-zinc-500">Produk cocok (tanpa selisih)</dt>
             <dd className="font-mono tabular-nums">
-              <span className="text-lco-green dark:text-lco-teal">
-                +{formatNumber(stats.plusQty)}
-              </span>
-              {" / "}
-              <span className="text-lco-coral">-{formatNumber(stats.minusQty)}</span>
+              {formatNumber(result.matched_count)}
             </dd>
           </div>
+          <div className="flex items-center justify-between">
+            <dt className="text-zinc-500">Belum dihitung (tidak diubah)</dt>
+            <dd className="font-mono tabular-nums">
+              {formatNumber(result.uncounted_count)}
+            </dd>
+          </div>
+          {result.skipped_count > 0 && (
+            <div className="flex items-center justify-between">
+              <dt className="text-zinc-500">Dilewati (produk dihapus / jadi jasa)</dt>
+              <dd className="font-mono tabular-nums">
+                {formatNumber(result.skipped_count)}
+              </dd>
+            </div>
+          )}
           <div className="flex items-center justify-between border-t border-zinc-200 pt-2 dark:border-zinc-800">
-            <dt className="font-medium">Selisih nilai (harga modal)</dt>
+            <dt className="font-medium">Selisih nilai</dt>
             <dd
-              className={`font-mono font-semibold tabular-nums ${deltaColorClass(stats.diffValue)}`}
+              className={`font-mono font-semibold tabular-nums ${deltaColorClass(result.diff_value)}`}
             >
-              {stats.diffValue === 0
+              {result.diff_value === 0
                 ? formatRupiah(0)
-                : `${stats.diffValue > 0 ? "+" : "-"}${formatRupiah(Math.abs(stats.diffValue))}`}
+                : `${result.diff_value > 0 ? "+" : "-"}${formatRupiah(Math.abs(result.diff_value))}`}
             </dd>
           </div>
         </dl>
 
-        {stats.uncounted > 0 && (
-          <div className="mt-4 flex items-start gap-2 rounded-md border border-lco-mustard/40 p-3 text-xs text-zinc-600 dark:text-zinc-400">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-lco-mustard" />
-            <span>
-              {formatNumber(stats.uncounted)} produk belum dihitung. Stoknya
-              tidak akan diubah.
-            </span>
-          </div>
-        )}
+        <Button
+          type="button"
+          onClick={handleClose}
+          size="lg"
+          fullWidth
+          className="mt-5"
+        >
+          Tutup
+        </Button>
+      </Modal>
+    );
+  }
 
-        {topDiffs.length > 0 && (
-          <div className="mt-4">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
-              Selisih terbesar
-            </p>
-            <ul className="divide-y divide-zinc-100 rounded-md border border-zinc-200 text-sm dark:divide-zinc-900 dark:border-zinc-800">
-              {topDiffs.map((item) => {
-                const diff = itemDiff(item) ?? 0;
-                return (
-                  <li
-                    key={item.id}
-                    className="flex items-center justify-between gap-3 px-3 py-2"
-                  >
-                    <span className="truncate">{item.product_name}</span>
-                    <span className="shrink-0 font-mono text-xs tabular-nums text-zinc-500">
-                      {formatNumber(item.system_qty)} →{" "}
-                      {formatNumber(item.counted_qty ?? 0)}{" "}
-                      <span className={`font-semibold ${deltaColorClass(diff)}`}>
-                        ({formatDelta(diff)})
-                      </span>
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
+  return (
+    <Modal size="lg">
+      <ModalHeader title={`Selesaikan Opname #${sessionNumber}`} onClose={onClose} />
 
-        {error && <ErrorBox message={error} />}
+      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        Tinjau ringkasan di bawah. Setelah diterapkan, stok berubah dan sesi
+        ini tidak bisa diubah lagi.
+      </p>
 
-        <div className="mt-5 flex gap-2">
-          <Button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            variant="secondary"
-            size="lg"
-            fullWidth
-          >
-            Kembali
-          </Button>
-          <Button
-            type="button"
-            onClick={handleFinalize}
-            disabled={isSaving || stats.counted === 0}
-            size="lg"
-            fullWidth
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Menerapkan...
-              </>
-            ) : (
-              "Terapkan ke Stok"
-            )}
-          </Button>
+      <dl className="mt-4 space-y-2 text-sm">
+        <div className="flex items-center justify-between">
+          <dt className="text-zinc-500">Produk dihitung</dt>
+          <dd className="font-mono tabular-nums">
+            {formatNumber(stats.counted)} dari {formatNumber(stats.total)}
+          </dd>
         </div>
+        <div className="flex items-center justify-between">
+          <dt className="text-zinc-500">Cocok dengan stok sistem</dt>
+          <dd className="font-mono tabular-nums">{formatNumber(stats.matched)}</dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt className="text-zinc-500">Ada selisih</dt>
+          <dd className="font-mono tabular-nums">{formatNumber(stats.withDiff)}</dd>
+        </div>
+        <div className="flex items-center justify-between">
+          <dt className="text-zinc-500">Stok lebih / kurang</dt>
+          <dd className="font-mono tabular-nums">
+            <span className="text-lco-green dark:text-lco-teal">
+              +{formatNumber(stats.plusQty)}
+            </span>
+            {" / "}
+            <span className="text-lco-coral">-{formatNumber(stats.minusQty)}</span>
+          </dd>
+        </div>
+        <div className="flex items-center justify-between border-t border-zinc-200 pt-2 dark:border-zinc-800">
+          <dt className="font-medium">Selisih nilai (harga modal)</dt>
+          <dd
+            className={`font-mono font-semibold tabular-nums ${deltaColorClass(stats.diffValue)}`}
+          >
+            {stats.diffValue === 0
+              ? formatRupiah(0)
+              : `${stats.diffValue > 0 ? "+" : "-"}${formatRupiah(Math.abs(stats.diffValue))}`}
+          </dd>
+        </div>
+      </dl>
+
+      {stats.uncounted > 0 && (
+        <div className="mt-4 flex items-start gap-2 rounded-md border border-lco-mustard/40 p-3 text-xs text-zinc-600 dark:text-zinc-400">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-lco-mustard" />
+          <span>
+            {formatNumber(stats.uncounted)} produk belum dihitung. Stoknya
+            tidak akan diubah.
+          </span>
+        </div>
+      )}
+
+      {topDiffs.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
+            Selisih terbesar
+          </p>
+          <ul className="divide-y divide-zinc-100 rounded-md border border-zinc-200 text-sm dark:divide-zinc-900 dark:border-zinc-800">
+            {topDiffs.map((item) => {
+              const diff = itemDiff(item) ?? 0;
+              return (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 px-3 py-2"
+                >
+                  <span className="truncate">{item.product_name}</span>
+                  <span className="shrink-0 font-mono text-xs tabular-nums text-zinc-500">
+                    {formatNumber(item.system_qty)} →{" "}
+                    {formatNumber(item.counted_qty ?? 0)}{" "}
+                    <span className={`font-semibold ${deltaColorClass(diff)}`}>
+                      ({formatDelta(diff)})
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      {error && <ErrorBox message={error} />}
+
+      <div className="mt-5 flex gap-2">
+        <Button
+          type="button"
+          onClick={onClose}
+          disabled={isSaving}
+          variant="secondary"
+          size="lg"
+          fullWidth
+        >
+          Kembali
+        </Button>
+        <Button
+          type="button"
+          onClick={handleFinalize}
+          disabled={isSaving || stats.counted === 0}
+          size="lg"
+          fullWidth
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Menerapkan...
+            </>
+          ) : (
+            "Terapkan ke Stok"
+          )}
+        </Button>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -499,62 +488,59 @@ export function OpnameCancelModal({
   };
 
   return (
-    <div className={overlayClass}>
-      <div className={dialogClass}>
-        <ModalHeader title={`Batalkan Opname #${sessionNumber}`} onClose={onClose} />
+    <Modal size="lg">
+      <ModalHeader title={`Batalkan Opname #${sessionNumber}`} onClose={onClose} />
 
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Stok tidak akan berubah sama sekali.
-          {countedCount > 0
-            ? ` ${formatNumber(countedCount)} hasil hitungan yang sudah diisi akan tetap tersimpan sebagai arsip, tapi tidak diterapkan.`
-            : ""}
-        </p>
+      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        Stok tidak akan berubah sama sekali.
+        {countedCount > 0
+          ? ` ${formatNumber(countedCount)} hasil hitungan yang sudah diisi akan tetap tersimpan sebagai arsip, tapi tidak diterapkan.`
+          : ""}
+      </p>
 
-        <div className="mt-4">
-          <label className={labelClass}>Alasan pembatalan</label>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={2}
-            placeholder="Wajib diisi — tersimpan di log aktivitas."
-            className={inputClass}
-            disabled={isSaving}
-          />
-        </div>
-
-        {error && <ErrorBox message={error} />}
-
-        <div className="mt-5 flex gap-2">
-          <Button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            variant="secondary"
-            size="lg"
-            fullWidth
-          >
-            Kembali
-          </Button>
-          <Button
-            type="button"
-            onClick={handleCancel}
-            disabled={isSaving || reason.trim() === ""}
-            variant="danger"
-            size="lg"
-            fullWidth
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Membatalkan...
-              </>
-            ) : (
-              "Batalkan Sesi"
-            )}
-          </Button>
-        </div>
+      <div className="mt-4">
+        <label className={labelClass}>Alasan pembatalan</label>
+        <Textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          rows={2}
+          placeholder="Wajib diisi — tersimpan di log aktivitas."
+          disabled={isSaving}
+        />
       </div>
-    </div>
+
+      {error && <ErrorBox message={error} />}
+
+      <div className="mt-5 flex gap-2">
+        <Button
+          type="button"
+          onClick={onClose}
+          disabled={isSaving}
+          variant="secondary"
+          size="lg"
+          fullWidth
+        >
+          Kembali
+        </Button>
+        <Button
+          type="button"
+          onClick={handleCancel}
+          disabled={isSaving || reason.trim() === ""}
+          variant="danger"
+          size="lg"
+          fullWidth
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Membatalkan...
+            </>
+          ) : (
+            "Batalkan Sesi"
+          )}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 
@@ -595,80 +581,78 @@ export function OpnamePrintModal({
   };
 
   return (
-    <div className={overlayClass}>
-      <div className={dialogClass}>
-        <ModalHeader title="Cetak Lembar Hitung" onClose={onClose} />
+    <Modal size="lg">
+      <ModalHeader title="Cetak Lembar Hitung" onClose={onClose} />
 
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          Lembar berisi daftar produk dengan kolom kosong untuk menulis hasil
-          hitung di rak. Isi hasilnya ke layar ini setelah selesai menghitung.
-        </p>
+      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        Lembar berisi daftar produk dengan kolom kosong untuk menulis hasil
+        hitung di rak. Isi hasilnya ke layar ini setelah selesai menghitung.
+      </p>
 
-        <div className="mt-4 space-y-3">
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={showSystemQty}
-              onChange={(e) => setShowSystemQty(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-lco-green"
-            />
-            <span>
-              Cetak kolom Stok Sistem
-              <span className="block text-xs text-zinc-400">
-                Bawaan dimatikan (hitung buta): penghitung yang tahu angka
-                sistem cenderung menyamakan hasilnya.
-              </span>
+      <div className="mt-4 space-y-3">
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={showSystemQty}
+            onChange={(e) => setShowSystemQty(e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-lco-green"
+          />
+          <span>
+            Cetak kolom Stok Sistem
+            <span className="block text-xs text-zinc-400">
+              Bawaan dimatikan (hitung buta): penghitung yang tahu angka
+              sistem cenderung menyamakan hasilnya.
             </span>
-          </label>
+          </span>
+        </label>
 
-          <label
-            className={`flex items-start gap-2 text-sm ${
-              uncountedCount === items.length ? "opacity-50" : ""
-            }`}
-          >
-            <input
-              type="checkbox"
-              checked={onlyUncounted}
-              onChange={(e) => setOnlyUncounted(e.target.checked)}
-              disabled={uncountedCount === items.length}
-              className="mt-0.5 h-4 w-4 accent-lco-green"
-            />
-            <span>
-              Hanya produk yang belum dihitung
-              <span className="block text-xs text-zinc-400">
-                Berguna kalau opname dilanjutkan di hari lain.
-              </span>
+        <label
+          className={`flex items-start gap-2 text-sm ${
+            uncountedCount === items.length ? "opacity-50" : ""
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={onlyUncounted}
+            onChange={(e) => setOnlyUncounted(e.target.checked)}
+            disabled={uncountedCount === items.length}
+            className="mt-0.5 h-4 w-4 accent-lco-green"
+          />
+          <span>
+            Hanya produk yang belum dihitung
+            <span className="block text-xs text-zinc-400">
+              Berguna kalau opname dilanjutkan di hari lain.
             </span>
-          </label>
-        </div>
-
-        <p className="mt-4 text-xs text-zinc-500">
-          {formatNumber(printCount)} produk akan dicetak.
-        </p>
-
-        {error && <ErrorBox message={error} />}
-
-        <div className="mt-5 flex gap-2">
-          <Button
-            type="button"
-            onClick={onClose}
-            variant="secondary"
-            size="lg"
-            fullWidth
-          >
-            Batal
-          </Button>
-          <Button
-            type="button"
-            onClick={handlePrint}
-            disabled={printCount === 0}
-            size="lg"
-            fullWidth
-          >
-            Cetak
-          </Button>
-        </div>
+          </span>
+        </label>
       </div>
-    </div>
+
+      <p className="mt-4 text-xs text-zinc-500">
+        {formatNumber(printCount)} produk akan dicetak.
+      </p>
+
+      {error && <ErrorBox message={error} />}
+
+      <div className="mt-5 flex gap-2">
+        <Button
+          type="button"
+          onClick={onClose}
+          variant="secondary"
+          size="lg"
+          fullWidth
+        >
+          Batal
+        </Button>
+        <Button
+          type="button"
+          onClick={handlePrint}
+          disabled={printCount === 0}
+          size="lg"
+          fullWidth
+        >
+          Cetak
+        </Button>
+      </div>
+    </Modal>
   );
 }

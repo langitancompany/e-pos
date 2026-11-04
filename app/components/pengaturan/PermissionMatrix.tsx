@@ -28,6 +28,7 @@ import {
 } from "@/lib/pos/permissionModules";
 import IconButton from "@/app/components/ui/IconButton";
 import Button from "@/app/components/ui/Button";
+import Modal from "@/app/components/ui/Modal";
 
 // ─── Switch ──────────────────────────────────────────────────────────────────
 
@@ -287,211 +288,204 @@ export function AddModuleModal({
   const err = showError && selected.length === 0;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <Modal
+      size="md"
+      padding="none"
+      aria-labelledby="add-module-title"
+      onBackdropClick={onClose}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="add-module-title"
-        className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950"
-      >
-        <div className="flex items-start gap-3 border-b border-zinc-100 px-5 pt-5 pb-4 dark:border-zinc-800">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-lco-green/10 text-lco-green dark:text-lco-teal">
-            <Layers className="h-5 w-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 id="add-module-title" className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-              Tambah Akses Modul
-            </h3>
-            <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-              Tetapkan modul dan izin awalnya untuk user ini
-            </p>
-          </div>
-          <IconButton
-            type="button"
-            onClick={onClose}
-            aria-label="Tutup"
-            size="sm"
-          >
-            <X className="h-4 w-4" />
-          </IconButton>
+      <div className="flex items-start gap-3 border-b border-zinc-100 px-5 pt-5 pb-4 dark:border-zinc-800">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-lco-green/10 text-lco-green dark:text-lco-teal">
+          <Layers className="h-5 w-5" />
         </div>
+        <div className="min-w-0 flex-1">
+          <h3 id="add-module-title" className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+            Tambah Akses Modul
+          </h3>
+          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+            Tetapkan modul dan izin awalnya untuk user ini
+          </p>
+        </div>
+        <IconButton
+          type="button"
+          onClick={onClose}
+          aria-label="Tutup"
+          size="sm"
+        >
+          <X className="h-4 w-4" />
+        </IconButton>
+      </div>
 
-        <div className="space-y-4 p-5">
-          {available.length === 0 ? (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Semua modul yang boleh Anda berikan sudah punya akses.
-            </p>
-          ) : (
-            <>
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                    Pilih Modul <span className="text-lco-coral">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelected(allSelected ? [] : available.map((d) => d.key));
-                      setShowError(false);
-                    }}
-                    className="text-xs font-semibold text-lco-green hover:underline dark:text-lco-teal"
-                  >
-                    {allSelected ? "Batal Pilih Semua" : "Pilih Semua"}
-                  </button>
-                </div>
+      <div className="space-y-4 p-5">
+        {available.length === 0 ? (
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Semua modul yang boleh Anda berikan sudah punya akses.
+          </p>
+        ) : (
+          <>
+            <div>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                  Pilih Modul <span className="text-lco-coral">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelected(allSelected ? [] : available.map((d) => d.key));
+                    setShowError(false);
+                  }}
+                  className="text-xs font-semibold text-lco-green hover:underline dark:text-lco-teal"
+                >
+                  {allSelected ? "Batal Pilih Semua" : "Pilih Semua"}
+                </button>
+              </div>
 
-                <div ref={boxRef} className="relative">
-                  <div
-                    onClick={() => {
-                      setOpen(true);
-                      inputRef.current?.focus();
-                    }}
-                    className={`flex min-h-[42px] cursor-text items-center gap-1.5 rounded-lg border bg-white px-2 py-1.5 transition-colors duration-150 dark:bg-zinc-900 ${
-                      err
-                        ? "border-lco-coral ring-2 ring-lco-coral/20"
-                        : open
-                          ? "border-lco-teal ring-2 ring-lco-teal/20"
-                          : "border-zinc-200 dark:border-zinc-800"
-                    }`}
-                  >
-                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                      {selected.map((k) => (
-                        <span
-                          key={k}
-                          className="inline-flex items-center gap-1 rounded-md bg-lco-green/15 py-0.5 pr-1 pl-2 text-xs font-semibold text-lco-green dark:bg-lco-teal/20 dark:text-lco-teal"
-                        >
-                          {labelOf(k)}
-                          <button
-                            type="button"
-                            aria-label={`Hapus ${labelOf(k)}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              unpick(k);
-                            }}
-                            className="rounded p-0.5 hover:bg-black/10"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      ))}
-                      <input
-                        ref={inputRef}
-                        value={query}
-                        onChange={(e) => {
-                          setQuery(e.target.value);
-                          setOpen(true);
-                        }}
-                        onFocus={() => setOpen(true)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Backspace" && query === "" && selected.length > 0) {
-                            unpick(selected[selected.length - 1]);
-                          } else if (e.key === "Enter") {
-                            e.preventDefault();
-                            if (options[0]) pick(options[0].key);
-                          }
-                        }}
-                        placeholder={selected.length === 0 ? "Pilih satu atau beberapa modul..." : ""}
-                        aria-label="Cari modul"
-                        className="min-w-[80px] flex-1 bg-transparent px-1 py-0.5 text-sm text-zinc-900 placeholder-zinc-400 outline-none dark:text-zinc-100 dark:placeholder-zinc-500"
-                      />
-                    </div>
-                    {selected.length > 0 && (
-                      <IconButton
-                        type="button"
-                        aria-label="Kosongkan pilihan"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelected([]);
-                        }}
-                        size="sm"
+              <div ref={boxRef} className="relative">
+                <div
+                  onClick={() => {
+                    setOpen(true);
+                    inputRef.current?.focus();
+                  }}
+                  className={`flex min-h-[42px] cursor-text items-center gap-1.5 rounded-lg border bg-white px-2 py-1.5 transition-colors duration-150 dark:bg-zinc-900 ${
+                    err
+                      ? "border-lco-coral ring-2 ring-lco-coral/20"
+                      : open
+                        ? "border-lco-teal ring-2 ring-lco-teal/20"
+                        : "border-zinc-200 dark:border-zinc-800"
+                  }`}
+                >
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+                    {selected.map((k) => (
+                      <span
+                        key={k}
+                        className="inline-flex items-center gap-1 rounded-md bg-lco-green/15 py-0.5 pr-1 pl-2 text-xs font-semibold text-lco-green dark:bg-lco-teal/20 dark:text-lco-teal"
                       >
-                        <X className="h-4 w-4" />
-                      </IconButton>
-                    )}
-                    <span className="w-px self-stretch bg-zinc-200 dark:bg-zinc-800" />
-                    <ChevronDown
-                      className={`mx-1 h-4 w-4 text-zinc-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+                        {labelOf(k)}
+                        <button
+                          type="button"
+                          aria-label={`Hapus ${labelOf(k)}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            unpick(k);
+                          }}
+                          className="rounded p-0.5 hover:bg-black/10"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      ref={inputRef}
+                      value={query}
+                      onChange={(e) => {
+                        setQuery(e.target.value);
+                        setOpen(true);
+                      }}
+                      onFocus={() => setOpen(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Backspace" && query === "" && selected.length > 0) {
+                          unpick(selected[selected.length - 1]);
+                        } else if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (options[0]) pick(options[0].key);
+                        }
+                      }}
+                      placeholder={selected.length === 0 ? "Pilih satu atau beberapa modul..." : ""}
+                      aria-label="Cari modul"
+                      className="min-w-[80px] flex-1 bg-transparent px-1 py-0.5 text-sm text-zinc-900 placeholder-zinc-400 outline-none dark:text-zinc-100 dark:placeholder-zinc-500"
                     />
                   </div>
-
-                  {open && (
-                    <ul
-                      role="listbox"
-                      className="absolute z-10 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
+                  {selected.length > 0 && (
+                    <IconButton
+                      type="button"
+                      aria-label="Kosongkan pilihan"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelected([]);
+                      }}
+                      size="sm"
                     >
-                      {options.length === 0 ? (
-                        <li className="px-3 py-2 text-xs text-zinc-400">
-                          {selected.length === available.length ? "Semua modul sudah dipilih" : "Modul tidak ditemukan"}
-                        </li>
-                      ) : (
-                        options.map((d) => (
-                          <li
-                            key={d.key}
-                            role="option"
-                            aria-selected={false}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => pick(d.key)}
-                            className="cursor-pointer px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900"
-                          >
-                            {d.label}
-                          </li>
-                        ))
-                      )}
-                    </ul>
+                      <X className="h-4 w-4" />
+                    </IconButton>
                   )}
+                  <span className="w-px self-stretch bg-zinc-200 dark:bg-zinc-800" />
+                  <ChevronDown
+                    className={`mx-1 h-4 w-4 text-zinc-400 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+                  />
                 </div>
-                {err && <p className="mt-1.5 text-xs text-lco-coral">Minimal pilih satu modul</p>}
-              </div>
 
-              <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/60">
-                <p className="mb-3 text-sm font-semibold text-zinc-800 dark:text-zinc-200">Izin Awal Modul</p>
-                <div className="space-y-3">
-                  {INITIAL_ROWS.map((r) => (
-                    <div key={r.field} className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{r.title}</p>
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">{r.hint}</p>
-                      </div>
-                      <Switch
-                        label={r.title}
-                        checked={initial[r.field]}
-                        onChange={() => setInitial((s) => ({ ...s, [r.field]: !s[r.field] }))}
-                      />
+                {open && (
+                  <ul
+                    role="listbox"
+                    className="absolute z-10 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg dark:border-zinc-800 dark:bg-zinc-950"
+                  >
+                    {options.length === 0 ? (
+                      <li className="px-3 py-2 text-xs text-zinc-400">
+                        {selected.length === available.length ? "Semua modul sudah dipilih" : "Modul tidak ditemukan"}
+                      </li>
+                    ) : (
+                      options.map((d) => (
+                        <li
+                          key={d.key}
+                          role="option"
+                          aria-selected={false}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => pick(d.key)}
+                          className="cursor-pointer px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                        >
+                          {d.label}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                )}
+              </div>
+              {err && <p className="mt-1.5 text-xs text-lco-coral">Minimal pilih satu modul</p>}
+            </div>
+
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-800 dark:bg-zinc-900/60">
+              <p className="mb-3 text-sm font-semibold text-zinc-800 dark:text-zinc-200">Izin Awal Modul</p>
+              <div className="space-y-3">
+                {INITIAL_ROWS.map((r) => (
+                  <div key={r.field} className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">{r.title}</p>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400">{r.hint}</p>
                     </div>
-                  ))}
-                </div>
-                <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">
-                  Izin hanya berlaku di modul yang memang punya aksi itu. “Lihat” selalu aktif.
-                </p>
+                    <Switch
+                      label={r.title}
+                      checked={initial[r.field]}
+                      onChange={() => setInitial((s) => ({ ...s, [r.field]: !s[r.field] }))}
+                    />
+                  </div>
+                ))}
               </div>
-            </>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-3 border-t border-zinc-100 px-5 py-4 dark:border-zinc-800">
-          <Button
-            type="button"
-            onClick={onClose}
-            variant="secondary"
-          >
-            Batalkan
-          </Button>
-          <Button
-            type="button"
-            onClick={submit}
-            disabled={available.length === 0}
-            size="lg"
-            className={selected.length === 0 ? "opacity-60" : ""}
-          >
-            {selected.length > 0 ? `Tambah Akses (${selected.length} Modul)` : "Tambah Akses"}
-          </Button>
-        </div>
+              <p className="mt-3 text-[11px] text-zinc-400 dark:text-zinc-500">
+                Izin hanya berlaku di modul yang memang punya aksi itu. “Lihat” selalu aktif.
+              </p>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+
+      <div className="flex justify-end gap-3 border-t border-zinc-100 px-5 py-4 dark:border-zinc-800">
+        <Button
+          type="button"
+          onClick={onClose}
+          variant="secondary"
+        >
+          Batalkan
+        </Button>
+        <Button
+          type="button"
+          onClick={submit}
+          disabled={available.length === 0}
+          size="lg"
+          className={selected.length === 0 ? "opacity-60" : ""}
+        >
+          {selected.length > 0 ? `Tambah Akses (${selected.length} Modul)` : "Tambah Akses"}
+        </Button>
+      </div>
+    </Modal>
   );
 }

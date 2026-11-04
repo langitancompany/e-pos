@@ -21,10 +21,11 @@ import {
   type InputHTMLAttributes,
 } from "react";
 import { formatMoneyDigits, sanitizeMoneyDigits } from "@/lib/pos/moneyInput";
+import { inputClassName, type InputSize } from "./Input";
 
 type NativeInputProps = Omit<
   InputHTMLAttributes<HTMLInputElement>,
-  "value" | "onChange" | "type" | "inputMode" | "min" | "max" | "step"
+  "value" | "onChange" | "type" | "inputMode" | "min" | "max" | "step" | "size"
 >;
 
 interface MoneyInputProps extends NativeInputProps {
@@ -34,6 +35,12 @@ interface MoneyInputProps extends NativeInputProps {
   onValueChange: (raw: string) => void;
   /** Batas jumlah digit (default 12, cukup sampai ratusan miliar). */
   maxDigits?: number;
+  /**
+   * Opsional. Kalau diisi ("md" | "lg"), kolom memakai gaya standar <Input>
+   * (lebar penuh) dan `className` hanya untuk tambahan seperti "text-right".
+   * Kalau kosong, tampilan sepenuhnya diatur lewat `className` seperti dulu.
+   */
+  size?: InputSize;
 }
 
 function countDigitsBefore(text: string, caret: number): number {
@@ -58,7 +65,7 @@ function caretForDigitCount(text: string, digitCount: number): number {
 
 const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(
   function MoneyInput(
-    { value, onValueChange, maxDigits = 12, ...rest },
+    { value, onValueChange, maxDigits = 12, size, className = "", ...rest },
     forwardedRef,
   ) {
     const innerRef = useRef<HTMLInputElement | null>(null);
@@ -90,6 +97,9 @@ const MoneyInput = forwardRef<HTMLInputElement, MoneyInputProps>(
     return (
       <input
         {...rest}
+        className={
+          size ? `${inputClassName(size, true)} ${className}`.trim() : className
+        }
         ref={(node) => {
           innerRef.current = node;
           if (typeof forwardedRef === "function") forwardedRef(node);

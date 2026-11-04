@@ -62,9 +62,6 @@ const MAX_QTY = 999;
 const PX_PER_MM = 96 / 25.4;
 const PREVIEW_MAX_HEIGHT_PX = 620;
 
-const inputClass =
-  "w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition-colors duration-150 placeholder:text-zinc-400 focus:border-lco-teal focus:ring-1 focus:ring-lco-teal dark:border-zinc-800 dark:bg-zinc-950";
-
 const sectionClass =
   "rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950";
 
@@ -107,14 +104,14 @@ function NumberField({
         {label}
       </span>
       <div className="relative">
-        <input
+        <Input
           type="number"
           inputMode="decimal"
           min={min}
           step={step}
           value={Number.isFinite(value) ? value : ""}
           onChange={(event) => onChange(Number(event.target.value))}
-          className={`${inputClass} ${suffix ? "pr-10" : ""}`}
+          className={suffix ? "pr-10" : ""}
         />
         {suffix && (
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400">

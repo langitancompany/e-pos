@@ -21,6 +21,9 @@
 //   layout    "scroll" (default: isi memanjang -> kartu bisa digulir)
 //             | "flex" (kolom flex; area isi sendiri yang digulir, untuk header
 //               + isi + footer tetap) | "clip" | "plain".
+//   placement "center" (default) | "sheet" — di layar kecil kartu menempel di
+//             bawah seperti bottom sheet (sudut atas membulat), di layar
+//             sm ke atas tetap di tengah.
 //   onBackdropClick  opsional — dipanggil kalau area gelap di luar kartu
 //             diklik. SENGAJA tidak aktif bawaan supaya form yang sedang diisi
 //             tidak tertutup tidak sengaja.
@@ -52,8 +55,19 @@ const LAYOUT_CLASS = {
   plain: "",
 } as const;
 
+const PLACEMENT_OVERLAY_CLASS = {
+  center: "items-center p-4",
+  sheet: "items-end p-0 sm:items-center sm:p-4",
+} as const;
+
+const PLACEMENT_CARD_CLASS = {
+  center: "rounded-xl",
+  sheet: "rounded-t-xl sm:rounded-xl",
+} as const;
+
 interface ModalProps extends HTMLAttributes<HTMLDivElement> {
   size?: ModalSize;
+  placement?: keyof typeof PLACEMENT_OVERLAY_CLASS;
   padding?: keyof typeof PADDING_CLASS;
   layout?: keyof typeof LAYOUT_CLASS;
   onBackdropClick?: () => void;
@@ -62,6 +76,7 @@ interface ModalProps extends HTMLAttributes<HTMLDivElement> {
 
 export default function Modal({
   size = "md",
+  placement = "center",
   padding = "lg",
   layout = "scroll",
   onBackdropClick,
@@ -71,7 +86,7 @@ export default function Modal({
 }: ModalProps) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/40 p-4"
+      className={`fixed inset-0 z-50 flex justify-center bg-zinc-950/40 ${PLACEMENT_OVERLAY_CLASS[placement]}`}
       onMouseDown={
         onBackdropClick
           ? (e) => {
@@ -83,7 +98,7 @@ export default function Modal({
       <div
         role="dialog"
         aria-modal="true"
-        className={`w-full ${SIZE_CLASS[size]} rounded-xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950 ${PADDING_CLASS[padding]} ${LAYOUT_CLASS[layout]} ${className}`
+        className={`w-full ${SIZE_CLASS[size]} ${PLACEMENT_CARD_CLASS[placement]} border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950 ${PADDING_CLASS[padding]} ${LAYOUT_CLASS[layout]} ${className}`
           .replace(/\s+/g, " ")
           .trim()}
         {...rest}

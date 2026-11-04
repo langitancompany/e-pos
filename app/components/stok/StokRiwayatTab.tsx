@@ -155,7 +155,7 @@ function ProductFilter({
   return (
     <div className="relative">
       <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
-      <input
+      <Input
         type="text"
         value={query}
         onChange={(e) => {
@@ -165,7 +165,7 @@ function ProductFilter({
         onFocus={() => setIsOpen(true)}
         onBlur={() => setIsOpen(false)}
         placeholder="Semua produk"
-        className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950"
+        className="pl-9"
       />
 
       {isOpen && (

@@ -240,8 +240,6 @@ export default function ReceiptForm({
   const cardClass =
     "rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950";
   const labelClass = "mb-1 block text-xs font-medium text-zinc-500";
-  const inputClass =
-    "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950";
 
   return (
     <div>
@@ -436,7 +434,7 @@ export default function ReceiptForm({
                               : "-"
                           }
                           aria-label={`Harga beli ${line.name}`}
-                          className={`${inputClass} w-32 text-right font-mono tabular-nums`}
+                          className={`w-32 text-right font-mono tabular-nums`}
                         />
                       </td>
                       <td className="px-4 py-3 text-right font-mono tabular-nums">

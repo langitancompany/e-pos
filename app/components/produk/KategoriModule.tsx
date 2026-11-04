@@ -14,6 +14,7 @@ import type { Category } from "@/lib/pos/types";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
+import Input from "@/app/components/ui/Input";
 
 const supabase = createClient();
 
@@ -387,7 +388,7 @@ export default function KategoriModule() {
               <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Nama Kategori
               </label>
-              <input
+              <Input
                 type="text"
                 value={form.name}
                 onChange={(e) =>
@@ -395,7 +396,7 @@ export default function KategoriModule() {
                 }
                 disabled={saving}
                 placeholder="Contoh: Kaos"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                size="lg"
               />
             </div>
 
@@ -418,7 +419,7 @@ export default function KategoriModule() {
                   className="h-10 w-12 cursor-pointer rounded-md border border-zinc-300 bg-white p-1 dark:border-zinc-700 dark:bg-zinc-900"
                 />
 
-                <input
+                <Input
                   type="text"
                   value={form.color}
                   onChange={(e) =>
@@ -429,7 +430,9 @@ export default function KategoriModule() {
                   }
                   disabled={saving}
                   placeholder="#49bfb4"
-                  className="flex-1 rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm uppercase outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                  size="lg"
+                  fullWidth={false}
+                  className="flex-1 font-mono uppercase"
                 />
               </div>
             </div>
@@ -438,7 +441,7 @@ export default function KategoriModule() {
               <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Urutan
               </label>
-              <input
+              <Input
                 type="number"
                 min="0"
                 value={form.sort_order}
@@ -449,7 +452,8 @@ export default function KategoriModule() {
                   }))
                 }
                 disabled={saving}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                size="lg"
+                className="font-mono tabular-nums"
               />
             </div>
 

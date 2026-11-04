@@ -45,13 +45,7 @@
 // sudah pernah diperbaiki di modul-modul lain (LogAktivitasModule.tsx dkk).
 
 import { useEffect, useState } from "react";
-import {
-  Loader2,
-  Printer,
-  ShieldAlert,
-  Store,
-  Users,
-} from "lucide-react";
+import { Loader2, Printer, ShieldAlert, Store, Users } from "lucide-react";
 import { hasPermission, useAuth } from "@/hooks/useAuth";
 import PengaturanTokoTab from "./PengaturanTokoTab";
 import PengaturanAdminTab from "./PengaturanAdminTab";
@@ -182,8 +176,8 @@ export default function PengaturanModule() {
           "terangkat", mirip pola toggle switch lain di aplikasi ini. */}
       <TabSwitcher
         tabs={visibleTabs}
-        value={activeTab}
-        onChange={setActiveTab}
+        value={activeTab ?? ""}
+        onChange={(key: string) => setActiveTab(key as PengaturanTab)}
         className="mb-4"
       />
 

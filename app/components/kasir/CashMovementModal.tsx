@@ -35,6 +35,7 @@ import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
 import Chip from "@/app/components/ui/Chip";
+import Textarea from "@/app/components/ui/Textarea";
 
 interface CashMovementModalProps {
   onClose: () => void;
@@ -202,7 +203,8 @@ export function CashMovementModal({
             maxDigits={10}
             onValueChange={setAmountInput}
             aria-label="Nominal"
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-right font-mono text-base tabular-nums transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950"
+            size="lg"
+            className="text-right font-mono text-base! tabular-nums"
           />
           <p className="mt-1 h-4 text-right font-mono text-xs tabular-nums text-zinc-400">
             {amount > 0 ? formatRupiah(amount) : ""}
@@ -234,7 +236,7 @@ export function CashMovementModal({
           <label className="mb-1 mt-4 block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
             Keterangan (wajib)
           </label>
-          <textarea
+          <Textarea
             rows={2}
             value={note}
             disabled={isSubmitting}
@@ -245,7 +247,6 @@ export function CashMovementModal({
                 : "mis. tukar uang kecil dari bank"
             }
             aria-label="Keterangan"
-            className="w-full resize-none rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950"
           />
 
           {error && (

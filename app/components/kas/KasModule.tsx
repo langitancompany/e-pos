@@ -47,6 +47,7 @@ import {
 import Modal from "@/app/components/ui/Modal";
 import IconButton from "@/app/components/ui/IconButton";
 import Button from "@/app/components/ui/Button";
+import Textarea from "@/app/components/ui/Textarea";
 
 function formatDateTime(isoString: string): string {
   return new Intl.DateTimeFormat("id-ID", {
@@ -127,13 +128,12 @@ function VoidCashMovementModal({
       <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
         Alasan pembatalan (wajib)
       </label>
-      <textarea
+      <Textarea
         rows={2}
         value={reason}
         disabled={isSubmitting}
         onChange={(e) => setReason(e.target.value)}
         aria-label="Alasan pembatalan"
-        className="w-full resize-none rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950"
       />
 
       {error && (

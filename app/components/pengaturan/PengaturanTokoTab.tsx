@@ -30,10 +30,8 @@ import { normalizePromoUrl } from "@/lib/pos/receiptQr";
 import Select from "@/app/components/ui/Select";
 import Input from "@/app/components/ui/Input";
 import Button from "@/app/components/ui/Button";
+import Textarea from "@/app/components/ui/Textarea";
 
-const inputClass =
-  "w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800";
-const numberInputClass = `${inputClass} font-mono tabular-nums`;
 const labelClass =
   "mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400";
 
@@ -173,22 +171,24 @@ export default function PengaturanTokoTab() {
           </div>
           <div className="sm:col-span-2">
             <label className={labelClass}>Alamat</label>
-            <textarea
+            <Textarea
+              size="lg"
               value={form.alamat}
               onChange={(e) => updateField("alamat", e.target.value)}
               disabled={isSaving}
               rows={2}
-              className={`${inputClass} resize-none`}
+              
             />
           </div>
           <div className="sm:col-span-2">
             <label className={labelClass}>Footer Struk</label>
-            <textarea
+            <Textarea
+              size="lg"
               value={form.footerStruk}
               onChange={(e) => updateField("footerStruk", e.target.value)}
               disabled={isSaving}
               rows={2}
-              className={`${inputClass} resize-none`}
+              
             />
           </div>
         </div>
@@ -219,7 +219,8 @@ export default function PengaturanTokoTab() {
         </label>
         <div className="mt-3 max-w-xs">
           <label className={labelClass}>Persentase PPN (%)</label>
-          <input
+          <Input
+            size="lg"
             type="number"
             min={0}
             max={100}
@@ -227,7 +228,7 @@ export default function PengaturanTokoTab() {
             value={form.ppnRate}
             onChange={(e) => updateField("ppnRate", Number(e.target.value))}
             disabled={isSaving || !form.ppnEnabled}
-            className={numberInputClass}
+            className="font-mono tabular-nums"
           />
         </div>
       </div>
@@ -243,10 +244,11 @@ export default function PengaturanTokoTab() {
               Pembulatan Kembalian Tunai (Rp)
             </label>
             <MoneyInput
+            size="lg"
               value={form.rounding}
               onValueChange={(raw) => updateField("rounding", Number(raw))}
               disabled={isSaving}
-              className={numberInputClass}
+              className="font-mono tabular-nums"
             />
             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
               Kembalian tunai dibulatkan ke kelipatan ini, mis. 100.
@@ -255,12 +257,13 @@ export default function PengaturanTokoTab() {
           <div>
             <label className={labelClass}>Modal Awal Kas Default (Rp)</label>
             <MoneyInput
+            size="lg"
               value={form.shiftDefaultCash}
               onValueChange={(raw) =>
                 updateField("shiftDefaultCash", Number(raw))
               }
               disabled={isSaving}
-              className={numberInputClass}
+              className="font-mono tabular-nums"
             />
             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
               Nilai awal yang disarankan saat kasir membuka shift baru.

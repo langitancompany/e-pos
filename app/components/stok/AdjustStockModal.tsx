@@ -30,6 +30,8 @@ import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
 import Chip from "@/app/components/ui/Chip";
+import Input from "@/app/components/ui/Input";
+import Textarea from "@/app/components/ui/Textarea";
 
 // Alasan yang paling sering dipakai — tombol cepat supaya kasir/supervisor tidak
 // mengetik bebas untuk kasus yang itu-itu saja (alasan tetap bisa diedit manual).
@@ -260,12 +262,12 @@ export default function AdjustStockModal({
             <>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
-                <input
+                <Input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Cari nama produk atau SKU..."
-                  className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950"
+                  className="pl-9"
                 />
               </div>
 
@@ -297,7 +299,7 @@ export default function AdjustStockModal({
           <label className="mb-1 mt-4 block text-xs font-medium text-zinc-500">
             {type === "opname" ? "Hasil hitung fisik" : "Selisih (+/-)"}
           </label>
-          <input
+          <Input
             type="text"
             inputMode="numeric"
             value={value}
@@ -310,7 +312,7 @@ export default function AdjustStockModal({
               setValue(cleaned);
             }}
             placeholder={type === "opname" ? String(systemStock) : "-1"}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-sm tabular-nums transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950"
+            className="font-mono tabular-nums"
           />
 
           {selectedProduct && previewStock !== null && (
@@ -346,12 +348,11 @@ export default function AdjustStockModal({
               </Chip>
             ))}
           </div>
-          <textarea
+          <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={2}
             placeholder="Wajib diisi — akan tersimpan permanen di riwayat mutasi."
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950"
           />
 
           {error && (

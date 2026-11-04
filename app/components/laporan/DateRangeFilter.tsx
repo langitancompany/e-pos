@@ -17,6 +17,7 @@ import { useState } from "react";
 import { CalendarDays } from "lucide-react";
 import type { DateRange, ReportDatePreset } from "@/hooks/useReports";
 import Chip from "@/app/components/ui/Chip";
+import Input from "@/app/components/ui/Input";
 
 const PRESETS: { key: Exclude<ReportDatePreset, "custom">; label: string }[] = [
   { key: "today", label: "Hari Ini" },
@@ -48,9 +49,6 @@ export function formatRangeLabel(range: DateRange): string {
   const formatter = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" });
   return `${formatter.format(range.start)} — ${formatter.format(range.end)}`;
 }
-
-const inputClass =
-  "w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm transition-colors duration-150 focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950";
 
 export function DateRangeFilter({
   preset,
@@ -115,24 +113,22 @@ export function DateRangeFilter({
           <label className="mb-1 block text-xs font-medium text-zinc-500">
             Dari tanggal
           </label>
-          <input
+          <Input
             type="date"
             value={draftStart}
             max={draftEnd || undefined}
             onChange={(e) => handleStart(e.target.value)}
-            className={inputClass}
           />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-zinc-500">
             Sampai tanggal
           </label>
-          <input
+          <Input
             type="date"
             value={draftEnd}
             min={draftStart || undefined}
             onChange={(e) => handleEnd(e.target.value)}
-            className={inputClass}
           />
         </div>
       </div>

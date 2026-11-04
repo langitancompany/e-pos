@@ -1142,10 +1142,13 @@ export default function KasirModule({
             <label className="mb-1 block text-xs font-medium text-zinc-500">
               Modal awal kas
             </label>
-            <div className="flex items-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-zinc-950 focus-within:border-lco-teal focus-within:ring-2 focus-within:ring-lco-teal transition-colors duration-150">
-              <span className="text-sm text-zinc-400 font-mono">Rp</span>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-zinc-400">
+                Rp
+              </span>
               <MoneyInput
                 autoFocus
+                size="md"
                 value={openingCashValue}
                 onValueChange={setOpeningCashInput}
                 onKeyDown={(e) => {
@@ -1154,7 +1157,7 @@ export default function KasirModule({
                   }
                 }}
                 placeholder="200.000"
-                className="w-full bg-transparent text-sm font-mono tabular-nums outline-none"
+                className="pl-9 font-mono tabular-nums"
               />
             </div>
 
@@ -1321,6 +1324,8 @@ export default function KasirModule({
                       </span>
                     )}
                     <button
+                      type="button"
+                      aria-label="Hapus pelanggan"
                       onClick={() => {
                         setSelectedCustomer(null);
                         setUsePoints(false);
@@ -1433,24 +1438,28 @@ export default function KasirModule({
                 {/* ── TAMBAHAN (T-11 bagian 3) ── Scan pakai kamera, pelengkap alat
                 scanner fisik (yang sudah bisa lewat kolom pencarian di atas —
                 scanner fisik mengetik seperti keyboard). */}
-                <button
+                <IconButton
+                  variant="outlined"
+                  aria-label="Scan barcode (kamera)"
+                  title="Scan Barcode (Kamera)"
+                  className="h-10 w-10"
                   onClick={() => {
                     setScanFeedback(null);
                     setIsScanModalOpen(true);
                   }}
-                  title="Scan Barcode (Kamera)"
-                  className="shrink-0 flex items-center justify-center w-10 h-10 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-500 hover:border-lco-teal hover:text-lco-teal transition-colors duration-150"
                 >
-                  <Camera className="w-4 h-4" />
-                </button>
+                  <Camera className="h-4 w-4" />
+                </IconButton>
                 {/* ── TAMBAHAN (Fase 2: Biaya Tambahan) ── */}
-                <button
-                  onClick={() => setIsBiayaTambahanModalOpen(true)}
+                <IconButton
+                  variant="outlined"
+                  aria-label="Biaya tambahan"
                   title="Biaya Tambahan"
-                  className="shrink-0 flex items-center justify-center w-10 h-10 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-500 hover:border-lco-mustard hover:text-lco-mustard transition-colors duration-150"
+                  className="h-10 w-10"
+                  onClick={() => setIsBiayaTambahanModalOpen(true)}
                 >
-                  <PackagePlus className="w-4 h-4" />
-                </button>
+                  <PackagePlus className="h-4 w-4" />
+                </IconButton>
               </div>
               <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                 <button
@@ -1723,6 +1732,8 @@ export default function KasirModule({
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <p className="flex-1">{resumeNotice}</p>
                 <button
+                  type="button"
+                  aria-label="Tutup pemberitahuan"
                   onClick={() => setResumeNotice(null)}
                   className="shrink-0 hover:opacity-70"
                 >
@@ -1933,6 +1944,8 @@ export default function KasirModule({
                       </p>
                     </div>
                     <button
+                      type="button"
+                      aria-label="Lanjutkan pesanan"
                       onClick={() => handleResumeHeldOrder(ho.id)}
                       disabled={resumingId === ho.id}
                       title="Lanjutkan"

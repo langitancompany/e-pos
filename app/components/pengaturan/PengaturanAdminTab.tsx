@@ -201,21 +201,19 @@ function ProfileModal({
   }, [onClose, saving]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/60 p-4"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !saving) onClose();
-      }}
+    <Modal
+      size="lg"
+      padding="none"
+      layout="flex"
+      aria-label={isNew ? "Tambah user" : "Ubah profil"}
+      onBackdropClick={saving ? undefined : onClose}
     >
       <form
-        role="dialog"
-        aria-modal="true"
-        aria-label={isNew ? "Tambah user" : "Ubah profil"}
         onSubmit={(e) => {
           e.preventDefault();
           onSubmit();
         }}
-        className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-2xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950"
+        className="flex min-h-0 flex-1 flex-col"
       >
         <div className="flex items-start justify-between gap-3 border-b border-zinc-100 px-5 pt-5 pb-4 dark:border-zinc-800">
           <div>
@@ -349,7 +347,7 @@ function ProfileModal({
           </Button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }
 

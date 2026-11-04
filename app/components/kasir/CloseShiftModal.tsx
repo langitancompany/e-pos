@@ -21,6 +21,7 @@ import type { CloseShiftResult } from "@/hooks/useShifts";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
+import Input from "@/app/components/ui/Input";
 
 // Pecahan uang tunai Rupiah yang beredar, dari besar ke kecil.
 const DENOMINATIONS = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 100];
@@ -180,13 +181,15 @@ export function CloseShiftModal({
             <span className="w-24 shrink-0 font-mono tabular-nums text-sm text-zinc-600 dark:text-zinc-400">
               {formatRupiah(denom)}
             </span>
-            <input
+            <Input
               type="text"
               inputMode="numeric"
               placeholder="0"
               value={counts[denom] ?? ""}
               onChange={(e) => handleCountChange(denom, e.target.value)}
-              className="w-20 rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm font-mono tabular-nums text-right focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal dark:border-zinc-700 dark:bg-zinc-950 transition-colors duration-150"
+              size="sm"
+              fullWidth={false}
+              className="w-20 font-mono tabular-nums text-right"
             />
             <span className="flex-1 text-right font-mono tabular-nums text-sm text-zinc-400">
               {formatRupiah(denom * (Number(counts[denom]) || 0))}
@@ -274,7 +277,7 @@ export function CloseShiftSummaryModal({
   onDone: () => void;
 }) {
   return (
-    <Modal size="md" layout="plain">
+    <Modal layout="plain">
       <h3 className="mb-4 text-base font-semibold flex items-center gap-2">
         <Lock className="h-4 w-4 text-lco-coral" />
         Sesi Kas Ditutup

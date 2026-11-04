@@ -10,6 +10,8 @@ import type { CustomerRecord } from "@/hooks/useCustomerAdmin";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
 import Chip from "@/app/components/ui/Chip";
+import Input from "@/app/components/ui/Input";
+import Modal from "@/app/components/ui/Modal";
 
 interface PoinAdjustModalProps {
   customer: CustomerRecord;
@@ -67,123 +69,119 @@ export default function PoinAdjustModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
-      <div className="w-full max-w-md rounded-t-xl border border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-950 sm:rounded-xl">
-        <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
-          <div>
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-              Sesuaikan Poin
-            </h3>
-            <p className="text-xs text-zinc-500">{customer.name}</p>
-          </div>
-          <IconButton
-            type="button"
-            onClick={() => !saving && onClose()}
-            variant="soft"
-            size="sm"
-            aria-label="Tutup"
-          >
-            <X className="h-4 w-4" />
-          </IconButton>
+    <Modal size="md" placement="sheet" padding="none" layout="plain">
+      <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-zinc-800">
+        <div>
+          <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+            Sesuaikan Poin
+          </h3>
+          <p className="text-xs text-zinc-500">{customer.name}</p>
         </div>
-
-        <div className="space-y-4 px-5 py-4">
-          <div className="grid grid-cols-2 gap-2">
-            <Chip
-              type="button"
-              onClick={() => setMode("add")}
-              selected={mode === "add"}
-              size="lg"
-            >
-              <Plus className="h-4 w-4" /> Tambah
-            </Chip>
-            <Chip
-              type="button"
-              onClick={() => setMode("subtract")}
-              selected={mode === "subtract"}
-              tone="danger"
-              size="lg"
-            >
-              <Minus className="h-4 w-4" /> Kurangi
-            </Chip>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-              Jumlah poin
-            </label>
-            <input
-              type="number"
-              min={1}
-              inputMode="numeric"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-lco-teal focus:ring-2 focus:ring-lco-teal/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-              placeholder="0"
-              autoFocus
-            />
-            <p className="mt-1 text-xs text-zinc-500">
-              Saldo sekarang <strong>{customer.loyalty_points}</strong> poin
-              {validAmount && (
-                <>
-                  {" "}
-                  → <strong>{Math.max(after, 0)}</strong> poin (setara Rp{" "}
-                  {(Math.max(after, 0) * pointValue).toLocaleString("id-ID")})
-                </>
-              )}
-            </p>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-xs font-semibold text-zinc-600 dark:text-zinc-400">
-              Alasan <span className="text-lco-coral">*</span>
-            </label>
-            <input
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-lco-teal focus:ring-2 focus:ring-lco-teal/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-              placeholder="Mengapa poin diubah?"
-            />
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {REASON_PRESETS.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setReason(preset)}
-                  className="rounded-full border border-zinc-300 px-2.5 py-1 text-[11px] text-zinc-600 hover:border-lco-teal hover:text-lco-green dark:border-zinc-700 dark:text-zinc-400"
-                >
-                  {preset}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {error && (
-            <p className="rounded-md bg-lco-coral/10 px-3 py-2 text-xs text-lco-coral">
-              {error}
-            </p>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-zinc-200 px-5 py-3 dark:border-zinc-800">
-          <Button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            variant="ghost"
-          >
-            Batal
-          </Button>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={saving}
-          >
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Simpan
-          </Button>
-        </div>
+        <IconButton
+          type="button"
+          onClick={() => !saving && onClose()}
+          variant="soft"
+          size="sm"
+          aria-label="Tutup"
+        >
+          <X className="h-4 w-4" />
+        </IconButton>
       </div>
-    </div>
+
+      <div className="space-y-4 px-5 py-4">
+        <div className="grid grid-cols-2 gap-2">
+          <Chip
+            type="button"
+            onClick={() => setMode("add")}
+            selected={mode === "add"}
+            size="lg"
+          >
+            <Plus className="h-4 w-4" /> Tambah
+          </Chip>
+          <Chip
+            type="button"
+            onClick={() => setMode("subtract")}
+            selected={mode === "subtract"}
+            tone="danger"
+            size="lg"
+          >
+            <Minus className="h-4 w-4" /> Kurangi
+          </Chip>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+            Jumlah poin
+          </label>
+          <Input
+            type="number"
+            min={1}
+            inputMode="numeric"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0"
+            autoFocus
+          />
+          <p className="mt-1 text-xs text-zinc-500">
+            Saldo sekarang <strong>{customer.loyalty_points}</strong> poin
+            {validAmount && (
+              <>
+                {" "}
+                → <strong>{Math.max(after, 0)}</strong> poin (setara Rp{" "}
+                {(Math.max(after, 0) * pointValue).toLocaleString("id-ID")})
+              </>
+            )}
+          </p>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+            Alasan <span className="text-lco-coral">*</span>
+          </label>
+          <Input
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Mengapa poin diubah?"
+          />
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {REASON_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => setReason(preset)}
+                className="rounded-full border border-zinc-300 px-2.5 py-1 text-[11px] text-zinc-600 hover:border-lco-teal hover:text-lco-green dark:border-zinc-700 dark:text-zinc-400"
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error && (
+          <p className="rounded-md bg-lco-coral/10 px-3 py-2 text-xs text-lco-coral">
+            {error}
+          </p>
+        )}
+      </div>
+
+      <div className="flex justify-end gap-2 border-t border-zinc-200 px-5 py-3 dark:border-zinc-800">
+        <Button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          variant="ghost"
+        >
+          Batal
+        </Button>
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          disabled={saving}
+        >
+          {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+          Simpan
+        </Button>
+      </div>
+    </Modal>
   );
 }

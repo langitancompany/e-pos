@@ -21,6 +21,7 @@ import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
 import BackButton from "@/app/components/ui/BackButton";
+import Textarea from "@/app/components/ui/Textarea";
 
 interface GiftDetailProps {
   giftId: string;
@@ -265,12 +266,11 @@ export default function GiftDetail({
           <label className="mb-1 block text-xs font-medium text-zinc-500">
             Alasan pembatalan (wajib)
           </label>
-          <textarea
+          <Textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             disabled={isVoiding}
             rows={3}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm focus:border-lco-teal focus:outline-none focus:ring-2 focus:ring-lco-teal disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950"
           />
 
           {voidError && (

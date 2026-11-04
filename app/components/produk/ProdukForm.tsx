@@ -20,6 +20,7 @@ import Select from "@/app/components/ui/Select";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
+import Input from "@/app/components/ui/Input";
 
 export type ProductFormValues = {
   name: string;
@@ -203,13 +204,13 @@ export default function ProdukForm({
               <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Nama Produk
               </label>
-              <input
+              <Input
                 type="text"
                 value={form.name}
                 onChange={(e) => updateField("name", e.target.value)}
                 disabled={saving}
                 placeholder="Contoh: Kaos Polos Hitam"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                size="lg"
               />
             </div>
 
@@ -217,7 +218,7 @@ export default function ProdukForm({
               <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 SKU
               </label>
-              <input
+              <Input
                 type="text"
                 value={form.sku}
                 onChange={(e) =>
@@ -225,7 +226,8 @@ export default function ProdukForm({
                 }
                 disabled={saving}
                 placeholder="Contoh: KAOS-HITAM-L"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm uppercase tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                size="lg"
+                className="font-mono uppercase tabular-nums"
               />
             </div>
 
@@ -233,13 +235,14 @@ export default function ProdukForm({
               <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Barcode
               </label>
-              <input
+              <Input
                 type="text"
                 value={form.barcode}
                 onChange={(e) => updateField("barcode", e.target.value)}
                 disabled={saving}
                 placeholder="Opsional"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                size="lg"
+                className="font-mono tabular-nums"
               />
             </div>
 
@@ -299,13 +302,13 @@ export default function ProdukForm({
               <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Satuan
               </label>
-              <input
+              <Input
                 type="text"
                 value={form.unit}
                 onChange={(e) => updateField("unit", e.target.value)}
                 disabled={saving}
                 placeholder="pcs"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                size="lg"
               />
             </div>
 
@@ -318,7 +321,8 @@ export default function ProdukForm({
                 onValueChange={(raw) => updateField("sell_price", raw)}
                 disabled={saving}
                 placeholder="0"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                size="lg"
+                className="font-mono tabular-nums"
               />
             </div>
 
@@ -331,7 +335,8 @@ export default function ProdukForm({
                 onValueChange={(raw) => updateField("cost_price", raw)}
                 disabled={saving}
                 placeholder="0"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                size="lg"
+                className="font-mono tabular-nums"
               />
             </div>
 
@@ -341,14 +346,15 @@ export default function ProdukForm({
                   <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                     Stok {isEdit ? "" : "Awal"}
                   </label>
-                  <input
+                  <Input
                     type="number"
                     min="0"
                     value={form.stock}
                     onChange={(e) => updateField("stock", e.target.value)}
                     disabled={saving || isEdit}
                     placeholder="0"
-                    className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                    size="lg"
+                    className="font-mono tabular-nums"
                   />
                   {!isEdit && (
                     <p className="mt-1.5 text-xs text-zinc-400">
@@ -369,14 +375,15 @@ export default function ProdukForm({
                   <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                     Minimum Stok
                   </label>
-                  <input
+                  <Input
                     type="number"
                     min="0"
                     value={form.min_stock}
                     onChange={(e) => updateField("min_stock", e.target.value)}
                     disabled={saving}
                     placeholder="0"
-                    className="w-full rounded-md border border-zinc-300 px-3 py-2.5 font-mono text-sm tabular-nums outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-2 focus:ring-lco-teal disabled:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900 dark:disabled:bg-zinc-800"
+                    size="lg"
+                    className="font-mono tabular-nums"
                   />
                 </div>
               </>
