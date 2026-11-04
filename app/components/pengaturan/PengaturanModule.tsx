@@ -163,8 +163,7 @@ export default function PengaturanModule() {
           Pengaturan
         </h2>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Pengaturan toko/struk, kelola user & hak akses, dan kelola printer —
-          PRD §17 T-10, migration 038.
+          Pengaturan toko/struk, kelola user & hak akses, dan kelola printer
         </p>
       </div>
 
