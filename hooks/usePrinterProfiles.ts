@@ -421,7 +421,6 @@ export function usePrinterProfiles(): UsePrinterProfilesResult {
       }
       return next;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded]);
 
   // Best-effort: begitu daftar termuat, cek printer USB mana yang memang
@@ -449,7 +448,6 @@ export function usePrinterProfiles(): UsePrinterProfilesResult {
         return next;
       });
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded]);
 
   const resolveBluetoothDevice = useCallback(

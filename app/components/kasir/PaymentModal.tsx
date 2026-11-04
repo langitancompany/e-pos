@@ -860,15 +860,18 @@ export default function PaymentModal({
                     <div className="flex justify-between">
                       <span>Waktu</span>
                       <span>
-                        {new Date(
-                          receipt.createdAt ?? Date.now(),
-                        ).toLocaleString("id-ID", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {receipt.createdAt
+                          ? new Date(receipt.createdAt).toLocaleString(
+                              "id-ID",
+                              {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )
+                          : "-"}
                       </span>
                     </div>
                     <div className="flex justify-between">

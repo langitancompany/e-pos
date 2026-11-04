@@ -470,6 +470,14 @@ export default function KasirModule({
     handlePcAddProduct(product, qty);
   };
 
+  // ── TAMBAHAN (T-11 bagian 1) ── Handler Hold Order.
+  const openHoldModal = () => {
+    if (cart.length === 0) return;
+    setHoldModalError(null);
+    setHoldLabel("");
+    setIsHoldModalOpen(true);
+  };
+
   // ── TAMBAHAN (mode PC: shortcut keyboard) ── HANYA aktif kalau kasir
   // sedang di mode PC & shift sudah dibuka (di mode Tablet/layar terkunci,
   // tombol F1-F8 dibiarkan berperilaku normal browser). Semua pakai tombol
@@ -952,14 +960,6 @@ export default function KasirModule({
       );
       setIsStartingSession(false);
     }
-  };
-
-  // ── TAMBAHAN (T-11 bagian 1) ── Handler Hold Order.
-  const openHoldModal = () => {
-    if (cart.length === 0) return;
-    setHoldModalError(null);
-    setHoldLabel("");
-    setIsHoldModalOpen(true);
   };
 
   const handleConfirmHold = async () => {

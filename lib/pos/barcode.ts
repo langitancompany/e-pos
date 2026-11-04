@@ -120,9 +120,9 @@ export function renderBarcodeSvg(
 
   let cursor = 0;
   let rects = "";
-  for (const module of modules) {
-    const widthUnit = module.width * moduleUnit;
-    if (module.isBar) {
+  for (const bar of modules) {
+    const widthUnit = bar.width * moduleUnit;
+    if (bar.isBar) {
       rects += `<rect x="${cursor}" y="0" width="${widthUnit}" height="${heightPx}" fill="#000000" />`;
     }
     cursor += widthUnit;

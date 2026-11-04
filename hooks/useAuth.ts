@@ -168,7 +168,6 @@ export function useAuth(): UseAuthResult {
       isCancelled = true;
       listener.subscription.unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function signIn(email: string, password: string) {

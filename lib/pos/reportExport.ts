@@ -50,7 +50,7 @@ import type {
   ShiftReportRow,
   ReceivableRow,
   ReceivableStatus,
-} from "@/hooks/useReports";
+} from "@/lib/pos/reportLogic";
 
 // ── Util nama file ───────────────────────────────────────────────────────────
 // Dipakai untuk Excel & PDF supaya konsisten: "Laporan-LCO-POS_2026-09-18.xlsx".

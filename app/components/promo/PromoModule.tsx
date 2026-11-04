@@ -737,7 +737,6 @@ function ScreenMediaManager({
     setSuccessMessage("Media dihapus.");
   }
 
-  const tvUrl = buildScreenUrl(screen.access_token);
   const activeCount = items.filter((item) => item.is_active).length;
 
   return (

@@ -13,7 +13,6 @@ import {
   Loader2,
   MessageCircle,
   Pencil,
-  Phone,
   X,
 } from "lucide-react";
 import { formatRupiah } from "@/lib/pos/cartLogic";

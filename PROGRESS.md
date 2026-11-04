@@ -15,6 +15,28 @@
 > per langkah**, diserahkan sebagai file yang bisa diunduh — bukan banyak
 > kode sekaligus di dalam chat.
 
+## Perubahan: Logika hitung Dashboard & Laporan dipindah ke lib/pos (agar bisa dites)
+
+Hook `useDashboard.ts` dan `useReports.ts` dulu menyimpan semua hitungan di dalam
+efek React, sehingga tidak bisa dites. Hitungan dipindah jadi fungsi murni; hook
+kini hanya mengambil data dari Supabase lalu memanggil fungsi tersebut.
+
+- **Baru:** `lib/pos/dateRange.ts` (startOfDay, endOfDay, addDays, dateKey,
+  shortLabel, chunk, `presetToRange`, tipe `DateRange`/`ReportDatePreset`),
+  `lib/pos/dashboardLogic.ts` (`getDashboardWindow`, `aggregateDashboardSales`,
+  `buildLowStockGroup`, `buildReceivablesGroup`, `buildStaleShiftsGroup`),
+  `lib/pos/reportLogic.ts` (`buildSalesReport`, `buildShiftRows`,
+  `receivableStatus`, `buildReceivableRows`).
+- **Perilaku tidak berubah.** Fungsi yang butuh jam sekarang menerima `now`
+  sebagai argumen opsional (bawaan: `new Date()`), supaya dites tanpa fake timer.
+- **Kompatibilitas:** hook meng-ekspor ulang semua tipe, `presetToRange`, dan
+  `DASHBOARD_DAILY_POINTS`, jadi import lama (`@/hooks/useReports`,
+  `@/hooks/useDashboard`) tetap jalan. `reportExport.ts` dan `reportInsights.ts`
+  kini mengimpor tipe langsung dari `lib/pos` (hanya tipe, tanpa efek runtime).
+- **Tes baru:** `lib/pos/__tests__/dateRange.test.ts`, `dashboardLogic.test.ts`,
+  `reportLogic.test.ts`.
+- **Belum dites:** query Supabase di dalam hook (sengaja dibiarkan di hook).
+
 ## Perubahan: Metode bayar jadi 3 + hapus bukti bayar (sesi #23, 2026-09-30)
 
 Permintaan pemilik project: metode pembayaran hanya **Tunai, Digital, Piutang**.

@@ -144,7 +144,7 @@ export function usePromoScreens(): UsePromoScreensResult {
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sekali jalan saat mount, sama seperti `usePromoMedia`; muat ulang manual lewat `refetch()`.
+    // Sekali jalan saat mount, sama seperti `usePromoMedia`; muat ulang manual lewat `refetch()`.
   }, []);
 
   async function refetch() {

@@ -13,7 +13,8 @@
 // - Item terjual = qty - returned_qty per item, item bernilai <= 0 diabaikan.
 // - Semua pengelompokan tanggal pakai waktu LOKAL (WIB), bukan UTC.
 
-import type { DateRange, SalesSummary } from "@/hooks/useReports";
+import type { DateRange } from "@/lib/pos/dateRange";
+import type { SalesSummary } from "@/lib/pos/reportLogic";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

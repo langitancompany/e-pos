@@ -24,7 +24,6 @@ import { normalizePromoUrl } from "@/lib/pos/receiptQr";
 import Select from "@/app/components/ui/Select";
 import Input from "@/app/components/ui/Input";
 import Button from "@/app/components/ui/Button";
-import Textarea from "@/app/components/ui/Textarea";
 
 const labelClass =
   "mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400";
@@ -99,7 +98,6 @@ export default function OutletUmumPanel() {
       }
 
       for (const field of changedFields) {
-        // eslint-disable-next-line no-await-in-loop
         await updateSetting(field, finalForm[field]);
       }
 

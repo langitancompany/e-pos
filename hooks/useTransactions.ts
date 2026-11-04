@@ -44,6 +44,27 @@ export interface TransactionListItem {
   void_reason: string | null;
 }
 
+// Bentuk mentah satu baris dari query PostgREST di useTransactions().
+interface TransactionRowRaw {
+  id: string;
+  receipt_no: string;
+  status: TransactionStatus;
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  customer_name: string | null;
+  customer_phone: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  cashier_id: string | null;
+  shift_id: string | null;
+  void_reason: string | null;
+  payments: TransactionPayment[] | null;
+  transaction_items: { count: number }[] | null;
+}
+
 interface UseTransactionsResult {
   transactions: TransactionListItem[];
   isLoading: boolean;
@@ -117,7 +138,7 @@ export function useTransactions(): UseTransactionsResult {
         return;
       }
 
-      const mapped: TransactionListItem[] = (data ?? []).map((row: any) => ({
+      const mapped: TransactionListItem[] = ((data ?? []) as unknown as TransactionRowRaw[]).map((row) => ({
         id: row.id,
         receipt_no: row.receipt_no,
         status: row.status,

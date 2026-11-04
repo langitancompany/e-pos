@@ -181,6 +181,13 @@ export interface CreatedPayment {
   amount: number;
 }
 
+// Bentuk mentah satu baris pembayaran dari RPC `create_transaction` (migration 021+).
+interface CreatedPaymentRaw {
+  payment_id: string;
+  method: PaymentMethod;
+  amount: number | string | null;
+}
+
 export interface CreateTransactionResult {
   success: boolean;
   transaction_id: string;
@@ -353,7 +360,7 @@ export async function createTransaction(
     // Fallback ke 1 baris dari `payment_id` supaya kode tetap jalan kalau RPC
     // masih versi lama (mis. migration belum dieksekusi di environment tertentu).
     payments: Array.isArray(data.payments)
-      ? data.payments.map((p: any) => ({
+      ? data.payments.map((p: CreatedPaymentRaw) => ({
           payment_id: p.payment_id,
           method: p.method,
           amount: Number(p.amount ?? 0),
@@ -437,6 +444,41 @@ export interface TransactionReturnRecord {
     reference_no: string | null;
     notes: string | null;
   }[];
+}
+
+// Bentuk mentah baris transaksi dari query PostgREST di getTransactionDetail().
+interface TransactionDetailRowRaw {
+  id: string;
+  receipt_no: string;
+  status: TransactionStatus;
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  customer_name: string | null;
+  customer_phone: string | null;
+  notes: string | null;
+  void_reason: string | null;
+  related_transaction_id: string | null;
+  created_at: string;
+  customer_id: string | null;
+  points_earned: number | null;
+  points_redeemed: number | null;
+  cashier: { full_name: string | null } | null;
+  transaction_items: TransactionDetailItem[] | null;
+  payments:
+    | {
+        id: string;
+        method: PaymentMethod | string;
+        amount: number;
+        received_amount: number | null;
+        change_amount: number | null;
+        reference_no: string | null;
+        notes: string | null;
+        due_date: string | null;
+        is_settled: boolean | null;
+      }[]
+    | null;
 }
 
 // Bentuk mentah satu baris retur dari query PostgREST di getTransactionDetail().
@@ -541,7 +583,7 @@ export async function getTransactionDetail(
     throw new Error(error.message || "Gagal memuat detail transaksi.");
   }
 
-  const row: any = data;
+  const row = data as unknown as TransactionDetailRowRaw;
 
   // ── TAMBAHAN (037) ── Dua hal tambahan, tergantung jenis barisnya:
   // - Baris RETUR (related_transaction_id terisi): ambil nomor struk asalnya.
@@ -622,7 +664,7 @@ export async function getTransactionDetail(
     cashier_name: row.cashier?.full_name ?? null,
     created_at: row.created_at,
     items: row.transaction_items ?? [],
-    payments: (row.payments ?? []).map((p: any) => ({
+    payments: (row.payments ?? []).map((p) => ({
       id: p.id,
       method: p.method,
       amount: p.amount,

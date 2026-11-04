@@ -597,12 +597,10 @@ function waitForBluetoothAdvertisement(
     }
     const controller = new AbortController();
     let finished = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-
     const finish = (error?: Error) => {
       if (finished) return;
       finished = true;
-      if (timer) clearTimeout(timer);
+      clearTimeout(timer);
       device.removeEventListener("advertisementreceived", onAdvertisement);
       controller.abort();
       if (error) reject(error);
@@ -610,7 +608,7 @@ function waitForBluetoothAdvertisement(
     };
     const onAdvertisement = () => finish();
 
-    timer = setTimeout(
+    const timer = setTimeout(
       () =>
         finish(
           new Error(

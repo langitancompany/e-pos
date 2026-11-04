@@ -69,205 +69,39 @@ import { createClient } from "@/lib/supabase/client";
 import { fetchCashTotalsByShift } from "@/hooks/useCashMovements";
 import { useBranchScope } from "@/hooks/useActiveBranch";
 import { branchFilter } from "@/lib/pos/branches";
+import { addDays, chunk, startOfDay, type DateRange } from "@/lib/pos/dateRange";
+// ── Logika hitung dipindahkan ke lib/pos/dateRange.ts & lib/pos/reportLogic.ts
+// (fungsi murni, ada testnya). Hook ini hanya mengambil data dari Supabase lalu
+// menyerahkannya ke sana. Tipe & presetToRange di-ekspor ulang supaya import
+// lama (`@/hooks/useReports`) tetap jalan.
+import {
+  buildReceivableRows,
+  buildSalesReport,
+  buildShiftRows,
+  emptySummary,
+  type CashTotalsByShift,
+  type DailySalesPoint,
+  type RawPayment,
+  type RawSalesItem,
+  type RawSalesTransaction,
+  type RawShift,
+  type RawTransactionLite,
+  type ReceivableRow,
+  type SalesSummary,
+  type ShiftReportRow,
+} from "@/lib/pos/reportLogic";
+
+export { presetToRange } from "@/lib/pos/dateRange";
+export type { DateRange, ReportDatePreset } from "@/lib/pos/dateRange";
+export type {
+  DailySalesPoint,
+  ReceivableRow,
+  ReceivableStatus,
+  SalesSummary,
+  ShiftReportRow,
+} from "@/lib/pos/reportLogic";
 
 const supabase = createClient();
-
-// ── Util tanggal (waktu LOKAL, bukan UTC — lihat catatan di header) ─────────
-
-function startOfDay(date: Date): Date {
-  const copy = new Date(date);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
-}
-
-function endOfDay(date: Date): Date {
-  const copy = new Date(date);
-  copy.setHours(23, 59, 59, 999);
-  return copy;
-}
-
-function addDays(date: Date, days: number): Date {
-  const copy = new Date(date);
-  copy.setDate(copy.getDate() + days);
-  return copy;
-}
-
-function dateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function shortLabel(date: Date): string {
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "short",
-  }).format(date);
-}
-
-function chunk<T>(items: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    result.push(items.slice(i, i + size));
-  }
-  return result;
-}
-
-// ── Preset rentang tanggal ────────────────────────────────────────────────
-
-export type ReportDatePreset =
-  | "today"
-  | "7d"
-  | "30d"
-  | "this_month"
-  | "last_month"
-  | "custom";
-
-export interface DateRange {
-  start: Date;
-  end: Date;
-}
-
-export function presetToRange(preset: ReportDatePreset, customRange?: DateRange): DateRange {
-  const now = new Date();
-  const today = startOfDay(now);
-
-  switch (preset) {
-    case "today":
-      return { start: today, end: endOfDay(now) };
-    case "7d":
-      return { start: addDays(today, -6), end: endOfDay(now) };
-    case "30d":
-      return { start: addDays(today, -29), end: endOfDay(now) };
-    case "this_month":
-      return {
-        start: new Date(now.getFullYear(), now.getMonth(), 1),
-        end: endOfDay(now),
-      };
-    case "last_month": {
-      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-      return { start: startOfDay(lastMonthStart), end: endOfDay(lastMonthEnd) };
-    }
-    case "custom":
-      if (!customRange) {
-        throw new Error("customRange wajib diisi untuk preset 'custom'.");
-      }
-      return { start: startOfDay(customRange.start), end: endOfDay(customRange.end) };
-    default:
-      return { start: today, end: endOfDay(now) };
-  }
-}
-
-// ── Tipe publik: Harian/Bulanan ──────────────────────────────────────────────
-
-export interface SalesSummary {
-  revenue: number;
-  transactionCount: number;
-  itemsSold: number;
-  averageTicket: number;
-}
-
-export interface DailySalesPoint {
-  date: string;
-  label: string;
-  revenue: number;
-  transactionCount: number;
-}
-
-function emptySummary(): SalesSummary {
-  return { revenue: 0, transactionCount: 0, itemsSold: 0, averageTicket: 0 };
-}
-
-// ── Tipe publik: Per Shift ───────────────────────────────────────────────────
-
-export interface ShiftReportRow {
-  id: string;
-  cashier_id: string;
-  cashier_name: string | null;
-  opened_at: string;
-  closed_at: string | null;
-  status: "OPEN" | "CLOSED";
-  opening_cash: number;
-  expected_cash: number | null;
-  actual_cash: number | null;
-  difference: number | null;
-  /**
-   * ── TAMBAHAN (migration 040) ── Total kas masuk / kas keluar yang dicatat di
-   * shift ini (catatan yang dibatalkan tidak dihitung). null = gagal dimuat
-   * (ditampilkan "-", BUKAN 0, supaya tidak terbaca seolah tidak ada kas keluar).
-   */
-  cash_in: number | null;
-  cash_out: number | null;
-}
-
-// ── Tipe publik: Piutang/Tempo ───────────────────────────────────────────────
-
-export type ReceivableStatus = "LUNAS" | "JATUH_TEMPO" | "BELUM_LUNAS";
-
-export interface ReceivableRow {
-  payment_id: string;
-  transaction_id: string;
-  receipt_no: string;
-  customer_name: string | null;
-  amount: number;
-  due_date: string | null;
-  is_settled: boolean;
-  settled_at: string | null;
-  status: ReceivableStatus;
-  created_at: string;
-}
-
-function receivableStatus(dueDate: string | null, isSettled: boolean): ReceivableStatus {
-  if (isSettled) return "LUNAS";
-  if (dueDate && dueDate < dateKey(new Date())) return "JATUH_TEMPO";
-  return "BELUM_LUNAS";
-}
-
-// ── Bentuk baris mentah dari Supabase ────────────────────────────────────────
-
-interface RawTransaction {
-  id: string;
-  total: number | null;
-  status: string;
-  created_at: string;
-  related_transaction_id: string | null;
-}
-
-interface RawItem {
-  transaction_id: string;
-  qty: number | null;
-  returned_qty: number | null;
-}
-
-interface RawShift {
-  id: string;
-  cashier_id: string;
-  opened_at: string;
-  closed_at: string | null;
-  status: "OPEN" | "CLOSED";
-  opening_cash: number;
-  expected_cash: number | null;
-  actual_cash: number | null;
-  difference: number | null;
-}
-
-interface RawPayment {
-  id: string;
-  transaction_id: string;
-  amount: number;
-  due_date: string | null;
-  is_settled: boolean;
-  settled_at: string | null;
-  created_at: string;
-}
-
-interface RawTransactionLite {
-  id: string;
-  receipt_no: string;
-  customer_name: string | null;
-}
 
 // ── Hasil hook ───────────────────────────────────────────────────────────────
 
@@ -354,74 +188,32 @@ export function useReports({
           .order("created_at", { ascending: true });
 
         if (trxError) throw new Error(trxError.message);
-        const transactions = (trxData ?? []) as RawTransaction[];
+        const transactions = (trxData ?? []) as RawSalesTransaction[];
 
         const saleIds = transactions
           .filter((trx) => trx.related_transaction_id === null)
           .map((trx) => trx.id);
 
-        const items: RawItem[] = [];
+        const items: RawSalesItem[] = [];
         for (const ids of chunk(saleIds, 150)) {
           const { data: itemData, error: itemError } = await supabase
             .from("transaction_items")
             .select("transaction_id, qty, returned_qty")
             .in("transaction_id", ids);
           if (itemError) throw new Error(itemError.message);
-          items.push(...((itemData ?? []) as RawItem[]));
+          items.push(...((itemData ?? []) as RawSalesItem[]));
         }
 
         if (isCancelled) return;
 
-        const dailyMap = new Map<string, DailySalesPoint>();
-        for (
-          let cursor = startOfDay(rangeStart);
-          cursor <= rangeEnd;
-          cursor = addDays(cursor, 1)
-        ) {
-          dailyMap.set(dateKey(cursor), {
-            date: dateKey(cursor),
-            label: shortLabel(cursor),
-            revenue: 0,
-            transactionCount: 0,
-          });
-        }
+        // Agregasi: fungsi murni di lib/pos/reportLogic.ts.
+        const report = buildSalesReport(transactions, items, {
+          start: rangeStart,
+          end: rangeEnd,
+        });
 
-        const summaryAcc = emptySummary();
-        for (const trx of transactions) {
-          const total = Number(trx.total ?? 0);
-          const isSale = trx.related_transaction_id === null;
-          const createdAt = new Date(trx.created_at);
-
-          summaryAcc.revenue += total;
-          if (isSale) summaryAcc.transactionCount += 1;
-
-          const point = dailyMap.get(dateKey(createdAt));
-          if (point) {
-            point.revenue += total;
-            if (isSale) point.transactionCount += 1;
-          }
-        }
-
-        const itemsByTransaction = new Map<string, number>();
-        for (const item of items) {
-          const netQty = Number(item.qty ?? 0) - Number(item.returned_qty ?? 0);
-          if (netQty <= 0) continue;
-          itemsByTransaction.set(
-            item.transaction_id,
-            (itemsByTransaction.get(item.transaction_id) ?? 0) + netQty,
-          );
-        }
-        summaryAcc.itemsSold = Array.from(itemsByTransaction.values()).reduce(
-          (sum, qty) => sum + qty,
-          0,
-        );
-        summaryAcc.averageTicket =
-          summaryAcc.transactionCount > 0
-            ? Math.round(summaryAcc.revenue / summaryAcc.transactionCount)
-            : 0;
-
-        setSalesSummary(summaryAcc);
-        setDailySales(Array.from(dailyMap.values()));
+        setSalesSummary(report.summary);
+        setDailySales(report.daily);
         setIsSalesLoading(false);
       } catch (err) {
         if (isCancelled) return;
@@ -479,8 +271,7 @@ export function useReports({
 
         // ── TAMBAHAN (040) ── Kegagalan memuat kas masuk/keluar TIDAK
         // menggagalkan seluruh laporan: kolomnya jadi "-" saja.
-        let cashTotals: Awaited<ReturnType<typeof fetchCashTotalsByShift>> | null =
-          null;
+        let cashTotals: CashTotalsByShift | null = null;
         try {
           cashTotals = await fetchCashTotalsByShift(rawShifts.map((s) => s.id));
         } catch (cashError) {
@@ -489,20 +280,11 @@ export function useReports({
 
         if (isCancelled) return;
 
-        const shiftRows: ShiftReportRow[] = rawShifts.map((s) => ({
-          id: s.id,
-          cashier_id: s.cashier_id,
-          cashier_name: cashierNameById.get(s.cashier_id) ?? null,
-          opened_at: s.opened_at,
-          closed_at: s.closed_at,
-          status: s.status,
-          opening_cash: Number(s.opening_cash ?? 0),
-          expected_cash: s.expected_cash === null ? null : Number(s.expected_cash),
-          actual_cash: s.actual_cash === null ? null : Number(s.actual_cash),
-          difference: s.difference === null ? null : Number(s.difference),
-          cash_in: cashTotals ? (cashTotals[s.id]?.cashIn ?? 0) : null,
-          cash_out: cashTotals ? (cashTotals[s.id]?.cashOut ?? 0) : null,
-        }));
+        const shiftRows: ShiftReportRow[] = buildShiftRows(
+          rawShifts,
+          cashierNameById,
+          cashTotals,
+        );
 
         setShifts(shiftRows);
         setIsShiftsLoading(false);
@@ -562,21 +344,10 @@ export function useReports({
 
         if (isCancelled) return;
 
-        const receivableRows: ReceivableRow[] = rawPayments.map((p) => {
-          const trx = trxLiteById.get(p.transaction_id);
-          return {
-            payment_id: p.id,
-            transaction_id: p.transaction_id,
-            receipt_no: trx?.receipt_no ?? "-",
-            customer_name: trx?.customer_name ?? null,
-            amount: Number(p.amount ?? 0),
-            due_date: p.due_date,
-            is_settled: p.is_settled,
-            settled_at: p.settled_at,
-            status: receivableStatus(p.due_date, p.is_settled),
-            created_at: p.created_at,
-          };
-        });
+        const receivableRows: ReceivableRow[] = buildReceivableRows(
+          rawPayments,
+          trxLiteById,
+        );
 
         setReceivables(receivableRows);
         setIsReceivablesLoading(false);
