@@ -1,142 +1,80 @@
 "use client";
 
-import MoneyInput from "@/app/components/ui/MoneyInput";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Search,
-  ShoppingCart,
-  Plus,
-  Minus,
-  Trash2,
-  CreditCard,
-  Clock,
-  Loader2,
-  AlertTriangle,
-  Unlock,
-  History,
-  X,
-  PlayCircle,
-  Camera,
-  ArrowLeft,
-  UserRound,
-  Sparkles,
-  PackagePlus,
-  Wallet,
-} from "lucide-react";
-import BarcodeScanModal, { type ScanFeedback } from "./BarcodeScanModal";
+// app/components/kasir/KasirModule.tsx
+// ── DIPECAH (sebelumnya 2.117 baris, 41 useState). File ini sekarang hanya
+// orkestrator: memanggil hook, menghitung total, lalu menyusun panel. Semua
+// isi lama dipindah APA ADANYA (tanpa perubahan alur bisnis) ke:
+//
+//   Logika murni (dites)   lib/pos/kasirLogic.ts
+//                          pajak, diskon poin, kode PC "qty*kode", scan barcode,
+//                          filter produk/pelanggan, penyusunan struk
+//   Hook                   useKasirLayoutMode   pilihan layout tablet/PC per-device
+//                          useKasirCart         keranjang + kode PC + scan kamera
+//                          useKasirCustomer     pelanggan, poin, resolveCustomerId
+//                          useKasirHold         Tunda + daftar pesanan tertunda
+//                          useKasirShiftSession buka/tutup sesi, kas masuk/keluar, cabang
+//                          useKasirCheckout     bayar tunggal/split, struk, WA, cetak
+//                          useKasirShortcuts    F1-F8 mode PC
+//   Tampilan               KasirOpenSessionScreen, KasirProductPanel (+ Grid,
+//                          CustomerPicker), KasirCartPanel, KasirHoldModal,
+//                          KasirHeldOrdersModal, KasirBiayaTambahanModal
+//
+// Kontrak ke luar TIDAK berubah: props KasirModule, props yang dikirim ke
+// PaymentModal / KasirModulePC / KasirTopBar, dan import dinamis di page.tsx.
+
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import BarcodeScanModal from "./BarcodeScanModal";
 import PaymentModal from "./PaymentModal";
 import KasirTopBar from "./KasirTopBar";
 import KasirModulePC from "./KasirModulePC";
-// ── TAMBAHAN (Kasir: pelanggan + poin loyalitas) ──
-import { useCustomers, type Customer } from "@/hooks/useCustomers";
-import { normalizePhone } from "@/hooks/useCustomerAdmin";
-import {
-  shareReceiptViaWhatsApp,
-  type ReceiptData,
-} from "@/lib/pos/printLogic";
-import { getReceiptPromo } from "@/lib/pos/receiptQr";
-// ── PERBAIKAN (auto-print munculkan dialog cetak sistem) ── Sebelumnya file
-// ini memanggil printThermalReceipt() langsung dari lib/pos/printLogic.ts,
-// yang SELALU lewat window.print() (dialog cetak OS/browser SELALU muncul,
-// itu batasan platform). Sekarang pakai printReceipt() dari
-// usePrinterProfiles: kalau printer default kasir bertipe Bluetooth/USB,
-// struk dikirim sebagai byte ESC/POS langsung ke device — TANPA dialog sama
-// sekali. Dialog cetak sistem hanya muncul kalau printer default kasir
-// masih "Printer Sistem (Browser)" (lihat Pengaturan > Printer).
-import { usePrinterProfiles } from "@/hooks/usePrinterProfiles";
-import { useProducts, ProductWithCategory } from "@/hooks/useProducts";
+import KasirOpenSessionScreen from "./KasirOpenSessionScreen";
+import KasirProductPanel from "./KasirProductPanel";
+import KasirCustomerPicker from "./KasirCustomerPicker";
+import KasirCartPanel from "./KasirCartPanel";
+import KasirHoldModal from "./KasirHoldModal";
+import KasirHeldOrdersModal from "./KasirHeldOrdersModal";
+import KasirBiayaTambahanModal from "./KasirBiayaTambahanModal";
+import { CashMovementModal } from "./CashMovementModal";
+import { CloseShiftModal, CloseShiftSummaryModal } from "./CloseShiftModal";
+import { useKasirLayoutMode } from "./useKasirLayoutMode";
+import { useKasirCart } from "./useKasirCart";
+import { useKasirCustomer } from "./useKasirCustomer";
+import { useKasirHold } from "./useKasirHold";
+import { useKasirShiftSession } from "./useKasirShiftSession";
+import { useKasirCheckout } from "./useKasirCheckout";
+import { useKasirShortcuts } from "./useKasirShortcuts";
+import { useProducts } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
-import { CartItem } from "@/lib/pos/types";
-import {
-  addToCart,
-  removeFromCart,
-  updateQty,
-  clearCart,
-  getCartSubtotal,
-  getCartItemCount,
-  getAvailableStock,
-  isOutOfStock,
-  formatRupiah,
-} from "@/lib/pos/cartLogic";
-import {
-  createTransaction,
-  PaymentMethod,
-  // ── TAMBAHAN (021, T-11 bagian 2) ── Tipe untuk wiring split payment ke
-  // PaymentModal — lihat handleConfirmSplitPayment di bawah.
-  type SplitPaymentLine,
-  type CreatedPayment,
-} from "@/lib/pos/transactionApi";
 import { useAuth } from "@/hooks/useAuth";
 import { useSettings } from "@/hooks/useSettings";
-// ── TAMBAHAN (T-04) ── Layar Kasir wajib mengecek shift aktif sebelum transaksi
-// bisa dilakukan (PRD §17 T-04 DoD: "kasir tidak bisa transaksi sebelum buka shift").
-// Pengecekan SEBENARNYA (yang tidak bisa dilewati) tetap ada di RPC create_transaction
-// (migration 007) — blokir di sini murni supaya UX-nya jelas (kasir tidak perlu isi
-// keranjang dulu baru ketahuan ditolak saat bayar).
-import { useShifts, type CloseShiftResult } from "@/hooks/useShifts";
-// ── TAMBAHAN (Tutup Sesi Kas langsung dari Kasir) ── Modal isi jumlah uang +
-// ringkasan selisih. Dulu tombol tutup sesi cuma pindah ke menu "Kas & Shift".
+import { usePrinterProfiles } from "@/hooks/usePrinterProfiles";
+import { normalizePhone } from "@/hooks/useCustomerAdmin";
 import {
-  CloseShiftModal,
-  CloseShiftSummaryModal,
-} from "@/app/components/kasir/CloseShiftModal";
-// ── TAMBAHAN (migration 040) ── Kas masuk/keluar dari laci (di luar penjualan).
-import { CashMovementModal } from "@/app/components/kasir/CashMovementModal";
+  clearCart,
+  getCartItemCount,
+  getCartSubtotal,
+} from "@/lib/pos/cartLogic";
 import {
-  useCashMovements,
-  type AddCashMovementParams,
-} from "@/hooks/useCashMovements";
-// ── TAMBAHAN (T-11 bagian 1) ── Hold order / "Tunda" — lihat komentar header
-// hooks/useHoldOrders.ts untuk pembagian tanggung jawab lengkap.
-import { useHoldOrders } from "@/hooks/useHoldOrders";
-// ── TAMBAHAN (migration 047, multi cabang) ── Cabang aktif untuk sesi kasir.
-import { useActiveBranch } from "@/hooks/useActiveBranch";
-import Select from "@/app/components/ui/Select";
-import Modal from "@/app/components/ui/Modal";
+  calcDiscount,
+  calcGrandTotal,
+  calcPointsBeingUsed,
+  calcTax,
+  filterProducts,
+  filterServiceProducts,
+  parseDigits,
+} from "@/lib/pos/kasirLogic";
 import Button from "@/app/components/ui/Button";
-import IconButton from "@/app/components/ui/IconButton";
-
-// ── TAMBAHAN (021, T-11 bagian 2) ── Label singkat per metode, dipakai
-// handleConfirmSplitPayment() untuk menyusun field `method` gabungan di
-// struk (mis. "Tunai + Transfer") — ReceiptData.method bertipe `string`
-// bebas (lib/pos/printLogic.ts), jadi aman diisi gabungan begini, beda dari
-// PaymentMethod tunggal yang dipakai jalur pembayaran biasa.
-// ── PERUBAHAN (migration 034) ── Metode bayar disederhanakan jadi 3. Disamakan
-// dengan METHODS/PREVIEW_METHOD_LABELS di PaymentModal.tsx — lihat catatan di sana.
-const SPLIT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  CASH: "Tunai",
-  DIGITAL: "Digital",
-  TEMPO: "Piutang",
-};
-
-// ── PERUBAHAN (migration 048) ── Nilai tukar 1 poin loyalitas ke Rupiah dulu
-// konstanta 100 di sini. Sekarang per outlet (Administrasi > Outlet > Pajak &
-// Poin): `outlet.loyaltyPointValue` dari useSettings. Server memakai nilai yang
-// sama (loyalty_point_value_for_user, migration 048) saat memvalidasi potongan.
 
 interface KasirModuleProps {
-  // ── PERUBAHAN (buka/tutup shift sepenuhnya di layar Kasir) ── Prop lama
-  // `onNavigateToShift` (pindah ke menu Kas & Shift) dihapus. Gantinya
-  // `onExitKasir`: keluar dari layar Kasir balik ke Dashboard — dipakai saat
-  // kasir membatalkan modal Buka Kasir, dan setelah ringkasan Tutup Sesi Kas.
+  // Keluar dari layar Kasir balik ke Dashboard — dipakai saat kasir
+  // membatalkan modal Buka Kasir, dan setelah ringkasan Tutup Sesi Kas.
   onExitKasir?: () => void;
-  // ── PERUBAHAN (tombol "Menu" membuka Sidebar sebagai drawer) ── Dulu prop
-  // ini ("onBackToMenu") NAVIGASI keluar dari Kasir balik ke Dashboard.
-  // Sekarang Kasir TIDAK ditinggalkan sama sekali — tombol "Menu" di
-  // KasirTopBar (dua-duanya mode, PC & tablet) cuma MEMBUKA Sidebar sebagai
-  // drawer DI ATAS layar Kasir (persis seperti drawer di mode HP), lewat
-  // callback ini yang diberikan page.tsx (`setIsKasirSidebarOpen(true)`).
-  // Kasir baru benar-benar ditinggalkan kalau kasir memilih menu lain di
-  // drawer itu (mis. "Dashboard") — itu terjadi lewat Sidebar/onMenuChange,
-  // BUKAN lewat prop ini.
+  // Tombol "Menu" di KasirTopBar (mode PC & tablet) cuma MEMBUKA Sidebar sebagai
+  // drawer DI ATAS layar Kasir (callback dari page.tsx). Kasir baru benar-benar
+  // ditinggalkan kalau kasir memilih menu lain di drawer itu.
   onOpenMenu?: () => void;
 }
-
-// ── TAMBAHAN (mode PC/Tablet) ── localStorage key untuk mengingat pilihan
-// layout kasir per-DEVICE (bukan per-akun — kasir yang sama bisa pindah dari
-// komputer kasir ber-mouse+keyboard ke tablet kapan saja, dan sebaliknya).
-const LAYOUT_MODE_STORAGE_KEY = "lco-pos:kasir-layout-mode";
-type KasirLayoutMode = "tablet" | "pc";
 
 export default function KasirModule({
   onExitKasir,
@@ -145,99 +83,68 @@ export default function KasirModule({
   const { products, isLoading, error, refetch } = useProducts();
   const { categories } = useCategories();
   const { user } = useAuth();
-
-  // ── TAMBAHAN (mode PC/Tablet) ── Default "tablet" (UI grid yang sudah ada)
-  // supaya perilaku existing tidak berubah untuk siapa pun yang belum pernah
-  // klik "Layout" — localStorage cuma dibaca SETELAH mount (bukan langsung di
-  // initializer useState) supaya server/client render pertama identik (hindari
-  // hydration mismatch Next.js kalau nanti ini di-SSR).
-  const [layoutMode, setLayoutMode] = useState<KasirLayoutMode>("tablet");
-  useEffect(() => {
-    const saved = window.localStorage.getItem(LAYOUT_MODE_STORAGE_KEY);
-    if (saved === "pc" || saved === "tablet") setLayoutMode(saved);
-  }, []);
-  const toggleLayoutMode = () => {
-    setLayoutMode((prev) => {
-      const next: KasirLayoutMode = prev === "pc" ? "tablet" : "pc";
-      window.localStorage.setItem(LAYOUT_MODE_STORAGE_KEY, next);
-      return next;
-    });
-  };
-
-  // ── TAMBAHAN (mode PC: "Diskon Faktur") ── Diskon manual yang diketik
-  // langsung kasir (beda dari potongan poin loyalitas — dua-duanya ADDITIF,
-  // lihat `discount` gabungan di bawah).
-  const [manualDiscountInput, setManualDiscountInput] = useState("");
-  const manualDiscount =
-    Number(manualDiscountInput.replace(/[^0-9]/g, "")) || 0;
-
   const { settings: posSettings, outlet } = useSettings();
   const loyaltyPointValue = outlet.loyaltyPointValue;
-  const {
-    activeShift,
-    isLoading: isShiftLoading,
-    openShift,
-    closeShift,
-  } = useShifts();
-  // ── TAMBAHAN (migration 047, multi cabang) ── Selama sesi kas terbuka, kasir
-  // WAJIB bekerja di cabang tempat sesi itu dibuka (transaksi & kas ikut cabang
-  // sesi). Kalau cabang di Header sempat diganti, kembalikan ke cabang sesi.
-  // Pindah cabang = tutup sesi kas dulu, lalu buka sesi baru di cabang lain.
-  const {
-    branches: branchChoices,
-    activeBranch,
-    activeBranchId,
-    setActiveBranch,
-  } = useActiveBranch();
-  const shiftBranchId = activeShift?.branch_id ?? null;
-  useEffect(() => {
-    if (shiftBranchId && shiftBranchId !== activeBranchId) {
-      setActiveBranch(shiftBranchId);
-    }
-  }, [shiftBranchId, activeBranchId, setActiveBranch]);
-  // ── TAMBAHAN (migration 040) ── Catatan kas masuk/keluar untuk shift aktif.
-  // `summary` hanya dipakai untuk pengingat di modal Tutup Sesi Kas — TIDAK
-  // pernah menampilkan "kas seharusnya" (penutupan kas dibuat "buta").
-  const { summary: cashSummary, addMovement: addCashMovement } =
-    useCashMovements(activeShift?.id ?? null);
-  const [isCashModalOpen, setIsCashModalOpen] = useState(false);
-  const handleAddCashMovement = async (params: AddCashMovementParams) => {
-    await addCashMovement(params);
-  };
   const { printReceipt } = usePrinterProfiles();
-  // ── TAMBAHAN (Kasir: pelanggan + poin loyalitas) ──
-  // ── PERUBAHAN (migration 036) ── `redeemPoints` tidak dipakai lagi di sini:
-  // poin dipotong/ditambah SERVER di dalam create_transaction (atomik). Yang
-  // tersisa cuma `refetch` untuk menyegarkan saldo poin di daftar pelanggan.
-  const { customers, refetch: refetchCustomers, addCustomer } = useCustomers();
-  const {
-    heldOrders,
-    isLoading: isHeldOrdersLoading,
-    holdOrder,
-    resumeHeldOrder,
-    deleteHeldOrder,
-    refetch: refetchHeldOrders,
-  } = useHoldOrders();
 
-  // ── PERBAIKAN (BUG: "layar kedip/refresh setelah bayar, sukses tidak
-  // pernah tampil") ── Akar masalahnya: `isLoading` dari useProducts() juga
-  // menyala true saat refetch() manual (dipanggil KasirModule setelah
-  // transaksi sukses, untuk update angka stok) — bukan cuma saat load
-  // pertama kali. Guard di bawah (`if (isLoading || isShiftLoading) return
-  // <spinner full-screen>`) dulu memakai isLoading itu apa adanya, jadi tiap
-  // kali refetch() jalan, SELURUH KasirModule (termasuk <PaymentModal> yang
-  // sedang di layar sukses) ikut dibuang & diganti spinner, lalu di-mount
-  // ULANG dari nol begitu refetch selesai — dan PaymentModal yang baru
-  // di-mount otomatis reset ke layar form (lihat useEffect([isOpen, ...])
-  // di PaymentModal.tsx). Itulah "kedip" yang terlihat: bukan bug print,
-  // bukan bug transaksi (keduanya sudah sukses) — transaksi & cetak sudah
-  // beres, tapi layarnya keburu di-reset paksa oleh loading state produk.
-  //
-  // Perbaikan: `hasLoadedInitial` hanya dipakai untuk menahan spinner
-  // full-screen SEBELUM data pertama kali selesai dimuat. Setelah itu,
-  // walau isLoading/isShiftLoading menyala lagi (mis. karena refetch()
-  // pasca-transaksi), layar utama Kasir & PaymentModal TIDAK di-unmount —
-  // cukup biarkan data lama tampil sampai data baru datang.
+  const { layoutMode, toggleLayoutMode } = useKasirLayoutMode();
+
+  // ── Diskon Faktur (mode PC) ── Diskon manual yang diketik langsung kasir
+  // (beda dari potongan poin loyalitas — dua-duanya ADDITIF, lihat calcDiscount).
+  const [manualDiscountInput, setManualDiscountInput] = useState("");
+  const manualDiscount = parseDigits(manualDiscountInput);
+
+  // ── Sesi kas / shift / cabang ──
+  const session = useKasirShiftSession({
+    posSettings,
+    outlet,
+    user,
+    printReceipt,
+    onExitKasir,
+  });
+  const { activeShift, isShiftLoading } = session;
+
+  // ── Pelanggan & poin ──
+  const customer = useKasirCustomer();
+
+  // ── State layar ──
+  // Di layar sempit (di bawah `md`) panel Produk & Keranjang jadi 2 "layar"
+  // yang di-toggle lewat `mobileView`; dari `md` ke atas keduanya berdampingan.
+  const [mobileView, setMobileView] = useState<"products" | "cart">("products");
+  const [transactionError, setTransactionError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
+    null,
+  );
+  const [isBiayaTambahanModalOpen, setIsBiayaTambahanModalOpen] =
+    useState(false);
+
+  // Token yang di-increment tiap shortcut F1/F2/F6 ditekan — KasirModulePC punya
+  // useEffect yang me-fokus input terkait tiap token berubah (pola token dipakai
+  // supaya file ini tidak perlu tahu detail DOM input di KasirModulePC).
+  const [pcFocusCodeToken, setPcFocusCodeToken] = useState(0);
+  const [pcFocusCustomerToken, setPcFocusCustomerToken] = useState(0);
+  const [pcFocusDiscountToken, setPcFocusDiscountToken] = useState(0);
+
+  // ── Keranjang & Tunda ──
+  const cartState = useKasirCart({ products, setTransactionError });
+  const { cart, setCart } = cartState;
+  const hold = useKasirHold({
+    cart,
+    products,
+    setCart,
+    setMobileView,
+    setTransactionError,
+  });
+
+  // ── PERBAIKAN (BUG: "layar kedip/refresh setelah bayar, sukses tidak pernah
+  // tampil") ── `isLoading` dari useProducts() juga menyala true saat refetch()
+  // manual (setelah transaksi sukses, untuk update stok), bukan cuma load
+  // pertama. Dulu guard spinner full-screen memakai isLoading apa adanya, jadi
+  // tiap refetch SELURUH layar (termasuk PaymentModal di layar sukses) dibuang
+  // lalu di-mount ULANG dan PaymentModal otomatis reset ke form. Sekarang
+  // `hasLoadedInitial` hanya menahan spinner SEBELUM data pertama selesai
+  // dimuat; setelah itu data lama tetap tampil sampai data baru datang.
   const [hasLoadedInitial, setHasLoadedInitial] = useState(false);
   useEffect(() => {
     if (!isLoading && !isShiftLoading && !hasLoadedInitial) {
@@ -245,861 +152,103 @@ export default function KasirModule({
     }
   }, [isLoading, isShiftLoading, hasLoadedInitial]);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    null,
+  // ── Turunan katalog ──
+  const filteredProducts = useMemo(
+    () => filterProducts(products, searchQuery, selectedCategoryId),
+    [products, searchQuery, selectedCategoryId],
   );
-  const [cart, setCart] = useState<CartItem[]>([]);
-  // ── TAMBAHAN (responsif HP/tablet) ── Di layar sempit (di bawah breakpoint
-  // `md`), panel Produk & panel Keranjang tidak lagi ditumpuk vertikal (itu
-  // yang bikin kasir harus scroll ~2 layar penuh untuk sampai ke keranjang).
-  // Sebagai gantinya keduanya jadi 2 "layar" yang di-toggle lewat state ini —
-  // tombol mengambang "Lihat Keranjang" di layar Produk, tombol kembali di
-  // layar Keranjang. Di `md` ke atas (tablet lanskap/desktop) state ini
-  // diabaikan sepenuhnya lewat class `md:flex` — kedua panel selalu tampil
-  // berdampingan seperti sebelumnya.
-  const [mobileView, setMobileView] = useState<"products" | "cart">("products");
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isSavingTransaction, setIsSavingTransaction] = useState(false);
-  const [transactionError, setTransactionError] = useState<string | null>(null);
-
-  // ── TAMBAHAN (013) ── Struk transaksi TERAKHIR yang berhasil dibayar + no.
-  // HP pelanggan yang diisi kasir di PaymentModal, disimpan di sini (bukan di
-  // PaymentModal) supaya tetap tersedia untuk handleSendWhatsApp() bahkan
-  // kalau PaymentModal sempat re-render (mis. reset form saat isOpen berubah).
-  // null selama belum pernah ada transaksi sukses di sesi Kasir ini.
-  const [lastReceipt, setLastReceipt] = useState<ReceiptData | null>(null);
-  const [lastCustomerPhone, setLastCustomerPhone] = useState<string | null>(
-    null,
-  );
-
-  // ── TAMBAHAN (T-11 bagian 1) ── Modal konfirmasi "Tunda" (isi label opsional).
-  const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
-  const [holdLabel, setHoldLabel] = useState("");
-  const [isHolding, setIsHolding] = useState(false);
-  const [holdModalError, setHoldModalError] = useState<string | null>(null);
-
-  // Modal daftar held order — lihat & lanjutkan/hapus.
-  const [isHeldListOpen, setIsHeldListOpen] = useState(false);
-  const [resumingId, setResumingId] = useState<string | null>(null);
-  const [heldListError, setHeldListError] = useState<string | null>(null);
-  // Info non-fatal ("2 item disesuaikan karena stok berkurang") setelah resume —
-  // dipisah dari transactionError (yang khusus kegagalan pembayaran) supaya
-  // warnanya beda (peringatan kuning, bukan merah) & tidak saling menimpa.
-  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
-
-  // ── TAMBAHAN (T-11 bagian 3) ── Modal scan barcode kamera.
-  const [isScanModalOpen, setIsScanModalOpen] = useState(false);
-  const [scanFeedback, setScanFeedback] = useState<ScanFeedback | null>(null);
-
-  // ── TAMBAHAN (Fase 1: Buka Kasir dari layar Kasir langsung) ── Modal
-  // "Mulai Sesi Kasir" — dulu layar terkunci cuma punya tombol yang
-  // navigasi ke menu "Kas & Shift" terpisah (onNavigateToShift). Sekarang
-  // modal input modal awal ADA DI SINI, supaya alurnya: klik "Buka Kasir"
-  // -> isi modal awal -> "Mulai Sesi Kasir" -> struk awal tercetak otomatis
-  // -> langsung di layar transaksi POS yang sama, tanpa pindah menu.
-  // ── PERUBAHAN ── Modal ini TIDAK lagi punya state buka/tutup sendiri: selama
-  // `activeShift` kosong (dan status shift sudah selesai dimuat), modal langsung
-  // tampil — tanpa layar peringatan "Kasir Belum Dibuka" di belakangnya.
-  const [openingCashInput, setOpeningCashInput] = useState<string | null>(null);
-  const [isStartingSession, setIsStartingSession] = useState(false);
-  const [openSessionError, setOpenSessionError] = useState<string | null>(null);
-
-  // Nilai yang tampil di input modal awal: `null` = kasir belum mengetik apa
-  // pun, jadi tampilkan default Pengaturan (shift_default_cash) — diturunkan
-  // saat render (bukan lewat useEffect) supaya nilai Pengaturan yang datang
-  // belakangan tetap terpakai dan ketikan kasir tidak pernah tertimpa. Kembali
-  // ke `null` setelah sesi dibuka, jadi sesi berikutnya mulai dari default lagi.
-  const openingCashValue =
-    openingCashInput ?? String(posSettings.shiftDefaultCash || "");
-
-  // ── TAMBAHAN (Tutup Sesi Kas) ── `closeResult` disimpan di sini (bukan di
-  // dalam modal) karena begitu shift tertutup, komponen ini pindah cabang
-  // render ke layar tanpa-shift — ringkasan selisih harus tetap tampil.
-  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
-  const [closeResult, setCloseResult] = useState<CloseShiftResult | null>(null);
-
-  const handleCloseSession = async (actualCash: number, notes?: string) => {
-    const result = await closeShift(actualCash, notes);
-    setIsStartingSession(false);
-    setCloseResult(result);
-    setIsCloseModalOpen(false);
-  };
-
-  const handleFinishCloseSession = () => {
-    setCloseResult(null);
-    onExitKasir?.();
-  };
-
-  // ── TAMBAHAN (Kasir: pelanggan + poin loyalitas, opsional) ──
-  const [customerQuery, setCustomerQuery] = useState("");
-  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null,
-  );
-  const [usePoints, setUsePoints] = useState(false);
-  const [isLoyaltyNoticeDismissed, setIsLoyaltyNoticeDismissed] =
-    useState(false);
-
-  // ── PERBAIKAN (pencarian pelanggan) ── Dulu cuma cocok kalau seluruh
-  // teks ada persis di nama. Sekarang dipecah per-kata (mis. "muhammad
-  // ahmad" cocok dengan "Ahmad Muhammad Rizki") dan juga mencari di no. HP.
-  const matchingCustomers = useMemo(() => {
-    const tokens = customerQuery
-      .trim()
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean);
-    if (tokens.length === 0) return [];
-    return customers
-      .filter((c) => {
-        const hay = `${c.name} ${c.phone ?? ""}`.toLowerCase();
-        return tokens.every((t) => hay.includes(t));
-      })
-      .slice(0, 12);
-  }, [customers, customerQuery]);
-
-  const handleSelectCustomer = (c: Customer) => {
-    setSelectedCustomer(c);
-    setUsePoints(false);
-    setIsLoyaltyNoticeDismissed(false);
-    setCustomerQuery("");
-    setIsCustomerDropdownOpen(false);
-  };
-
-  // ── TAMBAHAN (Kasir: Biaya Tambahan) ── Item non-produk (kantong kresek,
-  // ongkos kirim, dst.) ditambahkan lewat produk BERTIPE JASA (`is_service`)
-  // yang sudah didukung penuh oleh RPC create_transaction (stok tak
-  // terbatas, lihat schema.sql fungsi create_transaction & adjust_stock).
-  // Tidak perlu tabel/migration baru — cukup filter produk yang sudah ada,
-  // dan admin toko menandai produk seperti "Kantong Kresek" sebagai Jasa di
-  // menu Produk. Modal ini sekadar jalan pintas supaya kasir tidak perlu
-  // mencari produk itu bercampur dengan produk dagangan biasa.
-  const [isBiayaTambahanModalOpen, setIsBiayaTambahanModalOpen] =
-    useState(false);
   const serviceProducts = useMemo(
-    // Migration 045: produk Jasa SELALU tampil; produk fisik (berstok) tampil
-    // kalau ditandai "Tampilkan di Biaya Tambahan" (kantong, paper bag, dst.).
-    () =>
-      products.filter(
-        (p) => p.is_service || p.is_extra_charge || p.type === "KEMASAN",
-      ),
+    () => filterServiceProducts(products),
     [products],
   );
 
-  // ── TAMBAHAN (mode PC: input Kode + navigasi baris) ── `pcSelectedProductId`
-  // = product.id dari baris keranjang yang sedang "disorot" di mode PC — BUKAN
-  // staging area terpisah (dikoreksi user: di screenshot rujukan, produk yang
-  // baru di-scan LANGSUNG masuk ke tabel keranjang penuh-lebar; panel "Nama
-  // Barang Terpilih"/"Parameter Barang Aktif" di atasnya cuma MENCERMINKAN &
-  // membiarkan edit cepat baris yang sedang disorot itu, dinavigasi pakai ↑↓).
-  const [pcSelectedProductId, setPcSelectedProductId] = useState<string | null>(
-    null,
-  );
-  const [pcCodeError, setPcCodeError] = useState<string | null>(null);
-  // Token yang di-increment tiap kali shortcut F1/F2/F6 ditekan — KasirModulePC
-  // punya useEffect yang men-focus input terkait tiap token ini berubah. Pola
-  // "token" dipakai (bukan ref langsung) supaya KasirModule.tsx tidak perlu
-  // tahu detail DOM input yang ada di file KasirModulePC.tsx.
-  const [pcFocusCodeToken, setPcFocusCodeToken] = useState(0);
-  const [pcFocusCustomerToken, setPcFocusCustomerToken] = useState(0);
-  const [pcFocusDiscountToken, setPcFocusDiscountToken] = useState(0);
-
-  // Dipakai tombol "Bayar"/F8 DUA-DUANYA (mode Tablet & mode PC) — supaya
-  // guard-nya (keranjang tidak kosong, tidak lagi menyimpan transaksi lain)
-  // konsisten di kedua mode & shortcut keyboard, bukan disalin 3x.
-  const handleOpenPayment = () => {
-    if (cart.length === 0 || isSavingTransaction) return;
-    setTransactionError(null);
-    setIsPaymentModalOpen(true);
-  };
-
-  // Kode di kolom "Jumlah Beli * Kode" boleh diketik polos (SKU/barcode) atau
-  // format pintas "qty*kode" (mis. "3*p1" = 3 botol Aqua Mineral 600ml) —
-  // dicari dulu di SKU, baru barcode, case-insensitive persis (bukan "includes"
-  // seperti kolom pencarian biasa, supaya scan barcode cepat & tidak ambigu
-  // kalau ada 2 produk dengan kode mirip).
-  // Dipakai dua jalur: Enter di kolom kode (kode persis cocok) DAN memilih
-  // salah satu produk dari daftar saran yang muncul saat kasir mengetik
-  // nama/kode sebagian (lihat KasirModulePC.tsx).
-  const handlePcAddProduct = (product: ProductWithCategory, qty: number) => {
-    setPcCodeError(null);
-    setTransactionError(null);
-    setCart((prev) => {
-      let next = addToCart(prev, product);
-      if (qty > 1) next = updateQty(next, product.id, qty - 1);
-      return next;
-    });
-    setPcSelectedProductId(product.id);
-  };
-
-  const handlePcCodeSubmit = (raw: string) => {
-    const trimmed = raw.trim();
-    if (!trimmed) return;
-
-    let qty = 1;
-    let code = trimmed;
-    const starIdx = trimmed.indexOf("*");
-    if (starIdx > -1) {
-      const qtyPart = trimmed.slice(0, starIdx).trim();
-      const codePart = trimmed.slice(starIdx + 1).trim();
-      const parsedQty = Number(qtyPart);
-      if (qtyPart && Number.isFinite(parsedQty) && parsedQty > 0) {
-        qty = Math.floor(parsedQty);
-        code = codePart;
-      }
-    }
-
-    if (!code) {
-      setPcCodeError("Kode tidak boleh kosong.");
-      return;
-    }
-
-    const lower = code.toLowerCase();
-    const product = products.find(
-      (p) =>
-        p.sku.toLowerCase() === lower ||
-        (p.barcode ?? "").toLowerCase() === lower,
-    );
-
-    if (!product) {
-      setPcCodeError(`Produk dengan kode "${code}" tidak ditemukan.`);
-      return;
-    }
-
-    handlePcAddProduct(product, qty);
-  };
-
-  // ── TAMBAHAN (T-11 bagian 1) ── Handler Hold Order.
-  const openHoldModal = () => {
-    if (cart.length === 0) return;
-    setHoldModalError(null);
-    setHoldLabel("");
-    setIsHoldModalOpen(true);
-  };
-
-  // ── TAMBAHAN (mode PC: shortcut keyboard) ── HANYA aktif kalau kasir
-  // sedang di mode PC & shift sudah dibuka (di mode Tablet/layar terkunci,
-  // tombol F1-F8 dibiarkan berperilaku normal browser). Semua pakai tombol
-  // F (bukan Ctrl/Cmd+huruf) sebagai jalur utama karena F-key TIDAK PERNAH
-  // dipakai browser untuk mengetik teks — aman dipakai dari mana saja tanpa
-  // perlu cek elemen apa yang sedang fokus, KECUALI F5 (refresh browser) yang
-  // sengaja tetap di-preventDefault karena "Bersihkan" versi kasir bukan
-  // reload halaman. Ctrl/Cmd+K, Cmd+U, Cmd+D, Cmd+Enter disediakan sebagai
-  // ALIAS familiar (sesuai label tombol di screenshot rujukan).
-  useEffect(() => {
-    if (layoutMode !== "pc" || !activeShift) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-
-      if (e.key === "F1" || (mod && e.key.toLowerCase() === "k")) {
-        e.preventDefault();
-        setPcFocusCodeToken((t) => t + 1);
-      } else if (e.key === "F2" || (mod && e.key.toLowerCase() === "u")) {
-        e.preventDefault();
-        setPcFocusCustomerToken((t) => t + 1);
-      } else if (e.key === "F3") {
-        e.preventDefault();
-        openHoldModal();
-      } else if (e.key === "F5") {
-        e.preventDefault();
-        if (cart.length > 0 && window.confirm("Bersihkan keranjang?")) {
-          setCart(clearCart());
-          setPcSelectedProductId(null);
-        }
-      } else if (e.key === "F6" || (mod && e.key.toLowerCase() === "d")) {
-        e.preventDefault();
-        setPcFocusDiscountToken((t) => t + 1);
-      } else if (e.key === "F7" || (e.altKey && e.key === "7")) {
-        e.preventDefault();
-        setIsBiayaTambahanModalOpen(true);
-      } else if (e.key === "F8" || (mod && e.key === "Enter")) {
-        e.preventDefault();
-        handleOpenPayment();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [layoutMode, activeShift, cart, isSavingTransaction]);
-
-  const filteredProducts = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return products.filter((product) => {
-      const matchesCategory =
-        !selectedCategoryId || product.category_id === selectedCategoryId;
-      const matchesSearch =
-        !q ||
-        product.name.toLowerCase().includes(q) ||
-        product.sku.toLowerCase().includes(q) ||
-        (product.barcode ?? "").toLowerCase().includes(q);
-      return matchesCategory && matchesSearch;
-    });
-  }, [products, searchQuery, selectedCategoryId]);
-
-  const handleAddToCart = (product: ProductWithCategory) => {
-    setTransactionError(null);
-    setCart((prev) => addToCart(prev, product));
-  };
-  const handleUpdateQty = (productId: string, delta: number) => {
-    setTransactionError(null);
-    setCart((prev) => updateQty(prev, productId, delta));
-  };
-  const handleRemoveFromCart = (productId: string) => {
-    setTransactionError(null);
-    setCart((prev) => removeFromCart(prev, productId));
-  };
-
+  // ── Total (aturan hitung ada di lib/pos/kasirLogic.ts) ──
   const subtotal = useMemo(() => getCartSubtotal(cart), [cart]);
-  const tax = useMemo(() => {
-    if (!posSettings.ppnEnabled) return 0;
-    return Math.round((subtotal * posSettings.ppnRate) / 100);
-  }, [posSettings.ppnEnabled, posSettings.ppnRate, subtotal]);
-  // ── TAMBAHAN (Kasir: poin loyalitas) ── Sebelumnya `const discount = 0`
-  // (stub, tidak pernah dipakai apa pun). Sekarang diisi dari poin pelanggan
-  // terpilih KALAU kasir menekan "Gunakan Poin" — poin yang benar-benar
-  // dipakai (`pointsBeingUsed`) dibatasi supaya potongannya tidak pernah
-  // melebihi subtotal+pajak (total tidak pernah negatif), dan angka INI juga
-  // yang dikirim ke createTransaction() sebagai `pointsRedeemed` (server yang
-  // memotong saldo — migration 036), bukan seluruh saldo poin pelanggan.
-  const pointsBeingUsed = useMemo(() => {
-    if (!outlet.loyaltyEnabled || !usePoints || !selectedCustomer) return 0;
-    const maxAffordablePoints = Math.floor(
-      (subtotal + tax) / loyaltyPointValue,
-    );
-    return Math.min(selectedCustomer.loyalty_points, maxAffordablePoints);
-  }, [
-    outlet.loyaltyEnabled,
-    usePoints,
-    selectedCustomer,
-    subtotal,
-    tax,
-    loyaltyPointValue,
-  ]);
-  // ── PERUBAHAN (mode PC: "Diskon Faktur") ── discount sekarang GABUNGAN dari
-  // 2 sumber ADDITIF — poin loyalitas (pointsBeingUsed, sudah ada) + nominal
-  // yang diketik manual kasir di kolom "Diskon Faktur" (manualDiscount, baru).
-  // Dibatasi supaya totalnya tidak pernah melebihi subtotal+pajak (grandTotal
-  // tidak pernah negatif) — kalau sudah kepotong poin duluan, sisa kuota buat
-  // diskon manual otomatis lebih kecil (loyalitas dianggap "lebih prioritas"
-  // karena sudah dipilih kasir lebih dulu di alur normal).
-  const discount = useMemo(() => {
-    const loyaltyPart = pointsBeingUsed * loyaltyPointValue;
-    const remainingCap = Math.max(subtotal + tax - loyaltyPart, 0);
-    return loyaltyPart + Math.min(manualDiscount, remainingCap);
-  }, [pointsBeingUsed, manualDiscount, subtotal, tax, loyaltyPointValue]);
-  const grandTotal = subtotal - discount + tax;
-
-  // ── TAMBAHAN (menu Pelanggan) ── Daftarkan member baru otomatis dari form
-  // Pembayaran: kalau kasir TIDAK memilih pelanggan di kolom Pelanggan tapi
-  // mengisi no. HP di PaymentModal, dan no. HP itu belum terdaftar, buat
-  // pelanggan baru (nama kosong → no. HP dipakai sebagai nama). Dipanggil
-  // SETELAH transaksi tersimpan & sengaja tidak melempar error — gagal
-  // mendaftar (mis. nomor milik pelanggan yang diarsipkan) tidak boleh
-  // membatalkan transaksi yang sudah sukses.
-  // ── PERUBAHAN (migration 036) ── Dulu `autoRegisterCustomer`, dipanggil
-  // SETELAH transaksi tersimpan dan hanya mendaftarkan. Sekarang dipanggil
-  // SEBELUM transaksi dan mengembalikan ID pelanggan untuk dikirim ke server,
-  // supaya transaksi tertaut ke pelanggan dan poin belanja otomatis masuk:
-  //   1. pelanggan yang dipilih kasir di panel Pelanggan -> pakai itu;
-  //   2. tidak dipilih, tapi no. HP yang diketik cocok dengan pelanggan aktif
-  //      -> tautkan ke pelanggan itu;
-  //   3. no. HP baru -> daftarkan (nama kosong -> no. HP dipakai sebagai nama).
-  // Sengaja tidak melempar error: gagal mendaftar (mis. nomor milik pelanggan
-  // yang diarsipkan) hanya berarti transaksi berjalan tanpa pelanggan.
-  const resolveCustomerId = async (
-    name?: string,
-    phone?: string,
-  ): Promise<string | undefined> => {
-    if (selectedCustomer) return selectedCustomer.id;
-    if (!phone) return undefined;
-    const key = normalizePhone(phone);
-    if (key.length < 9) return undefined;
-    const existing = customers.find((c) => normalizePhone(c.phone) === key);
-    if (existing) return existing.id;
-    try {
-      const created = await addCustomer(
-        name?.trim() || phone.trim(),
-        phone.trim(),
-      );
-      return created.id;
-    } catch (registerErr) {
-      console.error("Gagal mendaftarkan pelanggan baru:", registerErr);
-      return undefined;
-    }
-  };
-
-  const handleConfirmPayment = async (
-    method: PaymentMethod,
-    paidAmount: number,
-    change: number,
-    extra?: {
-      customerName?: string;
-      customerPhone?: string;
-      dueDate?: string;
-      // ── PERBAIKAN (038) ── Order ID Midtrans yang sudah LUNAS dari
-      // PaymentModal. Dulu tipe ini tidak memuatnya sehingga nilainya
-      // terbuang dan server tidak pernah memverifikasi pembayaran digital.
-      digitalOrderId?: string;
-    },
-  ): Promise<{ paymentId: string }> => {
-    if (cart.length === 0) throw new Error("Keranjang masih kosong.");
-    setTransactionError(null);
-    setIsSavingTransaction(true);
-
-    try {
-      // ── TAMBAHAN (Kasir: pelanggan) ── Kalau kasir sudah memilih pelanggan
-      // dari pencarian di panel produk, pakai nama/HP-nya sebagai default —
-      // tapi kalau kasir SEMPAT mengetik nama/HP lain secara manual di
-      // PaymentModal (`extra`), yang manual itu tetap menang.
-      const effectiveCustomerName =
-        extra?.customerName || selectedCustomer?.name;
-      const effectiveCustomerPhone =
-        extra?.customerPhone || selectedCustomer?.phone || undefined;
-
-      const customerId = await resolveCustomerId(
-        extra?.customerName,
-        extra?.customerPhone,
-      );
-
-      const result = await createTransaction({
-        items: cart,
-        subtotal,
-        discount,
-        tax,
-        total: grandTotal,
-        paymentMethod: method,
-        paymentAmount: paidAmount,
-        receivedAmount: method === "CASH" ? paidAmount : undefined,
-        customerName: effectiveCustomerName,
-        customerPhone: effectiveCustomerPhone,
-        dueDate: extra?.dueDate,
-        customerId,
-        pointsRedeemed: pointsBeingUsed,
-        digitalOrderId: extra?.digitalOrderId,
-      });
-
-      // Segarkan saldo poin di daftar pelanggan (server sudah memotong/menambah).
-      refetchCustomers();
-
-      const receiptData: ReceiptData = {
-        // ── KOREKSI (bug: data Pengaturan Toko/Struk tidak muncul di struk
-        // baru) ── Field ini sebelumnya tidak pernah diisi di sini, jadi
-        // printLogic.ts selalu jatuh ke fallback hardcode-nya ("Langitan.co",
-        // tanpa alamat/telepon, footer default) walau kasir sudah mengisi
-        // Pengaturan > Toko. TransactionDetailModal.tsx (cetak ulang dari
-        // Riwayat Transaksi) sudah benar mengisi 4 field ini dari
-        // `posSettings` — disamakan di sini.
-        storeName: posSettings.namaToko,
-        storeAddress: posSettings.alamat,
-        storePhone: posSettings.telepon,
-        footerText: posSettings.footerStruk,
-        headerText: outlet.headerStruk || undefined,
-        ...getReceiptPromo(posSettings),
-        receiptNo: result.receipt_no,
-        createdAt: new Date().toISOString(),
-        cashierName: user?.full_name ?? user?.email ?? null,
-        customerName: effectiveCustomerName,
-        items: cart.map((item) => ({
-          name: item.product.name,
-          price: item.product.sell_price,
-          qty: item.qty,
-        })),
-        subtotal,
-        discount,
-        tax,
-        total: grandTotal,
-        paidAmount,
-        changeAmount: result.change_amount ?? change,
-        method,
-      };
-
-      // ── PERBAIKAN (auto-print setelah bayar) ── Sebelumnya cetak hanya
-      // dipicu manual lewat tombol "Cetak" di layar sukses. Sekarang
-      // PaymentModal memanggil onPrint() OTOMATIS begitu layar sukses
-      // muncul (lihat handlePrintReceipt & prop onPrint di <PaymentModal>
-      // di bawah) — kasir tidak perlu menekan apa pun, dan selalu ke
-      // printer thermal (pemilihan format thermal/nota hanya tersisa di
-      // alur "Cetak Ulang" pada Riwayat Transaksi).
-
-      // ── TAMBAHAN (013) ── Simpan struk + no. HP transaksi ini supaya tombol
-      // "Kirim WA" di layar sukses PaymentModal (dipanggil lewat onSendWhatsApp
-      // di bawah) tahu struk MANA yang harus dibagikan.
-      setLastReceipt(receiptData);
-      setLastCustomerPhone(effectiveCustomerPhone ?? null);
-
-      setCart(clearCart());
-      setMobileView("products");
-      // ── TAMBAHAN (Kasir: pelanggan + poin) ── Reset supaya transaksi
-      // berikutnya mulai bersih (tidak ikut ke pelanggan sebelumnya).
-      setSelectedCustomer(null);
-      setUsePoints(false);
-      setManualDiscountInput("");
-      await refetch();
-      return { paymentId: result.payment_id };
-    } catch (err) {
-      console.error("Transaction failed:", err);
-      const message =
-        err instanceof Error ? err.message : "Transaksi gagal disimpan.";
-      setTransactionError(message);
-      throw err instanceof Error ? err : new Error(message);
-    } finally {
-      setIsSavingTransaction(false);
-    }
-  };
-
-  // ── TAMBAHAN (021, T-11 bagian 2) ── Versi split payment dari
-  // handleConfirmPayment di atas. Alurnya sengaja dibuat semirip mungkin
-  // (createTransaction -> susun ReceiptData -> cetak -> simpan lastReceipt
-  // -> kosongkan keranjang) supaya perilaku di luar bagian pembayaran
-  // (cetak, "Kirim WA", refetch stok) tetap konsisten dengan jalur tunggal.
-  // Perbedaan utama:
-  // - createTransaction() dipanggil dengan `payments` (array), bukan
-  //   `paymentMethod`/`paymentAmount` tunggal — lihat cabang SplitPaymentParams
-  //   di lib/pos/transactionApi.ts.
-  // - `paidAmount` struk = jumlah SEMUA baris (bukan satu nilai yang dikirim
-  //   kasir), dan `method` struk digabung dari semua metode yang dipakai
-  //   (mis. "Tunai + Transfer") memakai SPLIT_METHOD_LABELS di atas.
-  // - Mengembalikan `payments` (bukan `paymentId` tunggal) — id tiap baris
-  //   pembayaran yang baru tersimpan.
-  const handleConfirmSplitPayment = async (
-    lines: SplitPaymentLine[],
-    extra?: {
-      customerName?: string;
-      customerPhone?: string;
-      // ── PERBAIKAN (038) ── Order ID lunas untuk baris DIGITAL di split.
-      digitalOrderId?: string;
-    },
-  ): Promise<{ payments: CreatedPayment[] }> => {
-    if (cart.length === 0) throw new Error("Keranjang masih kosong.");
-    setTransactionError(null);
-    setIsSavingTransaction(true);
-
-    try {
-      const effectiveCustomerName =
-        extra?.customerName || selectedCustomer?.name;
-      const effectiveCustomerPhone =
-        extra?.customerPhone || selectedCustomer?.phone || undefined;
-
-      const customerId = await resolveCustomerId(
-        extra?.customerName,
-        extra?.customerPhone,
-      );
-
-      const result = await createTransaction({
-        items: cart,
-        subtotal,
-        discount,
-        tax,
-        total: grandTotal,
-        payments: lines,
-        customerName: effectiveCustomerName,
-        customerPhone: effectiveCustomerPhone,
-        customerId,
-        pointsRedeemed: pointsBeingUsed,
-        digitalOrderId: extra?.digitalOrderId,
-      });
-
-      // Segarkan saldo poin di daftar pelanggan (server sudah memotong/menambah).
-      refetchCustomers();
-
-      const totalPaid = lines.reduce((sum, line) => sum + line.amount, 0);
-      const methodLabel = lines
-        .map((line) => SPLIT_METHOD_LABELS[line.method] ?? line.method)
-        .join(" + ");
-
-      const receiptData: ReceiptData = {
-        // ── KOREKSI (bug: data Pengaturan Toko/Struk tidak muncul di struk
-        // baru) ── Sama seperti di handleConfirmPayment di atas.
-        storeName: posSettings.namaToko,
-        storeAddress: posSettings.alamat,
-        storePhone: posSettings.telepon,
-        footerText: posSettings.footerStruk,
-        headerText: outlet.headerStruk || undefined,
-        ...getReceiptPromo(posSettings),
-        receiptNo: result.receipt_no,
-        createdAt: new Date().toISOString(),
-        cashierName: user?.full_name ?? user?.email ?? null,
-        customerName: effectiveCustomerName,
-        items: cart.map((item) => ({
-          name: item.product.name,
-          price: item.product.sell_price,
-          qty: item.qty,
-        })),
-        subtotal,
-        discount,
-        tax,
-        total: grandTotal,
-        paidAmount: totalPaid,
-        changeAmount: result.change_amount ?? 0,
-        method: methodLabel,
-      };
-
-      // ── PERBAIKAN (auto-print setelah bayar) ── Sama seperti
-      // handleConfirmPayment di atas — auto-print thermal dipicu PaymentModal
-      // sendiri lewat onPrint saat layar sukses muncul.
-      setLastReceipt(receiptData);
-      setLastCustomerPhone(effectiveCustomerPhone ?? null);
-
-      setCart(clearCart());
-      setMobileView("products");
-      setSelectedCustomer(null);
-      setUsePoints(false);
-      setManualDiscountInput("");
-      await refetch();
-      return { payments: result.payments };
-    } catch (err) {
-      console.error("Split transaction failed:", err);
-      const message =
-        err instanceof Error ? err.message : "Transaksi gagal disimpan.";
-      setTransactionError(message);
-      throw err instanceof Error ? err : new Error(message);
-    } finally {
-      setIsSavingTransaction(false);
-    }
-  };
-
-  // ── TAMBAHAN (013) ── Dipanggil PaymentModal saat kasir menekan "Kirim
-  // Struk via WhatsApp" di layar sukses. Pakai lastReceipt/lastCustomerPhone
-  // dari state (bukan closure atas parameter handleConfirmPayment) karena
-  // tombolnya baru bisa diklik SETELAH createTransaction() di atas selesai —
-  // urutannya selalu: handleConfirmPayment selesai -> state ini terisi ->
-  // PaymentModal masuk isSuccess -> baru mungkin tombol ini ditekan.
-  const handleSendWhatsApp = async () => {
-    if (!lastReceipt) {
-      throw new Error(
-        "Data struk tidak ditemukan. Muat ulang halaman lalu coba lagi.",
-      );
-    }
-    return shareReceiptViaWhatsApp(lastReceipt, lastCustomerPhone);
-  };
-
-  // ── PERBAIKAN (auto-print setelah bayar) ── Dulu dipanggil manual saat
-  // kasir menekan tombol "Cetak" di layar sukses, dan bisa mencetak thermal
-  // ATAU nota tergantung pilihan kasir di form pembayaran. Sekarang
-  // dipanggil OTOMATIS oleh PaymentModal (lihat prop onPrint di bawah) tepat
-  // saat layar sukses muncul — kasir tidak perlu menekan apa pun — dan
-  // SELALU ke printer thermal. Pilihan format nota (A6/A5) tidak hilang,
-  // hanya dipindah sepenuhnya ke alur "Cetak Ulang" di Riwayat Transaksi
-  // (lihat handleReprint di TransactionDetailModal.tsx), yang tetap
-  // menawarkan thermal maupun nota untuk cetak ulang. Tetap boleh terpanggil
-  // lagi kalau suatu saat dibutuhkan (mis. kertas macet) — printThermalReceipt
-  // sendiri aman dipanggil berkali-kali.
-  const handlePrintReceipt = () => {
-    if (!lastReceipt) return;
-    // Tidak perlu await/tangani hasilnya di sini — kegagalan (mis. printer
-    // Bluetooth tiba-tiba mati) sudah cukup terlihat dari status printer di
-    // Pengaturan > Printer, dan kasir tetap punya tombol ini untuk coba
-    // cetak ulang kalau kertas macet, sama seperti sebelumnya.
-    void printReceipt(lastReceipt);
-  };
-
-  // ── TAMBAHAN (Fase 1: Buka Kasir) ── Buka shift + cetak "struk awal"
-  // otomatis + kasir langsung berada di layar transaksi (tidak ada langkah
-  // navigasi terpisah — begitu `openShift()` selesai, `activeShift` dari
-  // useShifts() jadi terisi, dan return JSX di bawah otomatis merender
-  // layar transaksi POS, bukan layar terkunci lagi).
-  //
-  // Struk awal dicetak lewat pipa cetak yang SUDAH ADA (printReceipt/
-  // ReceiptData, lib/pos/printLogic.ts) — supaya
-  // konsisten dengan printer Bluetooth/USB/Sistem yang sudah dikonfigurasi
-  // kasir di Pengaturan > Printer. Layout-nya BUKAN struk penjualan: dipilih
-  // lewat `kind: "shift_open"` (lihat ReceiptData di lib/pos/printLogic.ts).
-  const handleStartSession = async () => {
-    const amount = Number(openingCashValue.replace(/[^0-9]/g, "")) || 0;
-    if (amount <= 0) {
-      setOpenSessionError("Masukkan nominal modal awal yang valid.");
-      return;
-    }
-
-    setOpenSessionError(null);
-    setIsStartingSession(true);
-    try {
-      await openShift(amount);
-
-      const now = new Date();
-      const openingReceipt: ReceiptData = {
-        storeName: posSettings.namaToko,
-        storeAddress: posSettings.alamat,
-        storePhone: posSettings.telepon,
-        footerText: posSettings.footerStruk,
-        headerText: outlet.headerStruk || undefined,
-        receiptNo: `BUKA-${now.getTime()}`,
-        createdAt: now.toISOString(),
-        cashierName: user?.full_name ?? user?.email ?? null,
-        // ── PERUBAHAN (struk Buka Kasir dibedakan dari struk penjualan) ──
-        // `kind: "shift_open"` memilih layout khusus (judul "BUKA KASIR",
-        // nominal modal awal besar, kolom paraf) — bukan lagi struk penjualan
-        // dengan satu baris item palsu. `items` sengaja kosong; field wajib
-        // lain di ReceiptData cuma pengisi tipe, tidak tercetak di layout ini.
-        kind: "shift_open",
-        openingCash: amount,
-        items: [],
-        subtotal: amount,
-        discount: 0,
-        tax: 0,
-        total: amount,
-        paidAmount: amount,
-        changeAmount: 0,
-        method: "Buka Kasir",
-      };
-      // Tidak perlu await — sama seperti handlePrintReceipt, kegagalan
-      // printer tidak boleh memblokir kasir mulai transaksi.
-      void printReceipt(openingReceipt);
-
-      setOpeningCashInput(null);
-      // Modal hilang sendiri begitu `activeShift` terisi (refetch di
-      // openShift). `isStartingSession` sengaja TIDAK di-reset di sini:
-      // openShift() tidak menunggu refetch, jadi ada jeda sampai shift
-      // terlihat, dan tombol harus tetap terkunci (cegah klik ganda). Reset
-      // dilakukan di handleCloseSession saat sesi ini nanti ditutup.
-    } catch (err) {
-      setOpenSessionError(
-        err instanceof Error ? err.message : "Gagal membuka sesi kasir.",
-      );
-      setIsStartingSession(false);
-    }
-  };
-
-  const handleConfirmHold = async () => {
-    setIsHolding(true);
-    setHoldModalError(null);
-    try {
-      await holdOrder(cart, holdLabel);
-      setCart(clearCart());
-      setMobileView("products");
-      setIsHoldModalOpen(false);
-    } catch (err) {
-      setHoldModalError(
-        err instanceof Error ? err.message : "Gagal menunda transaksi.",
-      );
-    } finally {
-      setIsHolding(false);
-    }
-  };
-
-  const openHeldList = () => {
-    setHeldListError(null);
-    setIsHeldListOpen(true);
-    refetchHeldOrders();
-  };
-
-  const handleResumeHeldOrder = async (id: string) => {
-    // Melanjutkan held order MENIMPA keranjang aktif — kalau keranjang sedang
-    // tidak kosong, kasir harus sadar dulu isinya bakal diganti (pola window.confirm
-    // sama seperti KategoriModule.tsx untuk aksi yang tidak reversible dari UI).
-    if (
-      cart.length > 0 &&
-      !window.confirm(
-        "Keranjang saat ini belum kosong dan akan diganti dengan pesanan yang ditunda. Lanjutkan?",
-      )
-    ) {
-      return;
-    }
-
-    setResumingId(id);
-    setHeldListError(null);
-    try {
-      const result = await resumeHeldOrder(id, products);
-      setCart(result.cart);
-      setMobileView("cart");
-      setTransactionError(null);
-      setResumeNotice(
-        result.skippedItems.length > 0
-          ? `Beberapa item disesuaikan karena stok/produk berubah: ${result.skippedItems.join(", ")}`
-          : null,
-      );
-      setIsHeldListOpen(false);
-    } catch (err) {
-      setHeldListError(
-        err instanceof Error ? err.message : "Gagal melanjutkan pesanan.",
-      );
-    } finally {
-      setResumingId(null);
-    }
-  };
-
-  const handleDeleteHeldOrder = async (id: string) => {
-    if (!window.confirm("Hapus pesanan tertunda ini? Tidak bisa dibatalkan.")) {
-      return;
-    }
-    setResumingId(id);
-    setHeldListError(null);
-    try {
-      await deleteHeldOrder(id);
-    } catch (err) {
-      setHeldListError(
-        err instanceof Error ? err.message : "Gagal menghapus pesanan.",
-      );
-    } finally {
-      setResumingId(null);
-    }
-  };
-
-  // ── TAMBAHAN (T-11 bagian 3) ── Dipanggil BarcodeScanModal setiap kamera
-  // berhasil baca satu barcode. Cocokkan ke `products` yang SUDAH dimuat di
-  // layar ini (bukan query baru ke server tiap scan — barcode sama persis
-  // dengan yang dipakai kolom pencarian teks di atas, jadi sumber datanya
-  // konsisten). `useCallback` dengan dependensi [products, cart] supaya
-  // BarcodeScanModal (yang pakai fungsi ini sebagai dependency effect kamera)
-  // tidak restart kamera tiap render KasirModule, hanya saat daftar produk
-  // atau isi keranjang benar-benar berubah.
-  const handleBarcodeScanned = useCallback(
-    (rawCode: string) => {
-      const code = rawCode.trim();
-      // ── TAMBAHAN (menu Label Barcode) ── Label hasil cetak memakai barcode
-      // produk, atau SKU kalau barcode-nya kosong — jadi scan dicocokkan ke
-      // barcode DULU, baru SKU (persis, case-insensitive).
-      const lowerCode = code.toLowerCase();
-      const product =
-        products.find((p) => (p.barcode ?? "").trim() === code) ??
-        products.find((p) => p.sku.trim().toLowerCase() === lowerCode);
-
-      if (!product) {
-        setScanFeedback({
-          type: "error",
-          message: `Barcode "${code}" tidak ditemukan di daftar produk.`,
-        });
-      } else if (isOutOfStock(product)) {
-        setScanFeedback({
-          type: "error",
-          message: `${product.name} — stok habis.`,
-        });
-      } else {
-        const inCartQty =
-          cart.find((item) => item.product.id === product.id)?.qty ?? 0;
-        if (inCartQty >= getAvailableStock(product)) {
-          setScanFeedback({
-            type: "error",
-            message: `${product.name} — sudah mencapai stok maksimal di keranjang.`,
-          });
-        } else {
-          handleAddToCart(product);
-          setScanFeedback({
-            type: "success",
-            message: `${product.name} ditambahkan ke keranjang.`,
-          });
-        }
-      }
-
-      // Feedback ini transien — hilang sendiri sebelum kamera aktif lagi
-      // (BarcodeScanModal resume ~1200ms), supaya tidak menumpuk pesan lama
-      // saat kasir scan beberapa produk berturut-turut.
-      setTimeout(() => setScanFeedback(null), 1800);
-    },
-    [products, cart],
+  const tax = useMemo(
+    () => calcTax(subtotal, posSettings.ppnEnabled, posSettings.ppnRate),
+    [posSettings.ppnEnabled, posSettings.ppnRate, subtotal],
   );
+  // Poin yang benar-benar dipakai dibatasi supaya potongan tidak melebihi
+  // subtotal+pajak; angka INI juga yang dikirim ke createTransaction() sebagai
+  // `pointsRedeemed` (server yang memotong saldo — migration 036).
+  const selectedCustomerPoints =
+    customer.selectedCustomer?.loyalty_points ?? null;
+  const pointsBeingUsed = useMemo(
+    () =>
+      calcPointsBeingUsed({
+        loyaltyEnabled: outlet.loyaltyEnabled,
+        usePoints: customer.usePoints,
+        customerPoints: selectedCustomerPoints,
+        subtotal,
+        tax,
+        pointValue: loyaltyPointValue,
+      }),
+    [
+      outlet.loyaltyEnabled,
+      customer.usePoints,
+      selectedCustomerPoints,
+      subtotal,
+      tax,
+      loyaltyPointValue,
+    ],
+  );
+  const discount = useMemo(
+    () =>
+      calcDiscount({
+        pointsBeingUsed,
+        pointValue: loyaltyPointValue,
+        manualDiscount,
+        subtotal,
+        tax,
+      }),
+    [pointsBeingUsed, manualDiscount, subtotal, tax, loyaltyPointValue],
+  );
+  const grandTotal = calcGrandTotal(subtotal, discount, tax);
 
-  // ── KOREKSI ── Sebelumnya di sini cuma cek `isLoading` (produk), sedangkan
-  // `isShiftLoading` dicek belakangan di kondisi blokir shift. Karena fetch produk
-  // & fetch status shift berjalan paralel dan seringkali produk selesai LEBIH DULU,
-  // ada jeda sepersekian detik di mana `isLoading` sudah false tapi `isShiftLoading`
-  // masih true — kondisi blokir shift (`!isShiftLoading && !activeShift`) ikut
-  // bernilai false di jeda itu, sehingga layar Kasir SEMPAT ter-render utuh (tanpa
-  // kunci) sebelum akhirnya "kedip" berubah jadi layar terkunci begitu status shift
-  // datang. Sekarang KEDUA sumber loading digabung jadi satu kondisi, supaya layar
-  // utama Kasir tidak pernah dirender sebelum status shift benar-benar diketahui.
+  // ── Pembayaran ──
+  const checkout = useKasirCheckout({
+    cart,
+    subtotal,
+    discount,
+    tax,
+    grandTotal,
+    pointsBeingUsed,
+    posSettings,
+    outlet,
+    user,
+    printReceipt,
+    selectedCustomer: customer.selectedCustomer,
+    resolveCustomerId: customer.resolveCustomerId,
+    refetchCustomers: customer.refetchCustomers,
+    refetchProducts: refetch,
+    // Transaksi berikutnya mulai bersih (tidak ikut ke pelanggan sebelumnya).
+    resetAfterSale: () => {
+      setCart(clearCart());
+      setMobileView("products");
+      customer.resetAfterSale();
+      setManualDiscountInput("");
+    },
+    setTransactionError,
+  });
+
+  // ── Shortcut keyboard (hanya mode PC & shift terbuka) ──
+  useKasirShortcuts(layoutMode === "pc" && !!activeShift, {
+    onFocusCode: () => setPcFocusCodeToken((t) => t + 1),
+    onFocusCustomer: () => setPcFocusCustomerToken((t) => t + 1),
+    onHold: hold.openHoldModal,
+    onClearCart: () => {
+      if (cart.length > 0 && window.confirm("Bersihkan keranjang?")) {
+        cartState.clearCartAndSelection();
+      }
+    },
+    onFocusDiscount: () => setPcFocusDiscountToken((t) => t + 1),
+    onOpenBiayaTambahan: () => setIsBiayaTambahanModalOpen(true),
+    onPay: checkout.handleOpenPayment,
+  });
+
+  // ── KOREKSI ── KEDUA sumber loading (produk & status shift) digabung jadi satu
+  // kondisi, supaya layar utama Kasir tidak pernah dirender sebelum status shift
+  // benar-benar diketahui (dulu sempat "kedip" ke layar terkunci).
   if (!hasLoadedInitial && (isLoading || isShiftLoading)) {
     return (
       <div className="h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-950">
@@ -1127,125 +276,24 @@ export default function KasirModule({
     );
   }
 
-  // ── PERUBAHAN (modal Buka Kasir langsung muncul) ── Dulu layar ini menampilkan
-  // peringatan "Kasir Belum Dibuka" + tombol "Buka Kasir" + link ke menu Kas &
-  // Shift. Sekarang cukup latar polos + modal "Mulai Sesi Kasir" yang langsung
-  // terbuka. Begitu submit sukses, `activeShift` terisi -> komponen ini render
-  // ulang ke layar transaksi POS. Kalau kasir membatalkan modal, ia kembali ke
-  // Dashboard (`onExitKasir`) — tidak ada layar Kasir "setengah terkunci".
-  //
-  // Setelah Tutup Sesi Kas, cabang ini juga yang tampil — dengan ringkasan
-  // selisih kas menggantikan modal buka.
+  // Tanpa shift aktif: modal "Mulai Sesi Kasir" langsung terbuka (atau ringkasan
+  // selisih setelah Tutup Sesi Kas). Detail di KasirOpenSessionScreen.
   if (!activeShift) {
     return (
-      <div className="h-full bg-zinc-100 dark:bg-zinc-950">
-        {closeResult ? (
-          <CloseShiftSummaryModal
-            result={closeResult}
-            onDone={handleFinishCloseSession}
-          />
-        ) : (
-          <Modal size="sm" layout="plain">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-base font-semibold flex items-center gap-2">
-                <Wallet className="h-4 w-4 text-lco-teal" />
-                Mulai Sesi Kasir
-              </h3>
-              {onExitKasir && (
-                <IconButton
-                  type="button"
-                  onClick={onExitKasir}
-                  disabled={isStartingSession}
-                  title="Batal & kembali ke Dashboard"
-                  aria-label="Batal & kembali ke Dashboard"
-                  size="sm"
-                >
-                  <X className="h-4 w-4" />
-                </IconButton>
-              )}
-            </div>
-
-            {/* ── TAMBAHAN (migration 047) ── Cabang tempat sesi ini dibuka. Layar
-                Kasir tidak punya Header, jadi pilihan cabang disediakan di sini. */}
-            {branchChoices.length > 0 && (
-              <div className="mb-4">
-                <label className="mb-1 block text-xs font-medium text-zinc-500">
-                  Cabang
-                </label>
-                {branchChoices.filter((b) => b.is_active).length > 1 ? (
-                  <Select
-                    fullWidth
-                    value={activeBranchId ?? ""}
-                    onChange={(e) => setActiveBranch(e.target.value)}
-                    disabled={isStartingSession}
-                    aria-label="Cabang untuk sesi kasir ini"
-                  >
-                    {branchChoices
-                      .filter((b) => b.is_active)
-                      .map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name}
-                        </option>
-                      ))}
-                  </Select>
-                ) : (
-                  <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200">
-                    {activeBranch?.name ?? "—"}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <label className="mb-1 block text-xs font-medium text-zinc-500">
-              Modal awal kas
-            </label>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-zinc-400">
-                Rp
-              </span>
-              <MoneyInput
-                autoFocus
-                size="md"
-                value={openingCashValue}
-                onValueChange={setOpeningCashInput}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !isStartingSession) {
-                    void handleStartSession();
-                  }
-                }}
-                placeholder="200.000"
-                className="pl-9 font-mono tabular-nums"
-              />
-            </div>
-
-            {openSessionError && (
-              <div className="mt-3 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
-                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                {openSessionError}
-              </div>
-            )}
-
-            <Button
-              type="button"
-              onClick={handleStartSession}
-              disabled={isStartingSession}
-              size="lg"
-              fullWidth
-              className="mt-5"
-            >
-              {isStartingSession ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Unlock className="h-4 w-4" />
-              )}
-              Mulai Sesi Kasir
-            </Button>
-            <p className="mt-2 text-center text-[11px] text-zinc-400">
-              Struk awal akan tercetak otomatis (jika printer terhubung).
-            </p>
-          </Modal>
-        )}
-      </div>
+      <KasirOpenSessionScreen
+        closeResult={session.closeResult}
+        onFinishClose={session.handleFinishCloseSession}
+        onExitKasir={onExitKasir}
+        branchChoices={session.branchChoices}
+        activeBranch={session.activeBranch}
+        activeBranchId={session.activeBranchId}
+        setActiveBranch={session.setActiveBranch}
+        openingCashValue={session.openingCashValue}
+        setOpeningCashInput={session.setOpeningCashInput}
+        isStartingSession={session.isStartingSession}
+        openSessionError={session.openSessionError}
+        onStartSession={session.handleStartSession}
+      />
     );
   }
 
@@ -1257,18 +305,15 @@ export default function KasirModule({
         layoutMode === "pc" ? "gap-2 p-2" : ""
       }`}
     >
-      {/* ── TAMBAHAN (Kasir full-screen, mode Tablet) ── Dulu bar ini tidak
-          perlu ada karena Sidebar/Header dashboard yang menyediakan navigasi.
-          Sekarang Kasir full-screen (lihat page.tsx), jadi bar ini SATU-
-          SATUNYA cara kasir balik ke Dashboard / lihat Pending / ganti ke
-          mode PC / tutup sesi / buka layar Display. */}
+      {/* Kasir full-screen: bar ini SATU-SATUNYA cara kasir balik ke Dashboard /
+          lihat Pending / ganti ke mode PC / tutup sesi / buka layar Display. */}
       <KasirTopBar
         storeName={posSettings.namaToko}
         onOpenMenu={onOpenMenu}
-        heldOrdersCount={heldOrders.length}
-        onOpenHeldList={openHeldList}
-        onCloseShift={() => setIsCloseModalOpen(true)}
-        onOpenCashMovement={() => setIsCashModalOpen(true)}
+        heldOrdersCount={hold.heldOrders.length}
+        onOpenHeldList={hold.openHeldList}
+        onCloseShift={() => session.setIsCloseModalOpen(true)}
+        onOpenCashMovement={() => session.setIsCashModalOpen(true)}
         layoutMode={layoutMode}
         onToggleLayout={toggleLayoutMode}
         variant={layoutMode === "pc" ? "card" : "strip"}
@@ -1281,23 +326,23 @@ export default function KasirModule({
         }
       />
 
-      {isCashModalOpen && (
+      {session.isCashModalOpen && (
         <CashMovementModal
-          onClose={() => setIsCashModalOpen(false)}
-          onSubmit={handleAddCashMovement}
+          onClose={() => session.setIsCashModalOpen(false)}
+          onSubmit={session.handleAddCashMovement}
         />
       )}
-      {isCloseModalOpen && (
+      {session.isCloseModalOpen && (
         <CloseShiftModal
-          onClose={() => setIsCloseModalOpen(false)}
-          onSubmit={handleCloseSession}
-          cashMovementSummary={cashSummary}
+          onClose={() => session.setIsCloseModalOpen(false)}
+          onSubmit={session.handleCloseSession}
+          cashMovementSummary={session.cashSummary}
         />
       )}
-      {closeResult && (
+      {session.closeResult && (
         <CloseShiftSummaryModal
-          result={closeResult}
-          onDone={handleFinishCloseSession}
+          result={session.closeResult}
+          onDone={session.handleFinishCloseSession}
         />
       )}
 
@@ -1306,811 +351,170 @@ export default function KasirModule({
           cashierName={user?.full_name ?? user?.email ?? "-"}
           cart={cart}
           products={products}
-          onAddProduct={handlePcAddProduct}
+          onAddProduct={cartState.handlePcAddProduct}
           subtotal={subtotal}
           tax={tax}
           discount={discount}
           grandTotal={grandTotal}
-          onUpdateQty={handleUpdateQty}
-          onRemoveFromCart={handleRemoveFromCart}
-          onClearCart={() => {
-            setCart(clearCart());
-            setPcSelectedProductId(null);
-          }}
-          selectedProductId={pcSelectedProductId}
-          onSelectProductId={setPcSelectedProductId}
-          onSubmitCode={handlePcCodeSubmit}
-          codeError={pcCodeError}
-          onClearCodeError={() => setPcCodeError(null)}
+          onUpdateQty={cartState.handleUpdateQty}
+          onRemoveFromCart={cartState.handleRemoveFromCart}
+          onClearCart={cartState.clearCartAndSelection}
+          selectedProductId={cartState.pcSelectedProductId}
+          onSelectProductId={cartState.setPcSelectedProductId}
+          onSubmitCode={cartState.handlePcCodeSubmit}
+          codeError={cartState.pcCodeError}
+          onClearCodeError={() => cartState.setPcCodeError(null)}
           focusCodeToken={pcFocusCodeToken}
           focusCustomerToken={pcFocusCustomerToken}
           focusDiscountToken={pcFocusDiscountToken}
-          customerQuery={customerQuery}
-          onCustomerQueryChange={(v) => {
-            setCustomerQuery(v);
-            setIsCustomerDropdownOpen(true);
-          }}
-          isCustomerDropdownOpen={isCustomerDropdownOpen}
-          onCustomerDropdownOpenChange={setIsCustomerDropdownOpen}
-          matchingCustomers={matchingCustomers}
-          onSelectCustomer={handleSelectCustomer}
-          selectedCustomer={selectedCustomer}
-          onClearCustomer={() => {
-            setSelectedCustomer(null);
-            setUsePoints(false);
-          }}
-          usePoints={usePoints}
-          onToggleUsePoints={setUsePoints}
+          customerQuery={customer.customerQuery}
+          onCustomerQueryChange={customer.handleCustomerQueryChange}
+          isCustomerDropdownOpen={customer.isCustomerDropdownOpen}
+          onCustomerDropdownOpenChange={customer.setIsCustomerDropdownOpen}
+          matchingCustomers={customer.matchingCustomers}
+          onSelectCustomer={customer.handleSelectCustomer}
+          selectedCustomer={customer.selectedCustomer}
+          onClearCustomer={customer.handleClearCustomer}
+          usePoints={customer.usePoints}
+          onToggleUsePoints={customer.setUsePoints}
           pointsBeingUsed={pointsBeingUsed}
           loyaltyPointValue={loyaltyPointValue}
           loyaltyEnabled={outlet.loyaltyEnabled}
           manualDiscountInput={manualDiscountInput}
           onManualDiscountInputChange={setManualDiscountInput}
           onOpenBiayaTambahan={() => setIsBiayaTambahanModalOpen(true)}
-          onHold={openHoldModal}
-          onPay={handleOpenPayment}
-          isSavingTransaction={isSavingTransaction}
+          onHold={hold.openHoldModal}
+          onPay={checkout.handleOpenPayment}
+          isSavingTransaction={checkout.isSavingTransaction}
         />
       ) : (
         <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
-          {/* ── PERBAIKAN (responsif HP/tablet) ── Sebelumnya panel ini punya
-          `h-full` DI DALAM parent yang juga `flex-col` di layar sempit —
-          artinya panel ini (dan panel Keranjang di bawah) sama-sama memaksa
-          tinggi 100% layar, lalu ditumpuk vertikal, jadi total tingginya ~2x
-          tinggi layar (kasir harus scroll sangat jauh untuk sampai ke
-          keranjang & tombol Bayar). Sekarang: `min-h-0` (bukan `h-full`) agar
-          panel ini benar-benar mengambil SISA tinggi yang tersedia dari flex
-          parent, dan class `hidden`/`flex` + `md:flex` di bawah membuat di
-          bawah `md` hanya SATU panel yang tampil sekaligus (tab "Produk" vs
-          "Keranjang" lewat `mobileView`), sementara `md` ke atas kedua panel
-          selalu tampil berdampingan seperti semula. */}
-          <div
-            className={`${mobileView === "products" ? "flex" : "hidden"} md:flex flex-1 flex-col min-h-0 border-r border-zinc-200 dark:border-zinc-800`}
-          >
-            <div className="p-4 sm:p-5 bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 flex flex-col gap-4 z-10">
-              {/* ── TAMBAHAN (Fase 2: Memilih Pelanggan, opsional) ── */}
-              <div className="relative">
-                {selectedCustomer ? (
-                  <div className="flex items-center gap-2 rounded-md bg-zinc-900 dark:bg-zinc-800 text-white px-3 py-2">
-                    <UserRound className="w-4 h-4 shrink-0" />
-                    <span className="text-sm font-medium truncate">
-                      {selectedCustomer.name}
-                    </span>
-                    {selectedCustomer.loyalty_points > 0 && (
-                      <span className="shrink-0 rounded bg-lco-mustard/90 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                        {selectedCustomer.loyalty_points} poin
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      aria-label="Hapus pelanggan"
-                      onClick={() => {
-                        setSelectedCustomer(null);
-                        setUsePoints(false);
-                      }}
-                      title="Hapus pelanggan"
-                      className="ml-auto text-zinc-400 hover:text-white transition-colors duration-150"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <UserRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                    <input
-                      type="text"
-                      placeholder="Cari nama pelanggan (opsional)..."
-                      className="w-full pl-9 pr-4 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:border-lco-teal focus:ring-2 focus:ring-lco-teal transition-colors duration-150 text-sm"
-                      value={customerQuery}
-                      onChange={(e) => {
-                        setCustomerQuery(e.target.value);
-                        setIsCustomerDropdownOpen(true);
-                      }}
-                      onFocus={() => setIsCustomerDropdownOpen(true)}
-                      onBlur={() =>
-                        setTimeout(() => setIsCustomerDropdownOpen(false), 150)
-                      }
-                    />
-                    {isCustomerDropdownOpen && customerQuery.trim() && (
-                      <div className="absolute z-20 mt-1 w-full rounded-md border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 shadow-lg max-h-56 overflow-y-auto">
-                        {matchingCustomers.length === 0 ? (
-                          <p className="px-3 py-2.5 text-xs text-zinc-400">
-                            Pelanggan tidak ditemukan.
-                          </p>
-                        ) : (
-                          matchingCustomers.map((c) => (
-                            <button
-                              key={c.id}
-                              onMouseDown={() => handleSelectCustomer(c)}
-                              className="w-full flex items-center justify-between px-3 py-2 text-left text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors duration-150"
-                            >
-                              <span>{c.name}</span>
-                              {c.loyalty_points > 0 && (
-                                <span className="text-[10px] font-semibold text-lco-mustard">
-                                  {c.loyalty_points} poin
-                                </span>
-                              )}
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+          <KasirProductPanel
+            mobileView={mobileView}
+            customerPicker={
+              <KasirCustomerPicker
+                selectedCustomer={customer.selectedCustomer}
+                customerQuery={customer.customerQuery}
+                onQueryChange={customer.handleCustomerQueryChange}
+                isCustomerDropdownOpen={customer.isCustomerDropdownOpen}
+                onDropdownOpenChange={customer.setIsCustomerDropdownOpen}
+                matchingCustomers={customer.matchingCustomers}
+                onSelectCustomer={customer.handleSelectCustomer}
+                onClearCustomer={customer.handleClearCustomer}
+                loyaltyEnabled={outlet.loyaltyEnabled}
+                usePoints={customer.usePoints}
+                onUsePointsChange={customer.setUsePoints}
+                isLoyaltyNoticeDismissed={customer.isLoyaltyNoticeDismissed}
+                onDismissLoyaltyNotice={() =>
+                  customer.setIsLoyaltyNoticeDismissed(true)
+                }
+                pointsBeingUsed={pointsBeingUsed}
+                discount={discount}
+              />
+            }
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            onOpenScan={cartState.openScanModal}
+            onOpenBiayaTambahan={() => setIsBiayaTambahanModalOpen(true)}
+            categories={categories}
+            selectedCategoryId={selectedCategoryId}
+            onSelectCategory={setSelectedCategoryId}
+            products={filteredProducts}
+            cart={cart}
+            onAddToCart={cartState.handleAddToCart}
+            onShowCart={() => setMobileView("cart")}
+            grandTotal={grandTotal}
+          />
 
-              {/* ── TAMBAHAN (Fase 2: notifikasi poin loyalitas) ── Muncul kalau
-              pelanggan terpilih punya poin, dan belum dipakai/ditutup. */}
-              {outlet.loyaltyEnabled &&
-                selectedCustomer &&
-                selectedCustomer.loyalty_points > 0 &&
-                !usePoints &&
-                !isLoyaltyNoticeDismissed && (
-                  <div className="flex items-center gap-3 rounded-md border border-lco-mustard/30 bg-lco-mustard/10 px-3 py-2 text-xs text-zinc-700 dark:text-zinc-300">
-                    <Sparkles className="w-4 h-4 shrink-0 text-lco-mustard" />
-                    <span className="flex-1">
-                      <strong>{selectedCustomer.name}</strong> punya{" "}
-                      <strong>{selectedCustomer.loyalty_points} poin</strong>{" "}
-                      loyalitas — bisa dipakai sebagai potongan harga.
-                    </span>
-                    <button
-                      onClick={() => setUsePoints(true)}
-                      className="shrink-0 rounded-md bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 px-2.5 py-1 text-[11px] font-semibold text-white"
-                    >
-                      Gunakan Poin
-                    </button>
-                    <button
-                      onClick={() => setIsLoyaltyNoticeDismissed(true)}
-                      className="shrink-0 text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-                    >
-                      Nanti saja
-                    </button>
-                  </div>
-                )}
-              {outlet.loyaltyEnabled && usePoints && selectedCustomer && (
-                <div className="flex items-center gap-3 rounded-md border border-lco-teal/30 bg-lco-teal/10 px-3 py-2 text-xs text-zinc-700 dark:text-zinc-300">
-                  <Sparkles className="w-4 h-4 shrink-0 text-lco-teal" />
-                  <span className="flex-1">
-                    Memakai <strong>{pointsBeingUsed} poin</strong> ={" "}
-                    <strong>{formatRupiah(discount)}</strong> potongan.
-                  </span>
-                  <button
-                    onClick={() => setUsePoints(false)}
-                    className="shrink-0 text-[11px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-                  >
-                    Batalkan
-                  </button>
-                </div>
-              )}
-
-              <div className="relative flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
-                  <input
-                    type="text"
-                    placeholder="Cari nama, SKU, atau scan barcode..."
-                    className="w-full pl-10 pr-4 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md focus:outline-none focus:border-lco-teal focus:ring-2 focus:ring-lco-teal transition-colors duration-150 text-sm"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                {/* ── TAMBAHAN (T-11 bagian 3) ── Scan pakai kamera, pelengkap alat
-                scanner fisik (yang sudah bisa lewat kolom pencarian di atas —
-                scanner fisik mengetik seperti keyboard). */}
-                <IconButton
-                  variant="outlined"
-                  aria-label="Scan barcode (kamera)"
-                  title="Scan Barcode (Kamera)"
-                  className="h-10 w-10"
-                  onClick={() => {
-                    setScanFeedback(null);
-                    setIsScanModalOpen(true);
-                  }}
-                >
-                  <Camera className="h-4 w-4" />
-                </IconButton>
-                {/* ── TAMBAHAN (Fase 2: Biaya Tambahan) ── */}
-                <IconButton
-                  variant="outlined"
-                  aria-label="Biaya tambahan"
-                  title="Biaya Tambahan"
-                  className="h-10 w-10"
-                  onClick={() => setIsBiayaTambahanModalOpen(true)}
-                >
-                  <PackagePlus className="h-4 w-4" />
-                </IconButton>
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                <button
-                  onClick={() => setSelectedCategoryId(null)}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.12em] whitespace-nowrap transition-colors duration-150 ${
-                    selectedCategoryId === null
-                      ? "bg-zinc-900 text-white dark:bg-zinc-200 dark:text-zinc-900"
-                      : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800"
-                  }`}
-                >
-                  Semua
-                </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategoryId(cat.id)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.12em] whitespace-nowrap transition-colors duration-150 ${
-                      selectedCategoryId === cat.id
-                        ? "bg-zinc-900 text-white dark:bg-zinc-200 dark:text-zinc-900"
-                        : "bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5">
-              {filteredProducts.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center text-zinc-400 text-xs">
-                  Tidak ada produk yang cocok.
-                </div>
-              ) : (
-                // ── PERBAIKAN (responsif HP/tablet) ── Kolom disesuaikan per lebar
-                // layar: 2 kolom di HP kecil, 3 di HP besar/tablet potret, turun
-                // ke 2 lagi persis di breakpoint `md` (saat panel Keranjang mulai
-                // tampil di sebelah, jatah lebar panel ini otomatis menyempit),
-                // lalu naik lagi ke 3-4 kolom seiring layar makin lebar.
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-                  {filteredProducts.map((product) => {
-                    const inCartQty =
-                      cart.find((item) => item.product.id === product.id)
-                        ?.qty || 0;
-                    const outOfStock = isOutOfStock(product);
-                    const isMaxReached =
-                      inCartQty >= getAvailableStock(product);
-
-                    return (
-                      <button
-                        key={product.id}
-                        onClick={() => handleAddToCart(product)}
-                        disabled={outOfStock || isMaxReached}
-                        className={`flex flex-col text-left bg-white dark:bg-zinc-950 p-4 rounded-xl border transition-colors duration-150 relative overflow-hidden group ${
-                          outOfStock
-                            ? "border-zinc-200 dark:border-zinc-800 opacity-50 cursor-not-allowed grayscale"
-                            : isMaxReached
-                              ? "border-lco-coral/50 cursor-not-allowed"
-                              : "border-zinc-200 dark:border-zinc-800 hover:border-lco-teal"
-                        }`}
-                      >
-                        {inCartQty > 0 && (
-                          <div className="absolute top-2 right-2 bg-lco-teal text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10 tabular-nums">
-                            {inCartQty} di keranjang
-                          </div>
-                        )}
-                        <div className="w-full aspect-square bg-zinc-50 dark:bg-zinc-900 rounded-md mb-3 flex items-center justify-center border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-                          {product.photo_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={product.photo_url}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-[10px] text-zinc-400 font-mono">
-                              {product.sku}
-                            </span>
-                          )}
-                        </div>
-                        <h3 className="text-sm font-semibold tracking-tight leading-tight mb-1">
-                          {product.name}
-                        </h3>
-                        <div className="mt-auto pt-2 flex items-end justify-between w-full">
-                          <span className="font-mono font-semibold text-lco-teal text-sm tabular-nums">
-                            {formatRupiah(product.sell_price)}
-                          </span>
-                          <span
-                            className={`text-[10px] uppercase tracking-[0.12em] font-semibold font-mono tabular-nums ${outOfStock ? "text-lco-coral" : "text-zinc-500"}`}
-                          >
-                            {product.is_service
-                              ? "Jasa"
-                              : `Stok: ${product.stock}`}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* ── TAMBAHAN (responsif HP) ── Hanya tampil di bawah breakpoint
-            `md` (di `md` ke atas keranjang sudah kelihatan di sebelah, jadi
-            tombol ini tidak perlu). Ini pengganti scroll panjang ke bawah —
-            kasir cukup tap untuk pindah ke layar Keranjang. */}
-            {cart.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setMobileView("cart")}
-                className="md:hidden shrink-0 flex items-center justify-between gap-3 mx-4 mb-4 px-4 py-3 rounded-xl bg-lco-teal hover:opacity-90 text-white shadow-lg transition-opacity duration-150"
-              >
-                <span className="flex items-center gap-2 text-sm font-semibold">
-                  <ShoppingCart className="w-4 h-4" />
-                  {getCartItemCount(cart)} item
-                </span>
-                <span className="flex items-center gap-1.5 text-sm font-semibold">
-                  <span className="font-mono tabular-nums">
-                    {formatRupiah(grandTotal)}
-                  </span>
-                  <span className="text-xs font-medium underline underline-offset-2">
-                    Lihat Keranjang
-                  </span>
-                </span>
-              </button>
-            )}
-          </div>
-
-          <div
-            className={`${mobileView === "cart" ? "flex" : "hidden"} md:flex w-full md:w-[320px] lg:w-[380px] xl:w-[420px] flex-col min-h-0 bg-white dark:bg-zinc-950`}
-          >
-            <div className="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5 min-w-0">
-                {/* ── TAMBAHAN (responsif HP) ── Tombol kembali ke layar Produk;
-                disembunyikan di `md` ke atas karena di sana panel Produk
-                sudah selalu terlihat di sebelah. */}
-                <IconButton
-                  type="button"
-                  onClick={() => setMobileView("products")}
-                  title="Kembali ke Produk"
-                  aria-label="Kembali ke Produk"
-                  variant="soft"
-                  className="md:hidden -ml-1"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </IconButton>
-                <h2 className="font-semibold text-base tracking-tight flex items-center gap-2 text-zinc-900 dark:text-zinc-100 truncate">
-                  <ShoppingCart className="w-5 h-5 text-lco-teal shrink-0" />
-                  Keranjang
-                </h2>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {/* ── TAMBAHAN (T-11 bagian 1) ── Lihat & lanjutkan pesanan yang ditunda. */}
-                <button
-                  onClick={openHeldList}
-                  className="relative flex items-center gap-1.5 bg-zinc-50 dark:bg-zinc-900 text-zinc-500 hover:text-lco-mustard text-[11px] px-2.5 py-1 rounded-full font-mono border border-zinc-200 dark:border-zinc-800 transition-colors duration-150"
-                  title="Pesanan Tertunda"
-                >
-                  <History className="w-3.5 h-3.5" />
-                  {heldOrders.length > 0 && (
-                    <span className="tabular-nums">{heldOrders.length}</span>
-                  )}
-                </button>
-                <span className="bg-zinc-50 dark:bg-zinc-900 text-zinc-500 text-[11px] px-2.5 py-1 rounded-full font-mono tabular-nums border border-zinc-200 dark:border-zinc-800">
-                  {getCartItemCount(cart)} Item
-                </span>
-              </div>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-y-auto p-3 bg-zinc-50/50 dark:bg-zinc-900/30">
-              {cart.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6">
-                  <div className="w-16 h-16 bg-zinc-50 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-4 border border-zinc-200 dark:border-zinc-800">
-                    <ShoppingCart className="w-8 h-8 text-zinc-300 dark:text-zinc-700" />
-                  </div>
-                  <p className="text-zinc-500 text-xs">
-                    Belum ada produk di keranjang.
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {cart.map((item) => (
-                    <div
-                      key={item.product.id}
-                      className="bg-white dark:bg-zinc-950 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 flex gap-3"
-                    >
-                      <div className="flex-1">
-                        <h4 className="text-sm font-medium line-clamp-1 text-zinc-900 dark:text-zinc-100">
-                          {item.product.name}
-                        </h4>
-                        <p className="font-mono tabular-nums text-xs text-zinc-500 mt-0.5">
-                          {formatRupiah(item.product.sell_price)}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center bg-zinc-50 dark:bg-zinc-900 rounded-md p-0.5 border border-zinc-200 dark:border-zinc-800">
-                            <IconButton
-                              onClick={() =>
-                                handleUpdateQty(item.product.id, -1)
-                              }
-                              aria-label="Kurangi jumlah"
-                              variant="soft"
-                              size="sm"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </IconButton>
-                            <span className="w-6 text-center font-mono text-xs tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">
-                              {item.qty}
-                            </span>
-                            <IconButton
-                              onClick={() =>
-                                handleUpdateQty(item.product.id, 1)
-                              }
-                              disabled={
-                                item.qty >= getAvailableStock(item.product)
-                              }
-                              aria-label="Tambah jumlah"
-                              variant="soft"
-                              size="sm"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </IconButton>
-                          </div>
-                          <IconButton
-                            onClick={() =>
-                              handleRemoveFromCart(item.product.id)
-                            }
-                            aria-label="Hapus dari keranjang"
-                            variant="soft"
-                            tone="danger"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </IconButton>
-                        </div>
-                        <p className="font-mono text-sm font-semibold text-lco-teal mt-2 tabular-nums">
-                          {formatRupiah(item.product.sell_price * item.qty)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {transactionError && (
-              <div className="mx-5 mb-3 p-3 rounded-md border border-lco-coral/30 bg-lco-coral/5 text-lco-coral text-xs">
-                <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold mb-1">Transaksi gagal</p>
-                    <p>{transactionError}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── TAMBAHAN (T-11 bagian 1) ── Info non-fatal setelah resume held order
-            (mis. item disesuaikan karena stok berubah) — warna kuning/mustard,
-            beda dari transactionError merah, supaya kasir tidak salah kira ada
-            transaksi yang gagal. */}
-            {resumeNotice && (
-              <div className="mx-5 mb-3 p-3 rounded-md border border-lco-mustard/30 bg-lco-mustard/5 text-lco-mustard text-xs flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <p className="flex-1">{resumeNotice}</p>
-                <button
-                  type="button"
-                  aria-label="Tutup pemberitahuan"
-                  onClick={() => setResumeNotice(null)}
-                  className="shrink-0 hover:opacity-70"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-
-            <div className="p-4 sm:p-5 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 z-10">
-              <div className="space-y-1.5 mb-5 text-sm">
-                <div className="flex justify-between text-zinc-500">
-                  <span className="text-xs">Subtotal</span>
-                  <span className="font-mono tabular-nums">
-                    {formatRupiah(subtotal)}
-                  </span>
-                </div>
-                {tax > 0 && (
-                  <div className="flex justify-between text-zinc-500">
-                    <span className="text-xs">
-                      Pajak (PPN {posSettings.ppnRate}%)
-                    </span>
-                    <span className="font-mono tabular-nums">
-                      {formatRupiah(tax)}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between font-semibold text-lg pt-3 border-t border-zinc-200 dark:border-zinc-800 mt-3 text-zinc-900 dark:text-zinc-100">
-                  <span>Total</span>
-                  <span className="font-mono tabular-nums text-lco-teal">
-                    {formatRupiah(grandTotal)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <Button
-                  disabled={cart.length === 0 || isSavingTransaction}
-                  onClick={openHoldModal}
-                  variant="secondary"
-                  size="lg"
-                  className="col-span-1"
-                >
-                  <Clock className="w-4 h-4" />
-                  <span className="text-xs">Tunda</span>
-                </Button>
-                <Button
-                  disabled={cart.length === 0 || isSavingTransaction}
-                  onClick={() => {
-                    setTransactionError(null);
-                    setIsPaymentModalOpen(true);
-                  }}
-                  size="lg"
-                  className="col-span-2"
-                >
-                  {isSavingTransaction ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span className="text-sm">Menyimpan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-5 h-5" />
-                      <span className="text-sm">Bayar Sekarang</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
+          <KasirCartPanel
+            mobileView={mobileView}
+            onBackToProducts={() => setMobileView("products")}
+            heldCount={hold.heldOrders.length}
+            onOpenHeldList={hold.openHeldList}
+            cart={cart}
+            onUpdateQty={cartState.handleUpdateQty}
+            onRemoveFromCart={cartState.handleRemoveFromCart}
+            transactionError={transactionError}
+            resumeNotice={hold.resumeNotice}
+            onDismissResumeNotice={hold.dismissResumeNotice}
+            subtotal={subtotal}
+            tax={tax}
+            ppnRate={posSettings.ppnRate}
+            grandTotal={grandTotal}
+            isSavingTransaction={checkout.isSavingTransaction}
+            onHold={hold.openHoldModal}
+            onPay={checkout.handleOpenPayment}
+          />
         </div>
       )}
 
       <PaymentModal
-        isOpen={isPaymentModalOpen}
-        // ── TAMBAHAN (menu Pelanggan) ── Pelanggan yang dipilih di kolom
-        // "Pelanggan [F2]" otomatis terisi di form nama/no. HP pembayaran.
-        // Pelanggan "tanpa nama" (nama = no. HP) → nama dikosongkan.
+        isOpen={checkout.isPaymentModalOpen}
+        // Pelanggan yang dipilih di kolom "Pelanggan [F2]" otomatis terisi di
+        // form nama/no. HP pembayaran. Pelanggan "tanpa nama" (nama = no. HP)
+        // → nama dikosongkan.
         initialCustomerName={
-          selectedCustomer &&
-          normalizePhone(selectedCustomer.name) !==
-            normalizePhone(selectedCustomer.phone)
-            ? selectedCustomer.name
+          customer.selectedCustomer &&
+          normalizePhone(customer.selectedCustomer.name) !==
+            normalizePhone(customer.selectedCustomer.phone)
+            ? customer.selectedCustomer.name
             : ""
         }
-        initialCustomerPhone={selectedCustomer?.phone ?? ""}
-        onClose={() => {
-          if (!isSavingTransaction) setIsPaymentModalOpen(false);
-        }}
+        initialCustomerPhone={customer.selectedCustomer?.phone ?? ""}
+        onClose={checkout.closePaymentModal}
         subtotal={subtotal}
         tax={tax}
         total={grandTotal}
-        onConfirmPayment={handleConfirmPayment}
-        // ── TAMBAHAN (021, T-11 bagian 2) ── Sebelum ini, prop tidak pernah
-        // dikirim sama sekali — pilihan "Split Bayar" di PaymentModal.tsx
-        // sengaja hanya muncul kalau prop ini ADA (`splitAvailable = !!onConfirmSplitPayment`),
-        // jadi tombolnya baru bisa terlihat/dipakai mulai dari baris ini.
-        onConfirmSplitPayment={handleConfirmSplitPayment}
-        onSendWhatsApp={handleSendWhatsApp}
-        // ── PERBAIKAN (auto-print setelah bayar) ── onPrint sekarang dipanggil
-        // OTOMATIS oleh PaymentModal begitu layar sukses muncul, bukan lewat
-        // klik tombol "Cetak" manual lagi.
-        receipt={lastReceipt}
-        onPrint={outlet.autoPrint ? handlePrintReceipt : undefined}
+        onConfirmPayment={checkout.handleConfirmPayment}
+        // "Split Bayar" di PaymentModal hanya muncul kalau prop ini ADA
+        // (`splitAvailable = !!onConfirmSplitPayment`).
+        onConfirmSplitPayment={checkout.handleConfirmSplitPayment}
+        onSendWhatsApp={checkout.handleSendWhatsApp}
+        // onPrint dipanggil OTOMATIS oleh PaymentModal begitu layar sukses muncul.
+        receipt={checkout.lastReceipt}
+        onPrint={outlet.autoPrint ? checkout.handlePrintReceipt : undefined}
         digitalEnabled={posSettings.digitalPaymentEnabled}
       />
 
-      {/* ── TAMBAHAN (T-11 bagian 1) ── Modal konfirmasi "Tunda". */}
-      {isHoldModalOpen && (
-        <Modal size="sm" padding="md" layout="plain">
-          <h3 className="mb-1 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            Tunda Transaksi
-          </h3>
-          <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
-            {getCartItemCount(cart)} item, {formatRupiah(subtotal)} — keranjang
-            akan dikosongkan dan bisa dilanjutkan lagi lewat ikon riwayat di
-            atas keranjang.
-          </p>
-
-          <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
-            Catatan (opsional)
-          </label>
-          <input
-            type="text"
-            value={holdLabel}
-            onChange={(e) => setHoldLabel(e.target.value)}
-            disabled={isHolding}
-            placeholder="Mis. nama pelanggan"
-            className="mb-3 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm outline-none transition-colors duration-150 focus:border-lco-teal focus:ring-1 focus:ring-lco-teal disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950"
-          />
-
-          {holdModalError && (
-            <p className="mb-3 text-xs text-lco-coral">{holdModalError}</p>
-          )}
-
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              onClick={() => setIsHoldModalOpen(false)}
-              disabled={isHolding}
-              variant="secondary"
-            >
-              Batal
-            </Button>
-            <Button
-              type="button"
-              onClick={handleConfirmHold}
-              disabled={isHolding}
-            >
-              {isHolding && <Loader2 className="h-4 w-4 animate-spin" />}
-              Tunda
-            </Button>
-          </div>
-        </Modal>
+      {hold.isHoldModalOpen && (
+        <KasirHoldModal
+          itemCount={getCartItemCount(cart)}
+          subtotal={subtotal}
+          label={hold.holdLabel}
+          onLabelChange={hold.setHoldLabel}
+          isHolding={hold.isHolding}
+          error={hold.holdModalError}
+          onCancel={hold.closeHoldModal}
+          onConfirm={hold.handleConfirmHold}
+        />
       )}
 
-      {/* ── TAMBAHAN (T-11 bagian 1) ── Modal daftar held order — lanjutkan/hapus. */}
-      {isHeldListOpen && (
-        <Modal size="md" padding="none" layout="flex">
-          <div className="flex items-center justify-between border-b border-zinc-200 p-4 dark:border-zinc-800">
-            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              Pesanan Tertunda
-            </h3>
-            <IconButton
-              onClick={() => setIsHeldListOpen(false)}
-              aria-label="Tutup"
-              size="sm"
-            >
-              <X className="h-4 w-4" />
-            </IconButton>
-          </div>
-
-          {heldListError && (
-            <p className="mx-4 mt-3 text-xs text-lco-coral">{heldListError}</p>
-          )}
-
-          <div className="flex-1 overflow-y-auto p-4">
-            {isHeldOrdersLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
-              </div>
-            ) : heldOrders.length === 0 ? (
-              <p className="py-8 text-center text-xs text-zinc-400">
-                Belum ada pesanan yang ditunda.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {heldOrders.map((ho) => (
-                  <div
-                    key={ho.id}
-                    className="flex items-center gap-3 rounded-md border border-zinc-200 p-3 dark:border-zinc-800"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                        {ho.label || "Tanpa catatan"}
-                      </p>
-                      <p className="font-mono text-xs text-zinc-500">
-                        {ho.item_count} item • {formatRupiah(ho.subtotal)}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      aria-label="Lanjutkan pesanan"
-                      onClick={() => handleResumeHeldOrder(ho.id)}
-                      disabled={resumingId === ho.id}
-                      title="Lanjutkan"
-                      className="rounded-md p-2 text-lco-teal hover:bg-lco-green/10 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {resumingId === ho.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <PlayCircle className="h-4 w-4" />
-                      )}
-                    </button>
-                    <IconButton
-                      onClick={() => handleDeleteHeldOrder(ho.id)}
-                      disabled={resumingId === ho.id}
-                      title="Hapus"
-                      aria-label="Hapus"
-                      variant="soft"
-                      tone="danger"
-                      size="lg"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </IconButton>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Modal>
+      {hold.isHeldListOpen && (
+        <KasirHeldOrdersModal
+          heldOrders={hold.heldOrders}
+          isLoading={hold.isHeldOrdersLoading}
+          heldListError={hold.heldListError}
+          resumingId={hold.resumingId}
+          onClose={hold.closeHeldList}
+          onResume={hold.handleResumeHeldOrder}
+          onDelete={hold.handleDeleteHeldOrder}
+        />
       )}
 
-      {/* ── TAMBAHAN (T-11 bagian 3) ── Modal scan barcode kamera. */}
       <BarcodeScanModal
-        isOpen={isScanModalOpen}
-        onClose={() => setIsScanModalOpen(false)}
-        onScan={handleBarcodeScanned}
-        feedback={scanFeedback}
+        isOpen={cartState.isScanModalOpen}
+        onClose={cartState.closeScanModal}
+        onScan={cartState.handleBarcodeScanned}
+        feedback={cartState.scanFeedback}
       />
 
-      {/* ── TAMBAHAN (Fase 2: Biaya Tambahan) ── Daftar produk bertipe Jasa
-          (is_service) — lihat catatan di deklarasi `serviceProducts` di atas
-          untuk kenapa ini tidak butuh tabel/migration baru. Klik satu item
-          langsung menambahkannya ke keranjang (qty 1, bisa diubah di panel
-          keranjang seperti produk biasa) lalu modal ini otomatis tertutup —
-          sama seperti "pilih item -> Simpan" di flow yang diminta. */}
       {isBiayaTambahanModalOpen && (
-        <Modal size="sm" layout="plain">
-          <div className="mb-1 flex items-center justify-between">
-            <h3 className="text-base font-semibold flex items-center gap-2">
-              <PackagePlus className="h-4 w-4 text-lco-mustard" />
-              Biaya Tambahan
-            </h3>
-            <IconButton
-              type="button"
-              onClick={() => setIsBiayaTambahanModalOpen(false)}
-              aria-label="Tutup"
-              size="sm"
-            >
-              <X className="h-4 w-4" />
-            </IconButton>
-          </div>
-          <p className="mb-4 text-xs text-zinc-500 dark:text-zinc-400">
-            Pilih item non-produk untuk ditambahkan ke tagihan.
-          </p>
-
-          {serviceProducts.length === 0 ? (
-            <p className="rounded-md border border-dashed border-zinc-300 dark:border-zinc-700 px-3 py-4 text-center text-xs text-zinc-400">
-              Belum ada item Biaya Tambahan. Di menu Produk, tandai tipenya
-              sebagai <strong>Jasa</strong> (tanpa stok, mis. &quot;Ongkos
-              Kirim&quot;) atau centang{" "}
-              <strong>Tampilkan di Biaya Tambahan Kasir</strong> untuk barang
-              berstok (mis. &quot;Paper Bag&quot;).
-            </p>
-          ) : (
-            <div className="flex max-h-72 flex-col gap-2 overflow-y-auto">
-              {serviceProducts.map((product) => {
-                const inCart = cart.find(
-                  (item) => item.product.id === product.id,
-                );
-                const soldOut = !product.is_service && product.stock <= 0;
-                return (
-                  <button
-                    key={product.id}
-                    disabled={soldOut}
-                    onClick={() => {
-                      setCart((prev) => addToCart(prev, product));
-                    }}
-                    className="flex items-center justify-between rounded-md border border-zinc-200 dark:border-zinc-800 px-3 py-2.5 text-left hover:border-lco-mustard transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <span className="text-sm font-medium">
-                      {product.name}
-                      {inCart && (
-                        <span className="ml-2 rounded bg-lco-mustard/20 px-1.5 py-0.5 text-[10px] font-bold text-lco-mustard">
-                          {inCart.qty}x di keranjang
-                        </span>
-                      )}
-                    </span>
-                    <span className="text-right font-mono text-sm text-zinc-500">
-                      {formatRupiah(product.sell_price)}
-                      {!product.is_service && (
-                        <span
-                          className={`block text-[10px] ${soldOut ? "text-lco-coral" : "text-zinc-400"}`}
-                        >
-                          {soldOut ? "Stok habis" : `Stok: ${product.stock}`}
-                        </span>
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          <Button
-            type="button"
-            onClick={() => setIsBiayaTambahanModalOpen(false)}
-            size="lg"
-            fullWidth
-            className="mt-5"
-          >
-            Simpan
-          </Button>
-        </Modal>
+        <KasirBiayaTambahanModal
+          products={serviceProducts}
+          cart={cart}
+          onAddProduct={cartState.handleAddExtraCharge}
+          onClose={() => setIsBiayaTambahanModalOpen(false)}
+        />
       )}
     </div>
   );

@@ -6,17 +6,18 @@
 // - Radius: rounded-md untuk tombol/input, rounded-xl untuk panel/modal (PRD §8).
 // - Tambah dark mode (bg-zinc-950/900, border-zinc-800) agar konsisten dengan ProdukModule.tsx.
 // - Tipe Category dipakai dari lib/pos/types.ts (satu sumber kebenaran, sama seperti useCategories hook).
+// - Akses Supabase langsung (createClient + supabase.from("categories")) DIHAPUS: baca & tulis
+//   sekarang lewat useCategories({ includeInactive: true }). Validasi form ada di lib/pos/categoryLogic.ts.
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { useCategories } from "@/hooks/useCategories";
+import { validateCategoryInput } from "@/lib/pos/categoryLogic";
 import type { Category } from "@/lib/pos/types";
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
 import Input from "@/app/components/ui/Input";
-
-const supabase = createClient();
 
 type CategoryForm = {
   name: string;
@@ -31,42 +32,30 @@ const DEFAULT_FORM: CategoryForm = {
 };
 
 export default function KategoriModule() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Layar admin wajib menampilkan kategori nonaktif juga (agar bisa diaktifkan kembali),
+  // maka includeInactive: true. Chip Kasir & form Produk tetap memakai default (hanya aktif).
+  const {
+    categories,
+    isLoading: loading,
+    error: loadError,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    setCategoryActive,
+  } = useCategories({ includeInactive: true });
+
   const [saving, setSaving] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [form, setForm] = useState<CategoryForm>(DEFAULT_FORM);
-  const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Catatan: sengaja TIDAK memakai hook useCategories() di sini.
-  // Hook itu hanya mengambil kategori is_active=true (untuk chip filter Kasir),
-  // sedangkan layar admin ini wajib menampilkan kategori nonaktif juga (agar bisa diaktifkan kembali).
-  async function loadCategories() {
-    setLoading(true);
-
-    const { data, error: fetchError } = await supabase
-      .from("categories")
-      .select("id, name, sort_order, is_active")
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-
-    if (fetchError) {
-      setError(fetchError.message);
-      setCategories([]);
-    } else {
-      setCategories((data ?? []) as Category[]);
-    }
-
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    loadCategories();
-  }, []);
+  // Error tampil = error aksi terakhir, atau error gagal-muat dari hook bila tidak ada aksi.
+  const error = actionError || loadError || "";
+  const setError = setActionError;
 
   function openCreateForm() {
     setEditingId(null);
@@ -101,53 +90,34 @@ export default function KategoriModule() {
     setError("");
     setSuccess("");
 
-    const name = form.name.trim();
-    const sortOrder = Number(form.sort_order);
-
-    if (!name) {
-      setError("Nama kategori wajib diisi.");
-      return;
-    }
-
-    if (!Number.isFinite(sortOrder) || sortOrder < 0) {
-      setError("Urutan harus berupa angka 0 atau lebih.");
+    const parsed = validateCategoryInput(form);
+    if (!parsed.ok) {
+      setError(parsed.message);
       return;
     }
 
     setSaving(true);
 
-    const payload = {
-      name,
-      sort_order: sortOrder,
-      is_active: form.is_active,
-    };
-
+    const wasEditing = editingId !== null;
     const result = editingId
-      ? await supabase.from("categories").update(payload).eq("id", editingId)
-      : await supabase.from("categories").insert(payload);
+      ? await updateCategory(editingId, parsed.value)
+      : await createCategory(parsed.value);
+
+    setSaving(false);
 
     if (result.error) {
-      if (result.error.code === "23505") {
-        setError("Kategori dengan nama tersebut sudah ada.");
-      } else {
-        setError(result.error.message);
-      }
-
-      setSaving(false);
+      setError(result.error);
       return;
     }
 
-    setSaving(false);
     setShowForm(false);
     setEditingId(null);
     setForm(DEFAULT_FORM);
     setSuccess(
-      editingId
+      wasEditing
         ? "Kategori berhasil diperbarui."
         : "Kategori berhasil ditambahkan.",
     );
-
-    await loadCategories();
   }
 
   async function handleDelete(category: Category) {
@@ -160,37 +130,25 @@ export default function KategoriModule() {
 
     if (!confirmed) return;
 
-    const { error: deleteError } = await supabase
-      .from("categories")
-      .delete()
-      .eq("id", category.id);
+    const result = await deleteCategory(category.id);
 
-    if (deleteError) {
-      setError(
-        "Kategori tidak dapat dihapus. Jika sudah digunakan produk, nonaktifkan kategori tersebut.",
-      );
+    if (result.error) {
+      setError(result.error);
       return;
     }
 
     setSuccess("Kategori berhasil dihapus.");
-    await loadCategories();
   }
 
   async function toggleActive(category: Category) {
     setError("");
     setSuccess("");
 
-    const { error: updateError } = await supabase
-      .from("categories")
-      .update({ is_active: !category.is_active })
-      .eq("id", category.id);
+    const result = await setCategoryActive(category.id, !category.is_active);
 
-    if (updateError) {
-      setError(updateError.message);
-      return;
+    if (result.error) {
+      setError(result.error);
     }
-
-    await loadCategories();
   }
 
   return (
