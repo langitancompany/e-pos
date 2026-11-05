@@ -54,7 +54,11 @@ export const viewport: Viewport = {
   themeColor: "#124540",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       // ── KOREKSI (T-12) ── Sebelumnya masih "en" bawaan create-next-app,
