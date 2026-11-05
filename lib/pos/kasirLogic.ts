@@ -337,3 +337,55 @@ export function buildShiftOpenReceipt(params: {
     method: "Buka Kasir",
   };
 }
+
+/**
+ * Struk Tutup Sesi Kas (`kind: "shift_close"`): layout sendiri, tanpa item.
+ * Dicetak SETELAH sesi tertutup, jadi memuat kas seharusnya & selisih.
+ */
+export function buildShiftCloseReceipt(params: {
+  branding: Partial<ReceiptData>;
+  now: Date;
+  cashierName: string | null;
+  openedAt: string | null;
+  result: {
+    shift_id: string;
+    opening_cash: number;
+    cash_sales: number;
+    cash_refunds: number;
+    cash_in: number;
+    cash_out: number;
+    expected_cash: number;
+    actual_cash: number;
+    difference: number;
+    notes: string | null;
+  };
+}): ReceiptData {
+  const { branding, now, cashierName, openedAt, result } = params;
+  return {
+    ...branding,
+    receiptNo: `TUTUP-${now.getTime()}`,
+    createdAt: now.toISOString(),
+    cashierName,
+    kind: "shift_close",
+    openingCash: result.opening_cash,
+    shiftClose: {
+      openedAt,
+      cashSales: result.cash_sales,
+      cashRefunds: result.cash_refunds,
+      cashIn: result.cash_in,
+      cashOut: result.cash_out,
+      expectedCash: result.expected_cash,
+      actualCash: result.actual_cash,
+      difference: result.difference,
+      notes: result.notes,
+    },
+    items: [],
+    subtotal: result.actual_cash,
+    discount: 0,
+    tax: 0,
+    total: result.actual_cash,
+    paidAmount: result.actual_cash,
+    changeAmount: 0,
+    method: "Tutup Kasir",
+  };
+}

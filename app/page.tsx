@@ -234,7 +234,9 @@ export default function LCOPOS() {
           {isMenuRestored && activeMenu === "label-barcode" && (
             <LabelBarcodeModule />
           )}
-          {isMenuRestored && activeMenu === "kas" && <KasModule />}
+          {isMenuRestored && activeMenu === "kas" && (
+            <KasModule onOpenKasir={openKasir} />
+          )}
           {isMenuRestored && activeMenu === "promo" && <PromoModule />}
           {isMenuRestored && activeMenu === "laporan" && <LaporanModule />}
           {isMenuRestored && activeMenu === "sampah" && <SampahModule />}

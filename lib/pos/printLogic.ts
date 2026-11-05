@@ -26,6 +26,21 @@ export interface ReceiptItem {
   subtotal?: number;
 }
 
+/** Rincian struk Tutup Sesi Kas (hasil RPC close_shift). */
+export interface ShiftCloseReceiptData {
+  /** Waktu sesi dibuka (ISO). */
+  openedAt?: string | null;
+  cashSales: number;
+  cashRefunds: number;
+  cashIn: number;
+  cashOut: number;
+  expectedCash: number;
+  actualCash: number;
+  /** actual - expected: negatif = kurang, positif = lebih. */
+  difference: number;
+  notes?: string | null;
+}
+
 export interface ReceiptData {
   // ── TAMBAHAN ── Sebelum ini, nama toko & footer di-hardcode ("Langitan.co",
   // "Terima kasih atas kunjungan Anda", dst) di 3 tempat berbeda di file ini,
@@ -68,9 +83,13 @@ export interface ReceiptData {
   // di bawah (jalur browser) dan buildShiftOpenBytes() di
   // lib/pos/printerConnection.ts (jalur Bluetooth/USB). Field lain yang wajib
   // di tipe ini (items, subtotal, total, dst.) tidak dipakai layout ini.
-  kind?: "sale" | "shift_open";
-  /** Modal awal kas — dipakai kind "shift_open". Kosong -> jatuh ke `total`. */
+  kind?: "sale" | "shift_open" | "shift_close";
+  /** Modal awal kas — dipakai kind "shift_open" & "shift_close". Kosong -> jatuh ke `total`. */
   openingCash?: number;
+  // ── TAMBAHAN (struk Tutup Sesi Kas) ── Rincian penutupan sesi, dipakai
+  // kind "shift_close". Struk ini dicetak SETELAH sesi tertutup, jadi aman
+  // menampilkan kas seharusnya & selisih (penutupan tetap "buta" sebelum itu).
+  shiftClose?: ShiftCloseReceiptData;
   // ── TAMBAHAN (QR promosi) ── Diisi lewat getReceiptPromo(posSettings) di
   // lib/pos/receiptQr.ts (sudah tervalidasi; kosong kalau promosi mati/link
   // tidak valid). Hanya dipakai struk penjualan thermal, bukan Buka Kasir.
@@ -203,6 +222,122 @@ function buildShiftOpenHtml(
   `;
 }
 
+
+// ── TAMBAHAN (struk Tutup Sesi Kas) ── HTML struk Tutup Sesi untuk jalur cetak
+// browser. Gaya mengikuti struk Buka Kasir, tetapi memuat rincian kas
+// (modal awal, penjualan tunai, refund, kas masuk/keluar, kas seharusnya,
+// uang hitung, selisih) dan kolom paraf.
+function buildShiftCloseHtml(
+  data: ReceiptData,
+  dateStr: string,
+  brand?: ReceiptBrand | null,
+): string {
+  const c = data.shiftClose;
+  const openingCash = data.openingCash ?? 0;
+  const openedStr = c?.openedAt
+    ? new Date(c.openedAt).toLocaleString("id-ID", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
+  const diff = c?.difference ?? 0;
+  const diffLabel =
+    diff === 0
+      ? "PAS"
+      : diff < 0
+        ? `KURANG Rp ${formatMoney(Math.abs(diff))}`
+        : `LEBIH Rp ${formatMoney(diff)}`;
+  const row = (label: string, value: string) =>
+    `<tr><td>${label}</td><td class="text-right">${value}</td></tr>`;
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Tutup Sesi Kas</title>
+        <style>
+          body {
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12px;
+            color: #000;
+            width: 58mm;
+            margin: 0;
+            padding: 0;
+          }
+          .text-center { text-align: center; }
+          .text-right { text-align: right; white-space: nowrap; }
+          .font-bold { font-weight: bold; }
+          .divider { border-bottom: 1px dashed #000; margin: 5px 0; }
+          .divider-solid { border-bottom: 2px solid #000; margin: 6px 0; }
+          table { width: 100%; border-collapse: collapse; }
+          td { vertical-align: top; padding: 2px 0; }
+          .title-box {
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            letter-spacing: 2px;
+            border: 3px double #000;
+            padding: 6px 0;
+            margin-bottom: 8px;
+          }
+          .diff-box {
+            text-align: center;
+            font-weight: bold;
+            font-size: 15px;
+            border: 2px solid #000;
+            padding: 6px 0;
+            margin: 6px 0;
+          }
+          .sign-line { border-bottom: 1px solid #000; height: 38px; margin: 0 8px 2px; }
+          .note { font-size: 11px; margin-top: 4px; word-break: break-word; }
+          .brand-img { display: block; width: 100%; height: auto; margin: 0 auto 4px; }
+        </style>
+      </head>
+      <body>
+        ${brand ? `<img class="brand-img" src="${brand.dataUrl}" alt="" />` : ""}
+        <div class="title-box">TUTUP SESI KAS</div>
+        ${brand ? "" : `<div class="text-center font-bold">${escapeHtml(data.storeName || "Langitan.co")}</div>`}
+        ${data.storeAddress ? `<div class="text-center">${escapeHtml(data.storeAddress)}</div>` : ""}
+        ${data.storePhone ? `<div class="text-center">${escapeHtml(data.storePhone)}</div>` : ""}
+        <div class="divider"></div>
+
+        <table>
+          ${row("Kasir", escapeHtml(data.cashierName ?? "-"))}
+          ${openedStr ? row("Dibuka", openedStr) : ""}
+          ${row("Ditutup", dateStr)}
+          ${row("Status", "<b>SESI DITUTUP</b>")}
+        </table>
+
+        <div class="divider-solid"></div>
+        <table>
+          ${row("Modal awal", formatMoney(openingCash))}
+          ${row("Penjualan tunai", formatMoney(c?.cashSales ?? 0))}
+          ${row("Refund retur", `- ${formatMoney(c?.cashRefunds ?? 0)}`)}
+          ${row("Kas masuk lain", `+ ${formatMoney(c?.cashIn ?? 0)}`)}
+          ${row("Kas keluar lain", `- ${formatMoney(c?.cashOut ?? 0)}`)}
+        </table>
+        <div class="divider"></div>
+        <table>
+          ${row("<b>Kas seharusnya</b>", `<b>${formatMoney(c?.expectedCash ?? 0)}</b>`)}
+          ${row("<b>Uang hitung</b>", `<b>${formatMoney(c?.actualCash ?? 0)}</b>`)}
+        </table>
+        <div class="diff-box">SELISIH: ${diffLabel}</div>
+        ${c?.notes ? `<div class="note">Catatan: ${escapeHtml(c.notes)}</div>` : ""}
+
+        <div class="divider"></div>
+        <div class="text-center">Paraf Kasir</div>
+        <div class="sign-line"></div>
+        <div class="text-center">(${escapeHtml(data.cashierName ?? "-")})</div>
+
+        <div class="divider-solid"></div>
+        <div class="text-center font-bold">*** BUKAN BUKTI PENJUALAN ***</div>
+      </body>
+    </html>
+  `;
+}
+
 // ── PERUBAHAN (logo + tulisan merek) ── `brand` (dari loadReceiptBrand() di
 // lib/pos/receiptBrand.ts) opsional: kalau ada, kepala struk = gambar ikon +
 // "Langitan.co" (Inter) menggantikan teks nama toko; kalau null/kosong,
@@ -261,7 +396,11 @@ export const printThermalReceipt = (
   // Menggunakan font monospace bawaan sistem agar rapi
   // ── PERUBAHAN (struk Buka Kasir) ── Struk Buka Kasir punya template sendiri
   // (buildShiftOpenHtml); selain itu template penjualan di bawah, TIDAK berubah.
-  const htmlContent = data.kind === "shift_open" ? buildShiftOpenHtml(data, dateStr, brand) : `
+  const htmlContent = data.kind === "shift_open"
+    ? buildShiftOpenHtml(data, dateStr, brand)
+    : data.kind === "shift_close"
+      ? buildShiftCloseHtml(data, dateStr, brand)
+      : `
     <!DOCTYPE html>
     <html>
       <head>

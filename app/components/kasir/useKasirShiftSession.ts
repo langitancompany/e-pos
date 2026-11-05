@@ -16,6 +16,7 @@ import {
 import { useActiveBranch } from "@/hooks/useActiveBranch";
 import { buildShiftOpenReceipt, parseDigits } from "@/lib/pos/kasirLogic";
 import { getReceiptBranding } from "./kasirReceiptBranding";
+import { useShiftCloseReceipt } from "./useShiftCloseReceipt";
 import type {
   KasirUser,
   OutletSettingsValue,
@@ -92,8 +93,18 @@ export function useKasirShiftSession({
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const [closeResult, setCloseResult] = useState<CloseShiftResult | null>(null);
 
+  // ── TAMBAHAN ── Struk Tutup Sesi dicetak otomatis begitu close_shift sukses.
+  const printCloseReceipt = useShiftCloseReceipt({
+    posSettings,
+    outlet,
+    user,
+    printReceipt,
+  });
+
   const handleCloseSession = async (actualCash: number, notes?: string) => {
+    const openedAt = activeShift?.opened_at ?? null;
     const result = await closeShift(actualCash, notes);
+    printCloseReceipt(result, openedAt);
     setIsStartingSession(false);
     setCloseResult(result);
     setIsCloseModalOpen(false);

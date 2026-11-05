@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSaleReceipt,
   buildShiftOpenReceipt,
+  buildShiftCloseReceipt,
   calcDiscount,
   calcGrandTotal,
   calcPointsBeingUsed,
@@ -310,5 +311,36 @@ describe("buildShiftOpenReceipt", () => {
     expect(r.openingCash).toBe(200_000);
     expect(r.total).toBe(200_000);
     expect(r.method).toBe("Buka Kasir");
+  });
+});
+
+describe("buildShiftCloseReceipt", () => {
+  it("memakai layout shift_close dengan rincian kas & selisih", () => {
+    const now = new Date("2026-11-05T15:06:48.000Z");
+    const r = buildShiftCloseReceipt({
+      branding: { storeName: "Toko X" },
+      now,
+      cashierName: "Budi",
+      openedAt: "2026-11-05T15:05:00.000Z",
+      result: {
+        shift_id: "s1",
+        opening_cash: 200_000,
+        cash_sales: 75_000,
+        cash_refunds: 0,
+        cash_in: 0,
+        cash_out: 10_000,
+        expected_cash: 265_000,
+        actual_cash: 260_000,
+        difference: -5_000,
+        notes: "salah kembalian",
+      },
+    });
+    expect(r.kind).toBe("shift_close");
+    expect(r.receiptNo).toBe(`TUTUP-${now.getTime()}`);
+    expect(r.items).toEqual([]);
+    expect(r.openingCash).toBe(200_000);
+    expect(r.shiftClose?.expectedCash).toBe(265_000);
+    expect(r.shiftClose?.difference).toBe(-5_000);
+    expect(r.shiftClose?.notes).toBe("salah kembalian");
   });
 });

@@ -386,6 +386,116 @@ function buildShiftOpenBytes(
   return new Uint8Array(bytes);
 }
 
+/**
+ * ── TAMBAHAN (struk Tutup Sesi Kas) ── Byte ESC/POS struk Tutup Sesi: judul
+ * berbingkai "TUTUP SESI KAS", rincian kas, kas seharusnya, uang hitung,
+ * selisih, kolom paraf. Dipanggil dari buildReceiptBytes() kalau
+ * `data.kind === "shift_close"`.
+ */
+function buildShiftCloseBytes(
+  data: ReceiptData,
+  brand?: ReceiptBrand | null,
+): Uint8Array {
+  const encoder = new TextEncoder();
+  const bytes: number[] = [];
+  const raw = (...values: number[]) => bytes.push(...values);
+  const text = (value: string) => bytes.push(...Array.from(encoder.encode(value)));
+  const line = (value: string = "") => {
+    text(value);
+    raw(0x0a); // LF
+  };
+  const divider = () => line("-".repeat(RECEIPT_WIDTH));
+  const solidDivider = () => line("=".repeat(RECEIPT_WIDTH));
+  const fmtDate = (iso?: string | null) =>
+    new Date(iso ?? Date.now()).toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+  const c = data.shiftClose;
+  const cashierName = data.cashierName ?? "-";
+  const diff = c?.difference ?? 0;
+  const diffLabel =
+    diff === 0
+      ? "PAS"
+      : diff < 0
+        ? `KURANG Rp ${formatMoney(Math.abs(diff))}`
+        : `LEBIH Rp ${formatMoney(diff)}`;
+
+  raw(ESC, 0x40); // reset printer
+
+  raw(ESC, 0x61, 0x01); // tengah
+  if (brand) for (let i = 0; i < brand.raster.length; i++) bytes.push(brand.raster[i]);
+
+  solidDivider();
+  raw(ESC, 0x21, 0x30);
+  raw(ESC, 0x45, 0x01);
+  line("TUTUP SESI");
+  raw(ESC, 0x45, 0x00);
+  raw(ESC, 0x21, 0x00);
+  solidDivider();
+
+  if (!brand) {
+    raw(ESC, 0x45, 0x01);
+    line(data.storeName || "Langitan.co");
+    raw(ESC, 0x45, 0x00);
+  }
+  if (data.storeAddress) for (const l of wrapBalanced(data.storeAddress)) line(l);
+  if (data.storePhone) line(data.storePhone);
+
+  raw(ESC, 0x61, 0x00); // rata kiri
+  divider();
+  for (const l of labelLines("Kasir    : ", cashierName)) line(l);
+  if (c?.openedAt) line(`Dibuka   : ${fmtDate(c.openedAt)}`);
+  line(`Ditutup  : ${fmtDate(data.createdAt)}`);
+  line("Status   : SESI DITUTUP");
+  divider();
+
+  line(padLine("Modal awal", formatMoney(data.openingCash ?? 0)));
+  line(padLine("Penjualan tunai", formatMoney(c?.cashSales ?? 0)));
+  line(padLine("Refund retur", `-${formatMoney(c?.cashRefunds ?? 0)}`));
+  line(padLine("Kas masuk lain", `+${formatMoney(c?.cashIn ?? 0)}`));
+  line(padLine("Kas keluar lain", `-${formatMoney(c?.cashOut ?? 0)}`));
+  divider();
+  raw(ESC, 0x45, 0x01);
+  line(padLine("Kas seharusnya", formatMoney(c?.expectedCash ?? 0)));
+  line(padLine("Uang hitung", formatMoney(c?.actualCash ?? 0)));
+  raw(ESC, 0x45, 0x00);
+  solidDivider();
+
+  raw(ESC, 0x61, 0x01);
+  raw(ESC, 0x45, 0x01);
+  line("SELISIH");
+  raw(ESC, 0x21, 0x10); // 2x tinggi
+  line(diffLabel);
+  raw(ESC, 0x21, 0x00);
+  raw(ESC, 0x45, 0x00);
+  raw(ESC, 0x61, 0x00);
+  if (c?.notes) {
+    divider();
+    for (const l of labelLines("Catatan: ", c.notes)) line(l);
+  }
+  divider();
+
+  raw(ESC, 0x61, 0x01);
+  line("Paraf Kasir");
+  line();
+  line();
+  line();
+  for (const l of wrapBalanced(`(${cashierName})`)) line(l);
+  solidDivider();
+  raw(ESC, 0x45, 0x01);
+  line("* BUKAN BUKTI PENJUALAN *");
+  raw(ESC, 0x45, 0x00);
+
+  raw(ESC, 0x4a, FEED_BEFORE_CUT_DOTS);
+  raw(GS, 0x56, 0x42, 0x00); // potong kertas parsial
+  return new Uint8Array(bytes);
+}
+
 /** Bangun byte mentah ESC/POS untuk SATU struk transaksi (dipakai bluetooth/usb). */
 // ── PERUBAHAN (logo + tulisan merek) ── `brand` opsional (lihat
 // lib/pos/receiptBrand.ts): ada -> kepala struk dicetak sebagai bitmap
@@ -397,6 +507,7 @@ export function buildReceiptBytes(
 ): Uint8Array {
   // Struk Buka Kasir punya layout sendiri — lihat buildShiftOpenBytes() di atas.
   if (data.kind === "shift_open") return buildShiftOpenBytes(data, brand);
+  if (data.kind === "shift_close") return buildShiftCloseBytes(data, brand);
 
   const encoder = new TextEncoder();
   const bytes: number[] = [];

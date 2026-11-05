@@ -67,6 +67,10 @@ interface UseShiftsResult {
   activeShift: ShiftSession | null;
   /** Riwayat shift (status CLOSED) milik user login, terbaru dulu. Maks 30 baris. */
   history: ShiftSession[];
+  /** ── TAMBAHAN ── Jumlah seluruh sesi milik user (untuk nomor urut "#N"). */
+  totalCount: number;
+  /** Nomor urut sesi (1 = sesi pertama user). Null kalau tidak diketahui. */
+  getSessionNumber: (shiftId: string) => number | null;
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
@@ -88,6 +92,8 @@ interface UseShiftsResult {
 export function useShifts(): UseShiftsResult {
   const [activeShift, setActiveShift] = useState<ShiftSession | null>(null);
   const [history, setHistory] = useState<ShiftSession[]>([]);
+  const [allIds, setAllIds] = useState<string[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
@@ -116,10 +122,11 @@ export function useShifts(): UseShiftsResult {
         return;
       }
 
-      const { data, error: fetchError } = await supabase
+      const { data, count, error: fetchError } = await supabase
         .from("shift_sessions")
         .select(
           "id, cashier_id, opened_at, opening_cash, closed_at, expected_cash, actual_cash, difference, status, branch_id",
+          { count: "exact" },
         )
         .eq("cashier_id", user.id)
         .order("opened_at", { ascending: false })
@@ -136,6 +143,8 @@ export function useShifts(): UseShiftsResult {
       }
 
       const rows = (data ?? []) as ShiftSession[];
+      setAllIds(rows.map((row) => row.id));
+      setTotalCount(count ?? rows.length);
       setActiveShift(rows.find((row) => row.status === "OPEN") ?? null);
       setHistory(rows.filter((row) => row.status === "CLOSED"));
       setIsLoading(false);
@@ -240,13 +249,108 @@ export function useShifts(): UseShiftsResult {
     [activeShift, refetch],
   );
 
+  // Baris diurut terbaru dulu: yang terbaru bernomor = totalCount.
+  const getSessionNumber = useCallback(
+    (shiftId: string) => {
+      const index = allIds.indexOf(shiftId);
+      return index === -1 ? null : totalCount - index;
+    },
+    [allIds, totalCount],
+  );
+
   return {
     activeShift,
     history,
+    totalCount,
+    getSessionNumber,
     isLoading,
     error,
     refetch,
     openShift,
     closeShift,
   };
+}
+// ── TAMBAHAN (migration 050) ── Rincian uang laci satu sesi yang SUDAH ditutup,
+// untuk dialog "Detail Sesi Kas". Server menolak sesi yang masih berjalan.
+export interface ShiftClosedRefund {
+  receipt_no: string;
+  amount: number;
+  created_at: string;
+}
+
+export interface ShiftClosedDetail {
+  shift_id: string;
+  opening_cash: number;
+  cash_sales: number;
+  cash_refunds: number;
+  cash_in: number;
+  cash_out: number;
+  expected_cash: number;
+  actual_cash: number;
+  difference: number;
+  refunds: ShiftClosedRefund[];
+  cashier_name: string | null;
+  closed_by_name: string | null;
+  branch_name: string | null;
+}
+
+export async function fetchShiftClosedDetail(
+  shiftId: string,
+): Promise<ShiftClosedDetail> {
+  const { data, error } = await supabase.rpc("shift_closed_detail", {
+    p_shift_id: shiftId,
+  });
+  if (error) {
+    throw new Error(error.message || "Gagal memuat detail sesi kas.");
+  }
+  const refunds = Array.isArray(data?.refunds) ? data.refunds : [];
+  return {
+    shift_id: String(data?.shift_id ?? shiftId),
+    opening_cash: Number(data?.opening_cash ?? 0),
+    cash_sales: Number(data?.cash_sales ?? 0),
+    cash_refunds: Number(data?.cash_refunds ?? 0),
+    cash_in: Number(data?.cash_in ?? 0),
+    cash_out: Number(data?.cash_out ?? 0),
+    expected_cash: Number(data?.expected_cash ?? 0),
+    actual_cash: Number(data?.actual_cash ?? 0),
+    difference: Number(data?.difference ?? 0),
+    refunds: refunds.map((r: Record<string, unknown>) => ({
+      receipt_no: String(r.receipt_no ?? ""),
+      amount: Number(r.amount ?? 0),
+      created_at: String(r.created_at ?? ""),
+    })),
+    cashier_name: typeof data?.cashier_name === "string" ? data.cashier_name : null,
+    closed_by_name:
+      typeof data?.closed_by_name === "string" ? data.closed_by_name : null,
+    branch_name: typeof data?.branch_name === "string" ? data.branch_name : null,
+  };
+}
+
+/**
+ * ── TAMBAHAN (migration 050) ── Penjualan tunai per sesi yang sudah ditutup,
+ * untuk kolom "Penjualan tunai" di riwayat. Sesi berjalan tidak ikut.
+ */
+export function useClosedCashSales(shiftIds: string[]): Record<string, number> {
+  const [sales, setSales] = useState<Record<string, number>>({});
+  const key = shiftIds.join(",");
+
+  useEffect(() => {
+    if (!key) return;
+    let isCancelled = false;
+    supabase
+      .rpc("shift_closed_cash_sales", { p_shift_ids: key.split(",") })
+      .then(({ data, error }) => {
+        if (isCancelled || error || !data) return;
+        const next: Record<string, number> = {};
+        for (const [id, value] of Object.entries(data as Record<string, unknown>)) {
+          next[id] = Number(value) || 0;
+        }
+        setSales(next);
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [key]);
+
+  return sales;
 }

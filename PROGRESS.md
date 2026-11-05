@@ -15,6 +15,26 @@
 > per langkah**, diserahkan sebagai file yang bisa diunduh — bukan banyak
 > kode sekaligus di dalam chat.
 
+## Perubahan: Sesi Kasir & Kas ditata ulang + struk Tutup Sesi (sesi #24)
+
+- **Menu Kas & Shift** (`KasModule.tsx`) kini bergaya "Sesi Kasir & Kas": kartu
+  "Sesi kas Anda #N", tombol Lanjut ke kasir / Tarik-setor kas / Tutup Sesi Kas,
+  riwayat dikelompokkan per tanggal (cari, filter, Lihat detail). TIDAK ada tombol
+  Mulai Sesi di menu ini; sesi hanya dibuka dari layar Kasir.
+- **Penutupan tetap "buta"**: kas seharusnya sesi berjalan tidak ditampilkan (tidak
+  ada RPC pratinjau; hanya `close_shift` yang menghitungnya). Muncul setelah tutup.
+- **Struk Tutup Sesi** (`kind: "shift_close"`): `buildShiftCloseHtml` (printLogic),
+  `buildShiftCloseBytes` (printerConnection), `buildShiftCloseReceipt` (kasirLogic),
+  hook `useShiftCloseReceipt`. Dicetak otomatis dari layar Kasir dan dari menu Kas.
+- **Detail Sesi Kas** mengikuti video (Waktu & durasi, Rincian uang laci, Refund retur
+  dari laci kasir, "Ditutup oleh"). Data sesi tertutup dari migration **050**
+  (`shift_closed_detail`, `shift_closed_cash_sales`) — WAJIB dijalankan di database;
+  keduanya menolak sesi OPEN sehingga penutupan tetap buta. Filter Outlet di riwayat:
+  default cabang aktif, "Semua outlet" hanya untuk user yang boleh >1 cabang.
+- `useShifts` kini mengembalikan `totalCount` & `getSessionNumber` (nomor sesi #N).
+- **Belum dicoba**: typecheck/test/cetak ke printer sungguhan (dependency tidak
+  terpasang di lingkungan pengerjaan). Jalankan `npm run typecheck && npm test`.
+
 ## Perubahan: Library `xlsx` diganti penulis Excel sendiri (`lib/pos/xlsxWriter.ts`)
 
 `xlsx` (SheetJS) 0.18.5 punya kerentanan terbuka dan tidak dirilis lagi di npm.
