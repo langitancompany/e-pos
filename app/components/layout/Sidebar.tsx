@@ -30,24 +30,11 @@ import {
   ClipboardList,
   Settings,
   Store,
-  Sun,
-  Moon,
-  Loader2,
-  LogOut,
   Menu,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth, hasPermission, type AuthUser } from "@/hooks/useAuth";
-// ── TAMBAHAN (dark mode toggle, sidebar) ── Preferensi PER-DEVICE, bukan
-// pengaturan toko, jadi tombolnya sengaja ditaruh di sini (footer Sidebar), BUKAN di
-// PengaturanModule.tsx (admin/supervisor only) — supaya semua role kasir
-// bisa mengatur tampilan device yang sedang mereka pakai sendiri, kapan
-// saja, tanpa perlu izin admin. Lihat catatan lengkap di
-// hooks/useThemePreference.ts.
-import { useThemePreference } from "@/hooks/useThemePreference";
-import { clearStoredMenu } from "@/lib/pos/activeMenu";
-import Button from "@/app/components/ui/Button";
 
 export interface SidebarMenuItem {
   key: string;
@@ -284,32 +271,9 @@ function filterMenuGroups(groups: SidebarMenuGroup[], user: AuthUser | null) {
     .filter((group) => group.items.length > 0);
 }
 
-// ── TAMBAHAN (dark mode toggle, sidebar) ── Toggle terang/gelap, ditaruh di
-// footer Sidebar (bukan Pengaturan) atas permintaan langsung — preferensi
-// ini per-device, dibaca/ditulis lewat hooks/useThemePreference.ts
-// (localStorage), BUKAN lewat hooks/useSettings.ts (tabel `settings`
-// Supabase yang tulisnya admin-only, lihat catatan lengkap di hook itu).
-function ThemeToggle() {
-  const { theme, toggleTheme } = useThemePreference();
-  const isDark = theme === "dark";
-
-  return (
-    <Button
-      type="button"
-      onClick={toggleTheme}
-      variant="ghost"
-      size="sm"
-      fullWidth
-    >
-      {isDark ? (
-        <Sun className="h-3.5 w-3.5" />
-      ) : (
-        <Moon className="h-3.5 w-3.5" />
-      )}
-      {isDark ? "Mode Terang" : "Mode Gelap"}
-    </Button>
-  );
-}
+// ── PERUBAHAN (rapikan header & sidebar) ── Sidebar sekarang HANYA berisi menu.
+// Tombol tema pindah ke Header.tsx; identitas user + tombol Keluar pindah ke
+// UserMenu.tsx (dipakai Header). Tidak ada tombol ciutkan sidebar.
 
 interface SidebarProps {
   activeMenu: string;
@@ -347,7 +311,7 @@ export default function Sidebar({
   // (bukan lewat prop baru dari page.tsx) supaya page.tsx tidak perlu
   // berubah sama sekali, konsisten dengan komentar header file ini
   // ("tidak perlu sentuh page.tsx sama sekali" untuk urusan menu).
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const visibleGroups = filterMenuGroups(MENU_GROUPS, user);
 
   // ── TAMBAHAN (responsif) ── Di bawah breakpoint `md` (tablet portrait &
@@ -389,28 +353,6 @@ export default function Sidebar({
   function handleMenuSelect(key: string) {
     onMenuChange(key);
     setMobileOpen(false);
-  }
-
-  // ── TAMBAHAN (logout) ── `signOut()` di hooks/useAuth.ts. Setelah sesi berakhir kita pindah halaman
-  // dengan reload penuh (bukan router.push) supaya semua state di memori —
-  // keranjang, data shift, cache hook — ikut hilang dan tidak bocor ke user
-  // berikutnya di tablet kasir yang dipakai bergantian.
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [signOutError, setSignOutError] = useState("");
-
-  async function handleSignOut() {
-    if (isSigningOut) return;
-    setIsSigningOut(true);
-    setSignOutError("");
-    try {
-      await signOut();
-      // Hapus menu terakhir yang disimpan, supaya login berikutnya mulai dari Dashboard.
-      clearStoredMenu();
-      window.location.assign("/login");
-    } catch {
-      setSignOutError("Gagal keluar. Periksa koneksi lalu coba lagi.");
-      setIsSigningOut(false);
-    }
   }
 
   return (
@@ -458,79 +400,38 @@ export default function Sidebar({
             : "md:static md:z-auto md:w-64 md:translate-x-0 md:transition-none"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        {/* ── Dibungkus flex-1 overflow-y-auto supaya daftar
-          menu bisa scroll sendiri kalau kepanjangan, TANPA ikut menggeser
-          footer di bawah keluar layar. */}
-        <div className="flex-1 overflow-y-auto">
-          {/* ── PERBAIKAN (garis bawah sejajar dengan Header) ── Dulu tinggi blok
-              ini "ikut isi" (padding p-5 + tinggi teks judul + 1px border =
-              69px), sedangkan Header.tsx memakai `h-17` (68px, border sudah
-              termasuk) — akibatnya garis bawah sidebar & garis bawah header
-              beda 1px dan tampak tidak lurus. Sekarang tinggi dikunci sama
-              persis dengan Header (`h-17`), padding vertikal diganti
-              `items-center`. WAJIB dijaga sama: kalau tinggi Header.tsx
-              diubah, ubah juga angka `h-17` di sini. */}
-          <div className="flex h-17 items-center justify-between border-b border-zinc-200 px-5 dark:border-zinc-800">
-            {/* ── PERUBAHAN (logo menyesuaikan tema) ── Sebelumnya satu logo putih
-                ditaruh di kotak hijau. Sekarang ada 2 file di `public/`:
-                `BlackIcon.png` (untuk tema terang) & `WhiteIcon.png` (untuk
-                tema gelap), tanpa kotak latar. Yang tampil dipilih murni lewat
-                CSS — `dark:hidden` / `hidden dark:block` mengikuti class `dark`
-                di <html> (diatur hooks/useThemePreference.ts) — jadi ikut
-                berganti seketika saat tema diubah, tanpa state/JS tambahan.
-                Nama file CASE-SENSITIVE di server Linux/Vercel: harus persis
-                `BlackIcon.png` & `WhiteIcon.png`. `object-contain` supaya logo
-                persegi maupun lebar tidak terpotong/gepeng. Kalau file belum
-                ada, gambar disembunyikan (onError) — tidak ada ikon rusak. */}
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center">
-                {/* eslint-disable-next-line @next/next/no-img-element -- logo statis kecil dari /public, tidak perlu dioptimasi next/image */}
-                <img
-                  src="/BlackIcon.png"
-                  alt="Logo LCO POS"
-                  className="h-full w-full object-contain dark:hidden"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-                {/* eslint-disable-next-line @next/next/no-img-element -- lihat catatan di atas */}
-                <img
-                  src="/WhiteIcon.png"
-                  alt="Logo LCO POS"
-                  className="hidden h-full w-full object-contain dark:block"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              </span>
-              {/* ── TAMBAHAN (teks kecil di bawah judul) ── Supaya blok logo tidak
-                  terlihat polos. Gaya label kecil disamakan dengan label grup
-                  menu & label di Header.tsx (10px, uppercase, tracking lebar). */}
-              <div className="min-w-0">
-                <h1 className="truncate text-xl font-bold leading-tight tracking-tight text-zinc-900 dark:text-zinc-100">
-                  LCO POS
-                </h1>
-                <p className="mt-0.5 truncate text-[10px] font-semibold uppercase leading-none tracking-[0.12em] text-zinc-400">
-                  Kasir Langitan.co
-                </p>
-              </div>
-            </div>
-            {/* ── TAMBAHAN (responsif) ── Tombol tutup drawer. Biasanya cuma
-                tampil di mobile/tablet portrait (`md:hidden`) karena di
-                desktop sidebar memang selalu terbuka & statis — TAPI saat
-                `isControlled` (dibuka dari Kasir), sidebar SELALU dalam mode
-                drawer walau di layar besar, jadi tombol tutup ini juga harus
-                selalu tampil di situ. */}
-            <button
-              type="button"
-              onClick={() => setMobileOpen(false)}
-              aria-label="Tutup menu"
-              className={`rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100 ${isControlled ? "" : "md:hidden"}`}
-            >
-              <X className="h-5 w-5" />
-            </button>
+        {/* ── PERUBAHAN (rapikan header & sidebar) ── Blok judul sekarang teks
+            saja (logo dihapus) dan ditaruh di luar area scroll supaya tetap
+            terlihat saat daftar menu di-scroll. Tinggi `h-17` WAJIB sama
+            dengan Header.tsx supaya garis bawah keduanya lurus — ubah
+            keduanya bersamaan. */}
+        <div className="flex h-17 shrink-0 items-center justify-between border-b border-zinc-200 px-5 dark:border-zinc-800">
+          <div className="min-w-0">
+            <h1 className="truncate text-xl font-bold leading-tight tracking-tight text-zinc-900 dark:text-zinc-100">
+              LCO POS
+            </h1>
+            <p className="mt-0.5 truncate text-[10px] font-semibold uppercase leading-none tracking-[0.12em] text-zinc-400">
+              Kasir Langitan.co
+            </p>
           </div>
+          {/* ── TAMBAHAN (responsif) ── Tombol tutup drawer. Biasanya cuma
+              tampil di mobile/tablet portrait (`md:hidden`) karena di
+              desktop sidebar memang selalu terbuka & statis — TAPI saat
+              `isControlled` (dibuka dari Kasir), sidebar SELALU dalam mode
+              drawer walau di layar besar, jadi tombol tutup ini juga harus
+              selalu tampil di situ. */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Tutup menu"
+            className={`rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100 ${isControlled ? "" : "md:hidden"}`}
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
 
+        {/* Daftar menu — scroll sendiri kalau kepanjangan. */}
+        <div className="flex-1 overflow-y-auto pb-3">
           {visibleGroups.map((group) => (
             <div key={group.label} className="p-3 pt-3 first:pt-3">
               <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -560,49 +461,6 @@ export default function Sidebar({
               </nav>
             </div>
           ))}
-        </div>
-
-        {/* ── Footer sidebar, di luar area scroll di atas
-          supaya selalu terlihat. */}
-        <div className="border-t border-zinc-200 p-2 dark:border-zinc-800">
-          {/* ── TAMBAHAN (dark mode toggle, sidebar) ── */}
-          <ThemeToggle />
-
-          {/* ── TAMBAHAN (logout) ── Identitas user + tombol Keluar. */}
-          <div className="mt-1 border-t border-zinc-200 px-3 pt-3 pb-1 dark:border-zinc-800">
-            {user && (
-              <div className="mb-2 min-w-0">
-                <p className="truncate text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                  {user.full_name || user.email || "Pengguna"}
-                </p>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
-                  {/* ── REVISI (migration 038) ── Role kini cuma label (boleh
-                      lebih dari satu), disusun di useAuth.ts jadi `role_label`. */}
-                  {user.role_label}
-                </p>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() => void handleSignOut()}
-              disabled={isSigningOut}
-              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-lco-coral transition-colors duration-150 hover:bg-lco-coral/10 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isSigningOut ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <LogOut className="h-4 w-4" />
-              )}
-              {isSigningOut ? "Keluar..." : "Keluar"}
-            </button>
-
-            {signOutError && (
-              <p className="mt-1 px-3 text-[11px] leading-snug text-lco-coral">
-                {signOutError}
-              </p>
-            )}
-          </div>
         </div>
       </aside>
     </>

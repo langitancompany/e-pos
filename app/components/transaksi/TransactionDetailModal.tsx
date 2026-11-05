@@ -9,22 +9,24 @@
 // permission "retur_void" (default: Admin & Supervisor) — tombolnya disembunyikan
 // untuk role yang tidak punya, tapi RPC sendiri tetap validasi ulang permission yang
 // sama di server (jangan andalkan sembunyi tombol saja sebagai keamanan).
+//
+// ── PEMECAHAN FILE ── Sebelumnya semua tampilan ada di SATU file ini (±1.116
+// baris). Sekarang file ini cuma menyimpan state + handler (muat detail,
+// cetak ulang, kirim WA, proses retur/void) dan menyusun komponen di bawah;
+// tiap bagian tampilan punya file sendiri di folder ini:
+//   transactionDetailUtils.ts  PanelMode, formatDate, methodLabel
+//   DetailInfoSection.tsx      tanggal, kasir, pelanggan, alasan void/retur
+//   DetailItemsTable.tsx       tabel item (+ kolom qty retur)
+//   DetailTotals.tsx           subtotal, total, pembayaran, poin
+//   ReturnHistorySection.tsx   peringatan refund + riwayat retur
+//   RefundWarnings.tsx         kotak peringatan refund digital/piutang
+//   ReturnPanel.tsx            form retur
+//   VoidPanel.tsx              form void
+//   DetailFooterActions.tsx    tombol cetak ulang / Kirim WA / Retur / Void
+// JSX dipindah apa adanya; logika tidak diubah.
 
 import { useEffect, useState } from "react";
-import {
-  X,
-  Loader2,
-  AlertTriangle,
-  Printer,
-  Undo2,
-  Ban,
-  User,
-  Phone,
-  StickyNote,
-  ChevronDown,
-  MessageCircle,
-  Info,
-} from "lucide-react";
+import { X, Loader2, AlertTriangle } from "lucide-react";
 import { useAuth, hasPermissionAction } from "@/hooks/useAuth";
 import { useSettings } from "@/hooks/useSettings"; // ── TAMBAHAN ── Untuk mendapatkan paperNota setting
 import {
@@ -53,97 +55,21 @@ import { usePrinterProfiles } from "@/hooks/usePrinterProfiles";
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import Modal from "@/app/components/ui/Modal";
 import IconButton from "@/app/components/ui/IconButton";
-import Button from "@/app/components/ui/Button";
+import DetailInfoSection from "./DetailInfoSection";
+import DetailItemsTable from "./DetailItemsTable";
+import DetailTotals from "./DetailTotals";
+import ReturnHistorySection from "./ReturnHistorySection";
+import ReturnPanel from "./ReturnPanel";
+import VoidPanel from "./VoidPanel";
+import DetailFooterActions from "./DetailFooterActions";
+import type { PanelMode } from "./transactionDetailUtils";
 
-type PanelMode = "detail" | "retur" | "void";
 
 interface TransactionDetailModalProps {
   transactionId: string | null;
   onClose: () => void;
   /** Dipanggil setelah retur/void berhasil, supaya parent bisa refetch daftar riwayat. */
   onChanged: () => void;
-}
-
-function formatDate(isoString: string): string {
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(isoString));
-}
-
-function methodLabel(method: string): string {
-  const labels: Record<string, string> = {
-    CASH: "Tunai",
-    DIGITAL: "Digital",
-    TEMPO: "Piutang",
-    // Fallback untuk baris lama yang belum termigrasi (migration 034).
-    BANK_TRANSFER: "Digital",
-    QRIS: "Digital",
-  };
-  return labels[method] ?? method;
-}
-
-// ── TAMBAHAN (migration 037) ── Peringatan untuk refund yang TIDAK otomatis
-// selesai di sistem. Dipakai di riwayat retur (transaksi penjualan) dan di
-// detail baris retur itu sendiri.
-function RefundWarnings({
-  digital,
-  unrecorded,
-  digitalRefs,
-  tempoSettled,
-}: {
-  digital: number;
-  unrecorded: number;
-  /** Order ID Midtrans pembayaran digital transaksi asli (kalau diketahui). */
-  digitalRefs?: string[];
-  /** Piutang transaksi asli sudah lunas? undefined = tidak diketahui. */
-  tempoSettled?: boolean;
-}) {
-  if (digital <= 0 && unrecorded <= 0) return null;
-
-  return (
-    <div className="space-y-2">
-      {digital > 0 && (
-        <div className="flex items-start gap-2 rounded-md border border-lco-mustard/40 bg-lco-mustard/10 p-3 text-xs text-zinc-800 dark:text-zinc-100">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-lco-mustard" />
-          <div className="space-y-1">
-            <p className="font-semibold">
-              Refund digital {formatRupiah(digital)} harus diproses manual
-            </p>
-            <p>
-              Sistem hanya mencatat refund ini. Dana BELUM otomatis kembali ke
-              pelanggan — kembalikan lewat dashboard Midtrans.
-              {digitalRefs && digitalRefs.length > 0 && (
-                <>
-                  {" "}
-                  Order ID:{" "}
-                  <span className="font-mono">{digitalRefs.join(", ")}</span>
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-      )}
-      {unrecorded > 0 && (
-        <div className="flex items-start gap-2 rounded-md border border-lco-mustard/40 bg-lco-mustard/10 p-3 text-xs text-zinc-800 dark:text-zinc-100">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-lco-mustard" />
-          <div className="space-y-1">
-            <p className="font-semibold">
-              {formatRupiah(unrecorded)} berasal dari bagian piutang
-            </p>
-            <p>
-              Tagihan piutang TIDAK otomatis berkurang oleh retur ini.{" "}
-              {tempoSettled === true
-                ? "Piutang transaksi ini sudah dilunasi, jadi kembalikan dana bagian ini ke pelanggan secara manual."
-                : tempoSettled === false
-                  ? "Tagihan masih tercatat penuh — sesuaikan secara manual dengan pelanggan."
-                  : "Sesuaikan tagihan piutang pelanggan secara manual."}
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 export default function TransactionDetailModal({
@@ -232,9 +158,6 @@ export default function TransactionDetailModal({
   }, [transactionId]);
 
   if (!isOpen) return null;
-
-  const remainingQty = (itemId: string, qty: number, returned: number) =>
-    qty - returned;
 
   // ── KOREKSI (T-08 lanjutan) ── Dipisah dari handleReprint() supaya bisa
   // dipakai ulang oleh handleShareWhatsApp() — sebelumnya object ini dibangun
@@ -525,6 +448,13 @@ export default function TransactionDetailModal({
       cls: "bg-lco-teal/10 text-lco-teal border-lco-teal/30",
     };
   }
+  // Pindah ke panel retur/void: bersihkan pesan lama dan tutup dropdown cetak.
+  function startMode(next: "retur" | "void") {
+    setActionError(null);
+    setActionSuccess(null);
+    setMode(next);
+    setIsPrintDropdownOpen(false);
+  }
 
   return (
     <Modal
@@ -576,300 +506,28 @@ export default function TransactionDetailModal({
 
         {detail && !isLoading && (
           <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <p className="text-zinc-400 uppercase tracking-wider text-[10px] font-semibold mb-1">
-                  Tanggal
-                </p>
-                <p className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
-                  {formatDate(detail.created_at)}
-                </p>
-              </div>
-              <div>
-                <p className="text-zinc-400 uppercase tracking-wider text-[10px] font-semibold mb-1">
-                  Kasir
-                </p>
-                <p className="text-zinc-900 dark:text-zinc-100">
-                  {detail.cashier_name ?? "-"}
-                </p>
-              </div>
-              {detail.customer_name && (
-                <div>
-                  <p className="text-zinc-400 uppercase tracking-wider text-[10px] font-semibold mb-1 flex items-center gap-1">
-                    <User className="w-3 h-3" /> Pelanggan
-                  </p>
-                  <p className="text-zinc-900 dark:text-zinc-100">
-                    {detail.customer_name}
-                  </p>
-                </div>
-              )}
-              {detail.customer_phone && (
-                <div>
-                  <p className="text-zinc-400 uppercase tracking-wider text-[10px] font-semibold mb-1 flex items-center gap-1">
-                    <Phone className="w-3 h-3" /> No. HP
-                  </p>
-                  <p className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
-                    {detail.customer_phone}
-                  </p>
-                </div>
-              )}
-              {isReturnRow && detail.original_receipt_no && (
-                <div className="col-span-2">
-                  <p className="text-zinc-400 uppercase tracking-wider text-[10px] font-semibold mb-1">
-                    Retur dari struk
-                  </p>
-                  <p className="font-mono text-zinc-900 dark:text-zinc-100">
-                    {detail.original_receipt_no}
-                  </p>
-                </div>
-              )}
-            </div>
+            <DetailInfoSection detail={detail} isReturnRow={isReturnRow} />
 
-            {detail.void_reason && (
-              <div className="flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
-                <StickyNote className="w-4 h-4 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold">
-                    {detail.status === "VOID"
-                      ? "Alasan void"
-                      : "Alasan retur"}
-                  </p>
-                  <p>{detail.void_reason}</p>
-                </div>
-              </div>
-            )}
+            <DetailItemsTable
+              detail={detail}
+              mode={mode}
+              returnQtyById={returnQtyById}
+              onReturnQtyChange={(itemId, qty) =>
+                setReturnQtyById((prev) => ({ ...prev, [itemId]: qty }))
+              }
+            />
 
-            <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-              <table className="w-full text-xs">
-                <thead className="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-semibold uppercase tracking-wider text-zinc-500 text-[10px]">
-                      Produk
-                    </th>
-                    <th className="px-3 py-2 text-right font-semibold uppercase tracking-wider text-zinc-500 text-[10px]">
-                      Qty
-                    </th>
-                    <th className="px-3 py-2 text-right font-semibold uppercase tracking-wider text-zinc-500 text-[10px]">
-                      Subtotal
-                    </th>
-                    {mode === "retur" && (
-                      <th className="px-3 py-2 text-right font-semibold uppercase tracking-wider text-zinc-500 text-[10px]">
-                        Retur
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {detail.items.map((item) => {
-                    const sisa = remainingQty(
-                      item.id,
-                      item.qty,
-                      item.returned_qty,
-                    );
-                    return (
-                      <tr key={item.id}>
-                        <td className="px-3 py-2">
-                          <p className="text-zinc-900 dark:text-zinc-100">
-                            {item.product_name}
-                          </p>
-                          {item.returned_qty > 0 && (
-                            <p className="text-[10px] text-lco-mustard font-mono tabular-nums">
-                              {item.returned_qty} sudah diretur
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono tabular-nums text-zinc-600 dark:text-zinc-400">
-                          {item.qty}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
-                          {formatRupiah(item.subtotal)}
-                        </td>
-                        {mode === "retur" && (
-                          <td className="px-3 py-2 text-right">
-                            <input
-                              type="number"
-                              min={0}
-                              max={sisa}
-                              disabled={sisa <= 0}
-                              value={returnQtyById[item.id] ?? 0}
-                              onChange={(e) => {
-                                const raw = Number(e.target.value);
-                                const clamped = Math.max(
-                                  0,
-                                  Math.min(sisa, isNaN(raw) ? 0 : raw),
-                                );
-                                setReturnQtyById((prev) => ({
-                                  ...prev,
-                                  [item.id]: clamped,
-                                }));
-                              }}
-                              className="w-16 px-2 py-1 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md text-right font-mono tabular-nums text-xs focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal disabled:opacity-40"
-                            />
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="space-y-1.5 text-sm border-t border-zinc-200 dark:border-zinc-800 pt-4">
-              <div className="flex justify-between text-zinc-500 text-xs">
-                <span>
-                  {isReturnRow ? "Nilai barang diretur" : "Subtotal"}
-                </span>
-                <span className="font-mono tabular-nums">
-                  {formatRupiah(detail.subtotal)}
-                </span>
-              </div>
-              {detail.discount > 0 && (
-                <div className="flex justify-between text-zinc-500 text-xs">
-                  <span>Diskon</span>
-                  <span className="font-mono tabular-nums">
-                    -{formatRupiah(detail.discount)}
-                  </span>
-                </div>
-              )}
-              {detail.tax > 0 && (
-                <div className="flex justify-between text-zinc-500 text-xs">
-                  <span>Pajak</span>
-                  <span className="font-mono tabular-nums">
-                    {formatRupiah(detail.tax)}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between font-semibold text-base pt-2">
-                <span>{isReturnRow ? "Dana dikembalikan" : "Total"}</span>
-                <span className="font-mono tabular-nums text-lco-teal">
-                  {formatRupiah(
-                    isReturnRow ? Math.abs(detail.total) : detail.total,
-                  )}
-                </span>
-              </div>
-              {detail.payments.map((payment) => (
-                <div
-                  key={payment.id}
-                  className="pt-2 flex flex-col gap-2 border-t border-zinc-100 dark:border-zinc-800/50 mt-2 first:border-0 first:mt-0"
-                >
-                  <div className="flex justify-between text-zinc-500 text-xs">
-                    <span>
-                      {isReturnRow
-                        ? `Refund ${methodLabel(payment.method)}`
-                        : methodLabel(payment.method)}
-                    </span>
-                    <span className="font-mono tabular-nums text-zinc-900 dark:text-zinc-100">
-                      {formatRupiah(
-                        isReturnRow
-                          ? Math.abs(payment.amount)
-                          : payment.amount,
-                      )}
-                    </span>
-                  </div>
-                  {payment.method === "TEMPO" && payment.due_date && (
-                    <div className="flex justify-between text-zinc-500 text-xs">
-                      <span>Jatuh Tempo</span>
-                      <span className="font-mono tabular-nums text-lco-coral font-medium">
-                        {formatDate(payment.due_date).split(" ")[0]}
-                      </span>
-                    </div>
-                  )}
-                  {isReturnRow && payment.notes && (
-                    <p className="text-[11px] text-zinc-400">
-                      {payment.notes}
-                    </p>
-                  )}
-                </div>
-              ))}
-              {!isReturnRow &&
-                (detail.points_earned > 0 || detail.points_redeemed > 0) && (
-                  <div className="flex justify-between text-zinc-500 text-xs pt-2 border-t border-zinc-100 dark:border-zinc-800/50 mt-2">
-                    <span>Poin</span>
-                    <span className="font-mono tabular-nums">
-                      {detail.points_earned > 0 &&
-                        `+${detail.points_earned} didapat`}
-                      {detail.points_earned > 0 &&
-                        detail.points_redeemed > 0 &&
-                        " · "}
-                      {detail.points_redeemed > 0 &&
-                        `-${detail.points_redeemed} dipakai`}
-                    </span>
-                  </div>
-                )}
-            </div>
+            <DetailTotals detail={detail} isReturnRow={isReturnRow} />
 
             {/* ── TAMBAHAN (037) ── Peringatan + riwayat retur */}
-            {isReturnRow && returnRowSummary && (
-              <RefundWarnings
-                digital={returnRowSummary.digital}
-                unrecorded={returnRowSummary.unrecorded}
-              />
-            )}
-
-            {!isReturnRow && returnList.length > 0 && returnsSummary && (
-              <div className="space-y-3">
-                <RefundWarnings
-                  digital={returnsSummary.digital}
-                  unrecorded={returnsSummary.unrecorded}
-                  digitalRefs={digitalRefs}
-                  tempoSettled={tempoSettled}
-                />
-
-                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-                  <div className="flex items-center justify-between px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                      Riwayat Retur ({returnList.length})
-                    </p>
-                    <p className="text-xs font-mono tabular-nums text-zinc-700 dark:text-zinc-300">
-                      Total kembali {formatRupiah(returnsSummary.refundTotal)}
-                    </p>
-                  </div>
-                  <div className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                    {returnList.map((ret) => (
-                      <div key={ret.id} className="p-3 space-y-1.5 text-xs">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="font-mono font-semibold text-zinc-900 dark:text-zinc-100">
-                            {ret.receipt_no}
-                          </p>
-                          <p className="font-mono tabular-nums text-lco-mustard font-semibold">
-                            {formatRupiah(ret.refund_amount)}
-                          </p>
-                        </div>
-                        <p className="text-zinc-400 font-mono tabular-nums">
-                          {formatDate(ret.created_at)}
-                          {ret.cashier_name ? ` · ${ret.cashier_name}` : ""}
-                        </p>
-                        <ul className="text-zinc-700 dark:text-zinc-300">
-                          {ret.items.map((item) => (
-                            <li key={item.id}>
-                              {item.product_name}{" "}
-                              <span className="font-mono tabular-nums text-zinc-500">
-                                × {item.qty}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                        {ret.payments.length > 0 && (
-                          <p className="text-zinc-500">
-                            {ret.payments
-                              .map(
-                                (pay) =>
-                                  `${methodLabel(pay.method)} ${formatRupiah(Math.abs(pay.amount))}`,
-                              )
-                              .join(" · ")}
-                          </p>
-                        )}
-                        {ret.reason && (
-                          <p className="text-zinc-500">
-                            Alasan: {ret.reason}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            <ReturnHistorySection
+              isReturnRow={isReturnRow}
+              returnRowSummary={returnRowSummary}
+              returnList={returnList}
+              returnsSummary={returnsSummary}
+              digitalRefs={digitalRefs}
+              tempoSettled={tempoSettled}
+            />
 
             {actionSuccess && (
               <div className="rounded-md border border-lco-teal/30 bg-lco-teal/10 p-3 text-xs text-lco-teal">
@@ -884,232 +542,42 @@ export default function TransactionDetailModal({
             )}
 
             {mode === "retur" && (
-              <div className="space-y-3 rounded-xl border border-lco-mustard/40 bg-lco-mustard/10 p-4">
-                {/* ── TAMBAHAN (037/039) ── Pratinjau dana kembali. Angka final
-                    dihitung server; bisa beda beberapa rupiah (pembulatan). */}
-                <div className="rounded-md border border-lco-mustard/30 bg-white/60 dark:bg-zinc-950/60 p-3 text-xs space-y-1.5">
-                  {returnEstimate && returnEstimate.refundTotal > 0 ? (
-                    <>
-                      <div className="flex justify-between font-semibold text-zinc-900 dark:text-zinc-100">
-                        <span>Perkiraan dana kembali</span>
-                        <span className="font-mono tabular-nums">
-                          {formatRupiah(returnEstimate.refundTotal)}
-                        </span>
-                      </div>
-                      {returnEstimate.cash > 0 && (
-                        <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
-                          <span>Tunai (dari laci kasir)</span>
-                          <span className="font-mono tabular-nums">
-                            {formatRupiah(returnEstimate.cash)}
-                          </span>
-                        </div>
-                      )}
-                      {returnEstimate.digital > 0 && (
-                        <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
-                          <span>Digital (proses manual di Midtrans)</span>
-                          <span className="font-mono tabular-nums">
-                            {formatRupiah(returnEstimate.digital)}
-                          </span>
-                        </div>
-                      )}
-                      {returnEstimate.unrecorded > 0 && (
-                        <div className="flex justify-between text-zinc-600 dark:text-zinc-400">
-                          <span>
-                            Bagian piutang (tagihan tidak otomatis berkurang)
-                          </span>
-                          <span className="font-mono tabular-nums">
-                            {formatRupiah(returnEstimate.unrecorded)}
-                          </span>
-                        </div>
-                      )}
-                      {returnEstimate.cash > 0 && (
-                        <p className="flex items-start gap-1.5 text-zinc-500 pt-1">
-                          <Info className="w-3.5 h-3.5 shrink-0 mt-px" />
-                          Retur tunai butuh shift kasir yang sedang terbuka.
-                        </p>
-                      )}
-                      {(detail.points_earned > 0 ||
-                        detail.points_redeemed > 0) && (
-                        <p className="flex items-start gap-1.5 text-zinc-500">
-                          <Info className="w-3.5 h-3.5 shrink-0 mt-px" />
-                          Poin pelanggan ikut disesuaikan: poin yang didapat
-                          dicabut dan poin yang dipakai dikembalikan,
-                          sebanding dengan barang yang diretur.
-                        </p>
-                      )}
-                      <p className="text-[10px] text-zinc-400">
-                        Perkiraan — angka final dihitung server dan bisa
-                        berbeda beberapa rupiah karena pembulatan.
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-zinc-500">
-                      Isi jumlah barang yang diretur untuk melihat perkiraan
-                      dana kembali.
-                    </p>
-                  )}
-                </div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                  Alasan Retur
-                </label>
-                <textarea
-                  value={returnReason}
-                  onChange={(e) => setReturnReason(e.target.value)}
-                  rows={2}
-                  placeholder="Contoh: ukuran tidak sesuai, barang cacat, dll."
-                  className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal"
-                />
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => setMode("detail")}
-                    disabled={isSubmitting}
-                    variant="secondary"
-                    size="sm"
-                    className="flex-1"
-                  >
-                    Batal
-                  </Button>
-                  <Button
-                    onClick={handleSubmitReturn}
-                    disabled={isSubmitting}
-                    size="sm"
-                    className="flex-1"
-                  >
-                    {isSubmitting && (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    )}
-                    Proses Retur
-                  </Button>
-                </div>
-              </div>
+              <ReturnPanel
+                detail={detail}
+                returnEstimate={returnEstimate}
+                returnReason={returnReason}
+                onReasonChange={setReturnReason}
+                isSubmitting={isSubmitting}
+                onCancel={() => setMode("detail")}
+                onSubmit={handleSubmitReturn}
+              />
             )}
 
             {mode === "void" && (
-              <div className="space-y-3 rounded-xl border border-lco-coral/40 bg-lco-coral/10 p-4">
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-                  Alasan Void
-                </label>
-                <textarea
-                  value={voidReason}
-                  onChange={(e) => setVoidReason(e.target.value)}
-                  rows={2}
-                  placeholder="Contoh: salah input, transaksi ganda, dll."
-                  className="w-full px-3 py-2 bg-white dark:bg-zinc-950 border border-zinc-300 dark:border-zinc-700 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-lco-teal focus:border-lco-teal"
-                />
-                <p className="text-[11px] text-lco-coral">
-                  Seluruh item pada transaksi ini akan dibatalkan dan stok
-                  yang belum diretur akan dikembalikan.
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => setMode("detail")}
-                    disabled={isSubmitting}
-                    variant="secondary"
-                    size="sm"
-                    className="flex-1"
-                  >
-                    Batal
-                  </Button>
-                  <Button
-                    onClick={handleSubmitVoid}
-                    disabled={isSubmitting}
-                    variant="danger"
-                    size="sm"
-                    className="flex-1"
-                  >
-                    {isSubmitting && (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    )}
-                    Ya, Void Transaksi
-                  </Button>
-                </div>
-              </div>
+              <VoidPanel
+                voidReason={voidReason}
+                onReasonChange={setVoidReason}
+                isSubmitting={isSubmitting}
+                onCancel={() => setMode("detail")}
+                onSubmit={handleSubmitVoid}
+              />
             )}
           </div>
         )}
       </div>
 
       {detail && mode === "detail" && (
-        <div className="p-5 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 shrink-0 flex flex-wrap gap-3">
-          {/* Dropdown Cetak Ulang yang Mendukung Thermal dan Nota */}
-          <div className="relative flex-1 min-w-32">
-            <Button
-              onClick={() => setIsPrintDropdownOpen(!isPrintDropdownOpen)}
-              variant="secondary"
-              fullWidth
-            >
-              <Printer className="w-4 h-4" />
-              Cetak Ulang
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform ${isPrintDropdownOpen ? "rotate-180" : ""}`}
-              />
-            </Button>
-
-            {isPrintDropdownOpen && (
-              <div className="absolute bottom-full left-0 w-full mb-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-md shadow-lg overflow-hidden z-10">
-                <button
-                  onClick={() => handleReprint("thermal")}
-                  className="w-full text-left px-4 py-2.5 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 font-medium transition-colors"
-                >
-                  Struk Thermal
-                </button>
-                <button
-                  onClick={() => handleReprint("nota")}
-                  className="w-full text-left px-4 py-2.5 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 font-medium border-t border-zinc-100 dark:border-zinc-800 transition-colors"
-                >
-                  Nota Kertas
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* ── TAMBAHAN (T-08 lanjutan) ── Kirim struk digital ke WhatsApp.
-              Tombol tetap aktif walau `detail.customer_phone` kosong —
-              lihat catatan di handleShareWhatsApp(). */}
-          <Button
-            onClick={handleShareWhatsApp}
-            disabled={isSharingWa}
-            variant="secondary"
-            className="flex-1 min-w-32"
-          >
-            {isSharingWa ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <MessageCircle className="w-4 h-4" />
-            )}
-            Kirim WA
-          </Button>
-
-          {canRetur && canStillReturn && (
-            <button
-              onClick={() => {
-                setActionError(null);
-                setActionSuccess(null);
-                setMode("retur");
-                setIsPrintDropdownOpen(false);
-              }}
-              className="flex-1 min-w-32 flex items-center justify-center gap-2 py-2.5 rounded-md border border-lco-mustard/50 bg-white dark:bg-zinc-950 text-lco-mustard hover:bg-lco-mustard/10 text-xs font-semibold transition-colors duration-150"
-            >
-              <Undo2 className="w-4 h-4" />
-              Retur
-            </button>
-          )}
-          {canVoid && canStillVoid && (
-            <Button
-              onClick={() => {
-                setActionError(null);
-                setActionSuccess(null);
-                setMode("void");
-                setIsPrintDropdownOpen(false);
-              }}
-              variant="outline-danger"
-              className="flex-1 min-w-32"
-            >
-              <Ban className="w-4 h-4" />
-              Void
-            </Button>
-          )}
-        </div>
+        <DetailFooterActions
+          isPrintDropdownOpen={isPrintDropdownOpen}
+          onTogglePrintDropdown={() => setIsPrintDropdownOpen(!isPrintDropdownOpen)}
+          onReprint={handleReprint}
+          isSharingWa={isSharingWa}
+          onShareWhatsApp={handleShareWhatsApp}
+          showReturButton={canRetur && canStillReturn}
+          onStartRetur={() => startMode("retur")}
+          showVoidButton={canVoid && canStillVoid}
+          onStartVoid={() => startMode("void")}
+        />
       )}
     </Modal>
   );
