@@ -4,10 +4,12 @@
 // ANGKA asli supaya bisa dijumlah/difilter/di-pivot di Excel. Diproses di
 // browser (pola yang sama dengan app/components/stok/stokExport.ts).
 //
+// ASYNC: `exportGiftsToExcel` mengembalikan Promise (lihat lib/pos/xlsxWriter.ts).
+//
 // Hadiah berstatus "Dibatalkan" tetap ditampilkan (untuk jejak audit) tapi
 // TIDAK dihitung di total beban.
 
-import * as XLSX from "xlsx";
+import { downloadXlsx, type XlsxSheet } from "@/lib/pos/xlsxWriter";
 import {
   GIFT_CATEGORY_LABEL,
   type GiftRecord,
@@ -31,10 +33,10 @@ function formatDateOnlyForSheet(value: string): string {
   );
 }
 
-export function exportGiftsToExcel(
+export async function exportGiftsToExcel(
   gifts: GiftRecord[],
   periodLabel: string,
-): void {
+): Promise<void> {
   const active = gifts.filter((gift) => gift.status === "completed");
 
   const totalCost = active.reduce((sum, gift) => sum + gift.total_cost, 0);
@@ -63,9 +65,6 @@ export function exportGiftsToExcel(
       rows.reduce((sum, gift) => sum + gift.total_cost, 0),
     ]);
   }
-
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
-  summarySheet["!cols"] = [{ wch: 36 }, { wch: 18 }, { wch: 12 }, { wch: 18 }];
 
   // ---- Sheet 2: Daftar hadiah ----
   const header: Cell[] = [
@@ -102,25 +101,18 @@ export function exportGiftsToExcel(
     ]);
   }
 
-  const listSheet = XLSX.utils.aoa_to_sheet(listRows);
-  listSheet["!cols"] = [
-    { wch: 11 },
-    { wch: 14 },
-    { wch: 26 },
-    { wch: 22 },
-    { wch: 28 },
-    { wch: 28 },
-    { wch: 14 },
-    { wch: 11 },
-    { wch: 16 },
-    { wch: 18 },
-    { wch: 12 },
-    { wch: 20 },
+  const sheets: XlsxSheet[] = [
+    {
+      name: "Ringkasan",
+      rows: summaryRows,
+      colWidths: [36, 18, 12, 18],
+    },
+    {
+      name: "Daftar Hadiah",
+      rows: listRows,
+      colWidths: [11, 14, 26, 22, 28, 28, 14, 11, 16, 18, 12, 20],
+    },
   ];
 
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, summarySheet, "Ringkasan");
-  XLSX.utils.book_append_sheet(workbook, listSheet, "Daftar Hadiah");
-
-  XLSX.writeFile(workbook, `${buildFileBaseName("hadiah-oleh-oleh")}.xlsx`);
+  await downloadXlsx(sheets, `${buildFileBaseName("hadiah-oleh-oleh")}.xlsx`);
 }

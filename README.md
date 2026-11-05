@@ -56,7 +56,13 @@ admin/supervisor (menu Pengaturan Admin).
 
 ### 4. Environment variables
 
-Buat `.env.local` di root project:
+Salin template lalu isi nilainya (daftar lengkap ada di `.env.example`):
+
+```bash
+cp .env.example .env.local
+```
+
+Minimal yang wajib diisi:
 
 ```bash
 # Wajib — Project Settings > API di dashboard Supabase

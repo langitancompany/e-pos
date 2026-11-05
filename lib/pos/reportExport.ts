@@ -43,7 +43,7 @@
 
 import { jsPDF } from "jspdf";
 import { toPng } from "html-to-image";
-import * as XLSX from "xlsx";
+import { downloadXlsx, type XlsxSheet } from "@/lib/pos/xlsxWriter";
 import type {
   SalesSummary,
   DailySalesPoint,
@@ -123,14 +123,19 @@ export interface ReportExcelPayload {
 /**
  * Export 1 file Excel (`.xlsx`) berisi 4 sheet: Ringkasan, Harian-Bulanan,
  * Per Shift, Piutang-Tempo. Rentang tiap sheet dicatat di sheet Ringkasan.
- * Memicu unduhan langsung di browser lewat
- * `XLSX.writeFile` (tidak butuh server — semua diproses di client, sama
+ * Memicu unduhan langsung di browser lewat `downloadXlsx`
+ * (lib/pos/xlsxWriter.ts — tidak butuh server, semua diproses di client, sama
  * seperti pola export lain yang sudah ada di ekosistem Langitan.co).
+ *
+ * ASYNC: pembuatan zip .xlsx berjalan async. Pemanggil harus `await` (atau
+ * `.catch`) supaya kegagalan unduhan bisa ditampilkan ke pengguna.
  *
  * Sengaja SATU file 4 sheet, bukan 4 file terpisah — pemilik toko biasanya
  * mau lihat semuanya sekaligus, bukan download-download berkali-kali.
  */
-export function exportReportToExcel(payload: ReportExcelPayload): void {
+export async function exportReportToExcel(
+  payload: ReportExcelPayload,
+): Promise<void> {
   const {
     salesRangeLabel,
     shiftRangeLabel,
@@ -140,7 +145,7 @@ export function exportReportToExcel(payload: ReportExcelPayload): void {
     shifts,
     receivables,
   } = payload;
-  const wb = XLSX.utils.book_new();
+  const sheets: XlsxSheet[] = [];
 
   // ── Sheet 1: Ringkasan ──
   const ringkasanRows: (string | number)[][] = [
@@ -155,18 +160,22 @@ export function exportReportToExcel(payload: ReportExcelPayload): void {
     ["Item Terjual", summary.itemsSold],
     ["Rata-rata / Transaksi", summary.averageTicket],
   ];
-  const wsRingkasan = XLSX.utils.aoa_to_sheet(ringkasanRows);
-  wsRingkasan["!cols"] = [{ wch: 24 }, { wch: 52 }];
-  XLSX.utils.book_append_sheet(wb, wsRingkasan, "Ringkasan");
+  sheets.push({
+    name: "Ringkasan",
+    rows: ringkasanRows,
+    colWidths: [24, 52],
+  });
 
   // ── Sheet 2: Harian/Bulanan ──
   const dailyRows: (string | number)[][] = [
     ["Tanggal", "Omzet", "Jumlah Transaksi"],
     ...daily.map((point) => [point.label, point.revenue, point.transactionCount]),
   ];
-  const wsDaily = XLSX.utils.aoa_to_sheet(dailyRows);
-  wsDaily["!cols"] = [{ wch: 16 }, { wch: 16 }, { wch: 16 }];
-  XLSX.utils.book_append_sheet(wb, wsDaily, "Harian-Bulanan");
+  sheets.push({
+    name: "Harian-Bulanan",
+    rows: dailyRows,
+    colWidths: [16, 16, 16],
+  });
 
   // ── Sheet 3: Per Shift ──
   // Kolom "Kas Diharapkan"/"Kas Fisik" sengaja ikut disertakan (tidak tampil
@@ -198,20 +207,11 @@ export function exportReportToExcel(payload: ReportExcelPayload): void {
       shift.difference ?? "-",
     ]),
   ];
-  const wsShift = XLSX.utils.aoa_to_sheet(shiftRows);
-  wsShift["!cols"] = [
-    { wch: 18 },
-    { wch: 20 },
-    { wch: 20 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 14 },
-  ];
-  XLSX.utils.book_append_sheet(wb, wsShift, "Per Shift");
+  sheets.push({
+    name: "Per Shift",
+    rows: shiftRows,
+    colWidths: [18, 20, 20, 14, 14, 14, 14, 14, 14, 14],
+  });
 
   // ── Sheet 4: Piutang/Tempo ──
   const piutangRows: (string | number)[][] = [
@@ -225,18 +225,13 @@ export function exportReportToExcel(payload: ReportExcelPayload): void {
       row.settled_at ? formatDateTimeForSheet(row.settled_at) : "-",
     ]),
   ];
-  const wsPiutang = XLSX.utils.aoa_to_sheet(piutangRows);
-  wsPiutang["!cols"] = [
-    { wch: 20 },
-    { wch: 20 },
-    { wch: 16 },
-    { wch: 16 },
-    { wch: 14 },
-    { wch: 20 },
-  ];
-  XLSX.utils.book_append_sheet(wb, wsPiutang, "Piutang-Tempo");
+  sheets.push({
+    name: "Piutang-Tempo",
+    rows: piutangRows,
+    colWidths: [20, 20, 16, 16, 14, 20],
+  });
 
-  XLSX.writeFile(wb, `${buildFileBaseName("Laporan-LCO-POS")}.xlsx`);
+  await downloadXlsx(sheets, `${buildFileBaseName("Laporan-LCO-POS")}.xlsx`);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

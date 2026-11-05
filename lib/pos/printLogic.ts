@@ -212,7 +212,6 @@ export const printThermalReceipt = (
   brand?: ReceiptBrand | null,
   qr?: ReceiptQr | null,
 ) => {
-  console.log("[printLogic] printThermalReceipt() dipanggil", data.receiptNo);
   // 1. Buat elemen iframe tersembunyi.
   // ── KOREKSI #2 (bug cetak: dialog print tetap tidak muncul) ── Percobaan
   // pertama (iframe `position:fixed` ukuran 0x0) TERNYATA masih gagal di
@@ -403,10 +402,8 @@ export const printThermalReceipt = (
     // sekali), errornya kelihatan di console — sebelumnya gagal diam-diam,
     // persis seperti gejala "kedip doang, tidak ada dialog apa pun".
     try {
-      console.log("[printLogic] memanggil iframe.contentWindow.print() ...");
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
-      console.log("[printLogic] print() selesai dipanggil tanpa exception");
     } catch (err) {
       console.error("printThermalReceipt: window.print() gagal:", err);
     }
@@ -420,7 +417,6 @@ export const printThermalReceipt = (
 // ── TAMBAHAN (T-03) ── Fungsi cetak nota A6/A5 untuk dokumen yang lebih awet.
 // Menggunakan iframe tersembunyi yang sama dengan CSS layout berbeda.
 export const printA6Nota = (data: ReceiptData, paperSize: "A6" | "A5" = "A6") => {
-  console.log("[printLogic] printA6Nota() dipanggil", data.receiptNo, paperSize);
   // ── KOREKSI #2 (bug cetak) ── Sama seperti printThermalReceipt() di atas.
   const iframe = document.createElement("iframe");
   iframe.style.position = "fixed";
@@ -573,10 +569,8 @@ export const printA6Nota = (data: ReceiptData, paperSize: "A6" | "A5" = "A6") =>
   setTimeout(() => {
     // ── TAMBAHAN (bug cetak) ── lihat catatan try/catch di printThermalReceipt().
     try {
-      console.log("[printLogic] memanggil iframe.contentWindow.print() ...");
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
-      console.log("[printLogic] print() selesai dipanggil tanpa exception");
     } catch (err) {
       console.error("printA6Nota: window.print() gagal:", err);
     }
@@ -594,7 +588,6 @@ export const printA6Nota = (data: ReceiptData, paperSize: "A6" | "A5" = "A6") =>
 // (iframe tersembunyi + window.print()), cuma isinya halaman tes generik,
 // bukan struk transaksi.
 export const printBrowserTestPage = (storeName: string, printerLabel: string) => {
-  console.log("[printLogic] printBrowserTestPage() dipanggil", printerLabel);
   const iframe = document.createElement("iframe");
   iframe.style.position = "fixed";
   iframe.style.top = "0";
@@ -873,7 +866,7 @@ export async function shareReceiptViaWhatsApp(
   }
 
   // Fallback: unduh JPEG dulu lewat <a download> sementara (pola sama seperti
-  // XLSX.writeFile/jsPDF.save di reportExport.ts, tapi manual karena sumbernya
+  // downloadXlsx/jsPDF.save di reportExport.ts, tapi manual karena sumbernya
   // Blob polos, bukan library yang sudah punya method .save()/.writeFile()).
   const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement("a");

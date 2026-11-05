@@ -665,11 +665,11 @@ export default function LaporanModule() {
             ? shiftRangeLabel
             : PIUTANG_RANGE_LABEL;
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     setIsExportMenuOpen(false);
     setExportError(null);
     try {
-      exportReportToExcel({
+      await exportReportToExcel({
         salesRangeLabel: harianRangeLabel,
         shiftRangeLabel,
         receivablesRangeLabel: PIUTANG_RANGE_LABEL,
@@ -679,7 +679,7 @@ export default function LaporanModule() {
         receivables,
       });
     } catch (err) {
-      // `XLSX.writeFile` jarang gagal (murni proses client), tapi tetap
+      // Pembuatan file jarang gagal (murni proses client), tapi tetap
       // dibungkus try/catch — mis. browser yang memblokir download otomatis.
       setExportError(
         err instanceof Error ? err.message : "Gagal membuat file Excel.",

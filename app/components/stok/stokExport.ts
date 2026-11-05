@@ -7,8 +7,15 @@
 // Mengikuti pola lib/pos/reportExport.ts: dibangun dari DATA MENTAH, bukan teks
 // yang sudah diformat — kolom jumlah & rupiah ditulis sebagai ANGKA asli supaya
 // bisa dijumlah/difilter/di-pivot di Excel. Semua diproses di browser.
+//
+// ASYNC: ketiga fungsi ekspor mengembalikan Promise (pembuatan zip .xlsx async,
+// lihat lib/pos/xlsxWriter.ts). Pemanggil harus `await` supaya error tertangkap.
 
-import * as XLSX from "xlsx";
+import {
+  downloadXlsx,
+  type XlsxFormatRange,
+  type XlsxSheet,
+} from "@/lib/pos/xlsxWriter";
 import type { OpnameItem, OpnameSession } from "@/hooks/useOpname";
 import type { StockMovement } from "@/hooks/useStock";
 import type { ProductWithCategory } from "@/hooks/useProducts";
@@ -35,31 +42,25 @@ function formatDateTimeForSheet(value: string | null): string {
   }).format(new Date(value));
 }
 
-/** Beri format ribuan (#,##0) pada kolom angka tertentu, mulai dari baris data pertama. */
-function applyNumberFormat(
-  sheet: XLSX.WorkSheet,
-  columnIndexes: number[],
+/** Format ribuan (#,##0) untuk kolom angka tertentu, dari baris data pertama sampai terakhir. */
+function thousands(
+  columns: number[],
   firstDataRow: number,
   lastDataRow: number,
-): void {
-  for (let row = firstDataRow; row <= lastDataRow; row += 1) {
-    for (const col of columnIndexes) {
-      const cell = sheet[XLSX.utils.encode_cell({ r: row, c: col })];
-      if (cell && cell.t === "n") cell.z = "#,##0";
-    }
-  }
+): XlsxFormatRange {
+  return { columns, fromRow: firstDataRow, toRow: lastDataRow, format: "#,##0" };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Hasil sesi opname
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function exportOpnameToExcel(
+export async function exportOpnameToExcel(
   session: OpnameSession,
   items: OpnameItem[],
-): void {
+): Promise<void> {
   const stats = computeOpnameStats(items);
-  const wb = XLSX.utils.book_new();
+  const sheets: XlsxSheet[] = [];
 
   // ── Sheet 1: Ringkasan ──
   const summaryRows: Cell[][] = [
@@ -81,10 +82,12 @@ export function exportOpnameToExcel(
     ["Stok kurang (unit)", stats.minusQty],
     ["Selisih nilai (Rp, harga modal)", stats.diffValue],
   ];
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
-  summarySheet["!cols"] = [{ wch: 32 }, { wch: 36 }];
-  applyNumberFormat(summarySheet, [1], 9, summaryRows.length - 1);
-  XLSX.utils.book_append_sheet(wb, summarySheet, "Ringkasan");
+  sheets.push({
+    name: "Ringkasan",
+    rows: summaryRows,
+    colWidths: [32, 36],
+    formats: [thousands([1], 9, summaryRows.length - 1)],
+  });
 
   // ── Sheet 2: Detail per produk ──
   const header: Cell[] = [
@@ -121,26 +124,15 @@ export function exportOpnameToExcel(
     ];
   });
 
-  const detailSheet = XLSX.utils.aoa_to_sheet([header, ...detailRows]);
-  detailSheet["!cols"] = [
-    { wch: 5 },
-    { wch: 16 },
-    { wch: 18 },
-    { wch: 36 },
-    { wch: 9 },
-    { wch: 12 },
-    { wch: 12 },
-    { wch: 10 },
-    { wch: 14 },
-    { wch: 14 },
-    { wch: 28 },
-    { wch: 18 },
-  ];
-  applyNumberFormat(detailSheet, [5, 6, 7, 8, 9, 11], 1, detailRows.length);
-  XLSX.utils.book_append_sheet(wb, detailSheet, "Detail");
+  sheets.push({
+    name: "Detail",
+    rows: [header, ...detailRows],
+    colWidths: [5, 16, 18, 36, 9, 12, 12, 10, 14, 14, 28, 18],
+    formats: [thousands([5, 6, 7, 8, 9, 11], 1, detailRows.length)],
+  });
 
-  XLSX.writeFile(
-    wb,
+  await downloadXlsx(
+    sheets,
     `${buildFileBaseName(`Opname-${session.number}`)}.xlsx`,
   );
 }
@@ -149,7 +141,9 @@ export function exportOpnameToExcel(
 // Stok Saat Ini
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function exportStockToExcel(products: ProductWithCategory[]): void {
+export async function exportStockToExcel(
+  products: ProductWithCategory[],
+): Promise<void> {
   const header: Cell[] = [
     "No",
     "SKU",
@@ -184,25 +178,17 @@ export function exportStockToExcel(products: ProductWithCategory[]): void {
     ];
   });
 
-  const sheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
-  sheet["!cols"] = [
-    { wch: 5 },
-    { wch: 16 },
-    { wch: 18 },
-    { wch: 36 },
-    { wch: 18 },
-    { wch: 9 },
-    { wch: 10 },
-    { wch: 14 },
-    { wch: 11 },
-    { wch: 14 },
-    { wch: 18 },
-  ];
-  applyNumberFormat(sheet, [6, 7, 9, 10], 1, rows.length);
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, sheet, "Stok");
-  XLSX.writeFile(wb, `${buildFileBaseName("Stok")}.xlsx`);
+  await downloadXlsx(
+    [
+      {
+        name: "Stok",
+        rows: [header, ...rows],
+        colWidths: [5, 16, 18, 36, 18, 9, 10, 14, 11, 14, 18],
+        formats: [thousands([6, 7, 9, 10], 1, rows.length)],
+      },
+    ],
+    `${buildFileBaseName("Stok")}.xlsx`,
+  );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -218,10 +204,10 @@ export interface MovementsExportMeta {
   typeLabels: Record<string, string>;
 }
 
-export function exportMovementsToExcel(
+export async function exportMovementsToExcel(
   rows: StockMovement[],
   meta: MovementsExportMeta,
-): void {
+): Promise<void> {
   let masuk = 0;
   let keluar = 0;
 
@@ -230,7 +216,7 @@ export function exportMovementsToExcel(
     else if (row.qty_delta < 0) keluar += -row.qty_delta;
   }
 
-  const wb = XLSX.utils.book_new();
+  const sheets: XlsxSheet[] = [];
 
   // ── Sheet 1: Ringkasan ──
   const summaryRows: Cell[][] = [
@@ -252,9 +238,11 @@ export function exportMovementsToExcel(
     ]);
   }
 
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
-  summarySheet["!cols"] = [{ wch: 24 }, { wch: 60 }];
-  XLSX.utils.book_append_sheet(wb, summarySheet, "Ringkasan");
+  sheets.push({
+    name: "Ringkasan",
+    rows: summaryRows,
+    colWidths: [24, 60],
+  });
 
   // ── Sheet 2: Mutasi ──
   const header: Cell[] = [
@@ -285,26 +273,15 @@ export function exportMovementsToExcel(
     row.created_by_name ?? "",
   ]);
 
-  const sheet = XLSX.utils.aoa_to_sheet([header, ...body], { cellDates: true });
-  sheet["!cols"] = [
-    { wch: 6 },
-    { wch: 18 },
-    { wch: 34 },
-    { wch: 16 },
-    { wch: 16 },
-    { wch: 8 },
-    { wch: 13 },
-    { wch: 13 },
-    { wch: 36 },
-    { wch: 18 },
-  ];
-  applyNumberFormat(sheet, [5, 6, 7], 1, body.length);
+  sheets.push({
+    name: "Mutasi",
+    rows: [header, ...body],
+    colWidths: [6, 18, 34, 16, 16, 8, 13, 13, 36, 18],
+    formats: [
+      thousands([5, 6, 7], 1, body.length),
+      { columns: [1], fromRow: 1, toRow: body.length, format: "dd/mm/yyyy hh:mm" },
+    ],
+  });
 
-  for (let rowIndex = 1; rowIndex <= body.length; rowIndex += 1) {
-    const cell = sheet[XLSX.utils.encode_cell({ r: rowIndex, c: 1 })];
-    if (cell) cell.z = "dd/mm/yyyy hh:mm";
-  }
-
-  XLSX.utils.book_append_sheet(wb, sheet, "Mutasi");
-  XLSX.writeFile(wb, `${buildFileBaseName("Riwayat-Mutasi")}.xlsx`);
+  await downloadXlsx(sheets, `${buildFileBaseName("Riwayat-Mutasi")}.xlsx`);
 }

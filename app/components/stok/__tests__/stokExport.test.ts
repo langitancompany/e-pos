@@ -1,13 +1,22 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 
-// xlsx dipakai ASLI supaya isi sheet benar-benar diperiksa; hanya writeFile
-// yang diganti (tidak menulis file ke disk).
-vi.mock("xlsx", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("xlsx")>();
-  return { ...actual, writeFile: vi.fn() };
-});
+// downloadXlsx (lib/pos/xlsxWriter.ts) di-mock: test membaca DATA SHEET yang
+// dikirim ke sana (lihat xlsxTestUtils.ts), tidak membuat file sungguhan.
+//
+// Fungsi ekspor bersifat async, tapi `downloadXlsx` dipanggil SINKRON sebelum
+// `await` pertamanya — jadi data sheet langsung bisa dibaca setelah fungsi
+// dipanggil. Test yang memeriksa promise-nya (resolve/reject) memakai `await`.
+vi.mock("@/lib/pos/xlsxWriter", () => ({
+  downloadXlsx: vi.fn(async () => undefined),
+}));
 
-import * as XLSX from "xlsx";
+import { downloadXlsx } from "@/lib/pos/xlsxWriter";
+import {
+  cellAt,
+  sheetRows,
+  toWorkbook,
+  type FakeWorkbook,
+} from "@/lib/pos/__tests__/xlsxTestUtils";
 import {
   exportMovementsToExcel,
   exportOpnameToExcel,
@@ -22,17 +31,16 @@ const NOW = new Date(2026, 10, 5, 9, 7);
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
-  vi.mocked(XLSX.writeFile).mockClear();
+  vi.mocked(downloadXlsx).mockClear();
 });
 afterEach(() => vi.useRealTimers());
 
 function written() {
-  const call = vi.mocked(XLSX.writeFile).mock.calls[0];
-  return { wb: call[0] as XLSX.WorkBook, fileName: call[1] as string };
+  const call = vi.mocked(downloadXlsx).mock.calls[0];
+  return { wb: toWorkbook(call[0]), fileName: call[1] };
 }
-const rows = (wb: XLSX.WorkBook, name: string) =>
-  XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[name], { header: 1, defval: null });
-const cell = (wb: XLSX.WorkBook, sheet: string, addr: string) => wb.Sheets[sheet][addr];
+const rows = (wb: FakeWorkbook, name: string) => sheetRows(wb, name, null);
+const cell = cellAt;
 
 // ───────────────────────── Opname ─────────────────────────
 
@@ -286,7 +294,7 @@ describe("exportMovementsToExcel", () => {
     exportMovementsToExcel([mv()], meta({ truncated: false }));
     expect(rows(written().wb, "Ringkasan").some((r) => r[0] === "Catatan")).toBe(false);
 
-    vi.mocked(XLSX.writeFile).mockClear();
+    vi.mocked(downloadXlsx).mockClear();
     exportMovementsToExcel([mv()], meta({ truncated: true }));
     const note = rows(written().wb, "Ringkasan").find((r) => r[0] === "Catatan");
     expect(String(note?.[1])).toMatch(/Persempit filter/);
@@ -332,5 +340,23 @@ describe("exportMovementsToExcel", () => {
     expect(rows(wb, "Mutasi")).toHaveLength(1);
     const by = Object.fromEntries(rows(wb, "Ringkasan").filter((x) => x.length >= 2).map((x) => [x[0], x[1]]));
     expect(by["Jumlah mutasi"]).toBe(0);
+  });
+});
+
+describe("ekspor async", () => {
+  it("kegagalan pembuatan file diteruskan ke pemanggil, untuk ketiga fungsi", async () => {
+    const gagal = () =>
+      vi.mocked(downloadXlsx).mockRejectedValueOnce(new Error("gagal unduh"));
+
+    gagal();
+    await expect(exportOpnameToExcel(session(), [opItem()])).rejects.toThrow("gagal unduh");
+    gagal();
+    await expect(exportStockToExcel([])).rejects.toThrow("gagal unduh");
+    gagal();
+    await expect(exportMovementsToExcel([], meta())).rejects.toThrow("gagal unduh");
+  });
+
+  it("promise selesai (resolve) kalau pembuatan file berhasil", async () => {
+    await expect(exportStockToExcel([])).resolves.toBeUndefined();
   });
 });

@@ -15,6 +15,31 @@
 > per langkah**, diserahkan sebagai file yang bisa diunduh — bukan banyak
 > kode sekaligus di dalam chat.
 
+## Perubahan: Library `xlsx` diganti penulis Excel sendiri (`lib/pos/xlsxWriter.ts`)
+
+`xlsx` (SheetJS) 0.18.5 punya kerentanan terbuka dan tidak dirilis lagi di npm.
+App ini hanya MENULIS Excel (tidak pernah membaca file dari pengguna), jadi
+dibuat penulis kecil di atas `jszip` yang sudah ada di `dependencies`. Tidak ada
+dependency baru; `xlsx` dan 8 paket turunannya dihapus dari `package.json` dan
+`package-lock.json`.
+
+- **Baru:** `lib/pos/xlsxWriter.ts` (`downloadXlsx`, `buildXlsxBlob`, `buildXlsxFiles`).
+  Mendukung: banyak sheet, teks/angka/tanggal, lebar kolom, format angka/tanggal.
+  Tidak mendukung: rumus, merge cell, warna. Teks selalu ditulis sebagai string,
+  jadi isi yang diawali `=` tidak pernah dibaca Excel sebagai rumus.
+- **Berubah:** `reportExport.ts`, `stokExport.ts`, `hadiahExport.ts` membangun
+  data sheet lalu memanggil `downloadXlsx`. Isi file Excel yang dihasilkan sama
+  seperti sebelumnya (sheet, kolom, lebar, format ribuan, format tanggal).
+- **PERHATIAN (async):** `exportReportToExcel`, `exportOpnameToExcel`,
+  `exportStockToExcel`, `exportMovementsToExcel`, `exportGiftsToExcel` kini
+  mengembalikan `Promise<void>`. Pemanggil yang punya try/catch (`LaporanModule`,
+  `StokRiwayatTab`) sudah memakai `await`. Fungsi baru yang memanggilnya wajib `await`.
+- **Tes:** baru `xlsxWriter.test.ts`; `reportExport.test.ts` dan `stokExport.test.ts`
+  kini me-mock `downloadXlsx` dan membaca data sheet lewat `xlsxTestUtils.ts`
+  (bukan lagi membuka workbook SheetJS sungguhan).
+- **Belum dicoba:** unduhan di browser sungguhan (Chrome/Safari/WebView tablet kasir).
+  Cek manual: ekspor dari Laporan, Stok (3 jenis), dan Hadiah, lalu buka di Excel.
+
 ## Perubahan: Logika hitung Dashboard & Laporan dipindah ke lib/pos (agar bisa dites)
 
 Hook `useDashboard.ts` dan `useReports.ts` dulu menyimpan semua hitungan di dalam

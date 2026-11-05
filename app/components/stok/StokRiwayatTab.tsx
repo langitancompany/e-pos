@@ -273,7 +273,7 @@ export default function StokRiwayatTab({
             }`
           : "Semua tanggal";
 
-      exportMovementsToExcel(rows, {
+      await exportMovementsToExcel(rows, {
         filterLines: [
           ["Rentang tanggal", dateLabel],
           ["Produk", productName],

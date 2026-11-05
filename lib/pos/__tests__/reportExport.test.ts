@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Excel: library xlsx dipakai ASLI (supaya isi sheet benar-benar diperiksa),
-// hanya writeFile yang diganti agar tidak menulis file / memicu unduhan.
+// Excel: `downloadXlsx` (lib/pos/xlsxWriter.ts) di-mock; test membaca DATA SHEET
+// yang dikirim ke sana (lihat xlsxTestUtils.ts) tanpa membuat file / unduhan.
+// Fungsi ekspor async, tapi `downloadXlsx` dipanggil SINKRON sebelum `await`
+// pertamanya, jadi data sheet bisa langsung dibaca setelah fungsi dipanggil.
 // PDF: jspdf, html-to-image, <canvas>, dan Image ditiru; yang diuji adalah
 // pemotongan gambar tinggi jadi beberapa halaman A4 dan penamaan file.
 const h = vi.hoisted(() => {
@@ -17,10 +19,9 @@ const h = vi.hoisted(() => {
   return { pdf };
 });
 
-vi.mock("xlsx", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("xlsx")>();
-  return { ...actual, writeFile: vi.fn() };
-});
+vi.mock("@/lib/pos/xlsxWriter", () => ({
+  downloadXlsx: vi.fn(async () => undefined),
+}));
 
 vi.mock("html-to-image", () => ({
   toPng: vi.fn(async () => "data:image/png;base64,AAAA"),
@@ -43,7 +44,12 @@ vi.mock("jspdf", () => ({
   },
 }));
 
-import * as XLSX from "xlsx";
+import { downloadXlsx } from "@/lib/pos/xlsxWriter";
+import {
+  sheetRows,
+  toWorkbook,
+  type FakeWorkbook,
+} from "@/lib/pos/__tests__/xlsxTestUtils";
 import { toPng } from "html-to-image";
 import {
   exportReportToExcel,
@@ -57,7 +63,7 @@ beforeEach(() => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(NOW);
   h.pdf.instances.length = 0;
-  vi.mocked(XLSX.writeFile).mockClear();
+  vi.mocked(downloadXlsx).mockClear();
 });
 
 afterEach(() => {
@@ -149,23 +155,32 @@ const payload = (over: Partial<ReportExcelPayload> = {}): ReportExcelPayload => 
 
 function exportAndGetWorkbook(p = payload()) {
   exportReportToExcel(p);
-  const call = vi.mocked(XLSX.writeFile).mock.calls[0];
-  return { wb: call[0] as XLSX.WorkBook, fileName: call[1] as string };
+  const call = vi.mocked(downloadXlsx).mock.calls[0];
+  return { wb: toWorkbook(call[0]), fileName: call[1] };
 }
 
-const rowsOf = (wb: XLSX.WorkBook, sheet: string) =>
-  XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheet], { header: 1, defval: "" });
+const rowsOf = (wb: FakeWorkbook, sheet: string) => sheetRows(wb, sheet, "");
 
 describe("exportReportToExcel", () => {
   it("menulis 1 file dengan 4 sheet berurutan", () => {
     const { wb } = exportAndGetWorkbook();
-    expect(XLSX.writeFile).toHaveBeenCalledTimes(1);
+    expect(downloadXlsx).toHaveBeenCalledTimes(1);
     expect(wb.SheetNames).toEqual(["Ringkasan", "Harian-Bulanan", "Per Shift", "Piutang-Tempo"]);
   });
 
   it("nama file memakai tanggal & jam ekspor", () => {
     const { fileName } = exportAndGetWorkbook();
     expect(fileName).toBe("Laporan-LCO-POS_2026-11-05_0907.xlsx");
+  });
+
+  it("mengembalikan Promise yang selesai setelah file dibuat", async () => {
+    await expect(exportReportToExcel(payload())).resolves.toBeUndefined();
+    expect(downloadXlsx).toHaveBeenCalledTimes(1);
+  });
+
+  it("kegagalan pembuatan file diteruskan ke pemanggil, tidak ditelan", async () => {
+    vi.mocked(downloadXlsx).mockRejectedValueOnce(new Error("gagal unduh"));
+    await expect(exportReportToExcel(payload())).rejects.toThrow("gagal unduh");
   });
 
   it("Ringkasan: rentang tiap tab + angka mentah (bukan teks berformat)", () => {
