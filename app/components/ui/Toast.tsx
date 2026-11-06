@@ -42,36 +42,47 @@ export default function Toast({
 
   const isSuccess = variant === "success";
 
+  // ── PERBAIKAN (bug toast tidak di tengah lalu "loncat") ──
+  // Dulu: satu elemen memakai `left-1/2 -translate-x-1/2` (Tailwind v4 ->
+  // properti CSS `translate`) SEKALIGUS animasi keyframe yang mengubah
+  // `transform: translate(-50%, ...)`. Di Tailwind v4 kedua properti itu
+  // DITUMPUK, jadi selama animasi masuk (200ms) toast tergeser -100% (kiri
+  // dari tengah), lalu begitu animasi selesai langsung "loncat" ke tengah.
+  // Sekarang: pemusatan dilakukan wrapper luar lewat flex (tanpa transform
+  // sama sekali), sedangkan animasi hanya di elemen dalam dan hanya
+  // menggeser sumbu Y. Keduanya tidak bisa saling bertabrakan lagi.
   return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="fixed top-4 left-1/2 -translate-x-1/2 z-[70] w-[92vw] max-w-sm animate-toast-in"
-    >
+    <div className="pointer-events-none fixed inset-x-0 top-4 z-[70] flex justify-center">
       <div
-        className={`overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm ${
-          isSuccess
-            ? "bg-white/95 dark:bg-zinc-900/95 border-lco-green/30"
-            : "bg-white/95 dark:bg-zinc-900/95 border-lco-coral/30"
-        }`}
+        role="status"
+        aria-live="polite"
+        className="pointer-events-auto w-[92vw] max-w-sm animate-toast-in"
       >
-        <div className="flex items-center gap-2.5 px-4 py-3">
-          {isSuccess ? (
-            <CheckCircle2 className="w-4.5 h-4.5 shrink-0 text-lco-green" />
-          ) : (
-            <XCircle className="w-4.5 h-4.5 shrink-0 text-lco-coral" />
-          )}
-          <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
-            {message}
-          </p>
-        </div>
-        {/* Garis countdown: lebar 100% -> 0% selama durationMs, lalu toast
-            disembunyikan pemanggil tepat saat animasi ini selesai. */}
-        <div className="h-0.5 w-full bg-zinc-200 dark:bg-zinc-800">
-          <div
-            className={`h-full ${isSuccess ? "bg-lco-green" : "bg-lco-coral"} animate-toast-countdown`}
-            style={{ animationDuration: `${durationMs}ms` }}
-          />
+        <div
+          className={`overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm ${
+            isSuccess
+              ? "bg-white/95 dark:bg-zinc-900/95 border-lco-green/30"
+              : "bg-white/95 dark:bg-zinc-900/95 border-lco-coral/30"
+          }`}
+        >
+          <div className="flex items-center gap-2.5 px-4 py-3">
+            {isSuccess ? (
+              <CheckCircle2 className="w-4.5 h-4.5 shrink-0 text-lco-green" />
+            ) : (
+              <XCircle className="w-4.5 h-4.5 shrink-0 text-lco-coral" />
+            )}
+            <p className="text-sm font-medium text-zinc-800 dark:text-zinc-100">
+              {message}
+            </p>
+          </div>
+          {/* Garis countdown: lebar 100% -> 0% selama durationMs, lalu toast
+              disembunyikan pemanggil tepat saat animasi ini selesai. */}
+          <div className="h-0.5 w-full bg-zinc-200 dark:bg-zinc-800">
+            <div
+              className={`h-full ${isSuccess ? "bg-lco-green" : "bg-lco-coral"} animate-toast-countdown`}
+              style={{ animationDuration: `${durationMs}ms` }}
+            />
+          </div>
         </div>
       </div>
     </div>
