@@ -7,7 +7,6 @@
 import { useState } from "react";
 import {
   AlertCircle,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Eye,
@@ -32,6 +31,7 @@ import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
 import BackButton from "@/app/components/ui/BackButton";
+import { useToast } from "@/app/components/ui/useToast";
 import { formatFileSize } from "./promoUtils";
 import ScreenLinkModal from "./ScreenLinkModal";
 import MediaFormModal, { type MediaFormTarget } from "./MediaFormModal";
@@ -65,7 +65,7 @@ export default function ScreenMediaManager({
   const [deletingItem, setDeletingItem] = useState<PromoMedia | null>(null);
   const [deleteError, setDeleteError] = useState("");
   const [actionError, setActionError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const { notify, toastElement } = useToast();
   const [showLinkModal, setShowLinkModal] = useState(false);
 
   async function runAction(
@@ -73,19 +73,18 @@ export default function ScreenMediaManager({
     successText?: string,
   ) {
     setActionError("");
-    setSuccessMessage("");
     const result = await action();
     if (!result.ok) {
       setActionError(result.error);
     } else if (successText) {
-      setSuccessMessage(successText);
+      notify(successText);
     }
   }
 
   function handleFormSaved(message: string) {
     setFormTarget(null);
     setActionError("");
-    setSuccessMessage(message);
+    notify(message);
   }
 
   async function handleConfirmDelete() {
@@ -100,13 +99,14 @@ export default function ScreenMediaManager({
 
     setDeletingItem(null);
     setActionError("");
-    setSuccessMessage("Media dihapus.");
+    notify("Media dihapus.");
   }
 
   const activeCount = items.filter((item) => item.is_active).length;
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-zinc-100 p-4 dark:bg-zinc-950 md:p-6">
+      {toastElement}
       <BackButton onClick={onBack}>Daftar TV</BackButton>
 
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -132,7 +132,6 @@ export default function ScreenMediaManager({
             type="button"
             onClick={() => {
               setActionError("");
-              setSuccessMessage("");
               setFormTarget({ mode: "add" });
             }}
           >
@@ -160,13 +159,6 @@ export default function ScreenMediaManager({
           </li>
         </ul>
       </div>
-
-      {successMessage && (
-        <div className="mb-3 flex items-start gap-2 border border-lco-teal/40 bg-white p-3 text-xs text-lco-green dark:bg-zinc-950 dark:text-lco-teal">
-          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <p>{successMessage}</p>
-        </div>
-      )}
 
       {actionError && (
         <div className="mb-3 flex items-start gap-2 border border-lco-coral/30 bg-white p-3 text-xs text-lco-coral dark:bg-zinc-950">
@@ -336,7 +328,6 @@ export default function ScreenMediaManager({
                     disabled={isMutating}
                     onClick={() => {
                       setActionError("");
-                      setSuccessMessage("");
                       setFormTarget({ mode: "edit", item });
                     }}
                     variant="outlined"

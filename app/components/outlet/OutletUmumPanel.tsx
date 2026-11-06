@@ -18,12 +18,13 @@
 
 import MoneyInput from "@/app/components/ui/MoneyInput";
 import { useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, Loader2, Save } from "lucide-react";
+import { AlertCircle, Loader2, Save } from "lucide-react";
 import { useSettings, type Settings } from "@/hooks/useSettings";
 import { normalizePromoUrl } from "@/lib/pos/receiptQr";
 import Select from "@/app/components/ui/Select";
 import Input from "@/app/components/ui/Input";
 import Button from "@/app/components/ui/Button";
+import { useToast } from "@/app/components/ui/useToast";
 
 const labelClass =
   "mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400";
@@ -40,7 +41,7 @@ export default function OutletUmumPanel() {
 
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const { notify, toastElement } = useToast();
 
   useEffect(() => {
     if (!isLoading && !hasSynced) {
@@ -52,13 +53,11 @@ export default function OutletUmumPanel() {
 
   function updateField<K extends keyof Settings>(field: K, value: Settings[K]) {
     setForm((current) => ({ ...current, [field]: value }));
-    setSaveSuccess(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaveError(null);
-    setSaveSuccess(false);
     setIsSaving(true);
 
     try {
@@ -101,7 +100,7 @@ export default function OutletUmumPanel() {
         await updateSetting(field, finalForm[field]);
       }
 
-      setSaveSuccess(true);
+      notify("Pengaturan outlet tersimpan.");
     } catch (submitError) {
       setSaveError(
         submitError instanceof Error
@@ -124,6 +123,7 @@ export default function OutletUmumPanel() {
 
   return (
     <div className="space-y-4">
+    {toastElement}
     <form
       onSubmit={handleSubmit}
       className="space-y-6 rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900"
@@ -348,13 +348,6 @@ export default function OutletUmumPanel() {
           )}
           Simpan Perubahan
         </Button>
-
-        {saveSuccess && (
-          <span className="flex items-center gap-1.5 text-sm text-lco-green">
-            <CheckCircle2 className="h-4 w-4" />
-            Tersimpan.
-          </span>
-        )}
 
         {saveError && (
           <span className="flex items-center gap-1.5 text-sm text-lco-coral">

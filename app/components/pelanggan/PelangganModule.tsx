@@ -8,7 +8,7 @@
 // Tambah, Ubah (ubah data + sesuaikan poin), Hapus (arsipkan). Tombol
 // disembunyikan sesuai izin; penegakan sebenarnya ada di RLS/RPC database.
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertTriangle,
   Archive,
@@ -29,7 +29,7 @@ import {
   type CustomerWithStats,
 } from "@/hooks/useCustomerAdmin";
 import { formatRupiah } from "@/lib/pos/cartLogic";
-import Toast, { type ToastVariant } from "../ui/Toast";
+import { useToast } from "../ui/useToast";
 import PelangganFormModal from "./PelangganFormModal";
 import PelangganDetailPanel from "./PelangganDetailPanel";
 import PoinAdjustModal from "./PoinAdjustModal";
@@ -140,17 +140,7 @@ export default function PelangganModule() {
   const [formMode, setFormMode] = useState<"create" | "edit" | null>(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
 
-  const [toast, setToast] = useState<{
-    message: string;
-    variant: ToastVariant;
-  } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  function showToast(message: string, variant: ToastVariant = "success") {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ message, variant });
-    toastTimer.current = setTimeout(() => setToast(null), 3000);
-  }
+  const { notify: showToast, toastElement } = useToast();
 
   const selected = useMemo(
     () => customers.find((c) => c.id === selectedId) ?? null,
@@ -284,9 +274,7 @@ export default function PelangganModule() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {toast && (
-        <Toast visible message={toast.message} variant={toast.variant} />
-      )}
+      {toastElement}
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
         {/* Kartu ringkasan */}

@@ -16,9 +16,7 @@
 
 import { useState } from "react";
 import {
-  AlertCircle,
   Bluetooth,
-  CheckCircle2,
   Loader2,
   Pencil,
   Printer as PrinterIcon,
@@ -26,7 +24,6 @@ import {
   Star,
   Trash2,
   Usb,
-  X,
   Zap,
 } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
@@ -37,6 +34,7 @@ import {
   type PrinterStatus,
 } from "@/hooks/usePrinterProfiles";
 import Button from "@/app/components/ui/Button";
+import { useToast } from "@/app/components/ui/useToast";
 
 const GHOST_ICON_CLASS =
   "inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors duration-150 hover:bg-zinc-100 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-zinc-500 dark:hover:bg-zinc-900 dark:hover:text-zinc-200";
@@ -95,60 +93,46 @@ export default function PengaturanPrinterTab() {
     removePrinter,
   } = usePrinterProfiles();
 
-  const [notice, setNotice] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  const { notify, toastElement } = useToast();
 
   async function handleScan(kind: "bluetooth" | "usb") {
-    setNotice(null);
     const result =
       kind === "bluetooth" ? await scanBluetooth() : await scanUsb();
     if (result.ok) {
-      setNotice({
-        type: "success",
-        text: "Printer ditemukan & ditambahkan ke daftar.",
-      });
+      notify("Printer ditemukan & ditambahkan ke daftar.");
     } else if (result.error !== "Dibatalkan.") {
-      setNotice({ type: "error", text: result.error });
+      notify(result.error, "error");
     }
   }
 
   async function handleTestConnection(profile: PrinterProfile) {
-    setNotice(null);
     const result = await testConnection(profile.id);
     if (result.ok) {
-      setNotice({
-        type: "success",
-        text: `Koneksi ke "${profile.name}" berhasil.`,
-      });
+      notify(`Koneksi ke "${profile.name}" berhasil.`);
     } else if (result.error !== "Dibatalkan.") {
-      setNotice({ type: "error", text: `${profile.name}: ${result.error}` });
+      notify(`${profile.name}: ${result.error}`, "error");
     }
   }
 
   async function handleTestPrint(profile: PrinterProfile) {
-    setNotice(null);
     const result = await testPrint(profile.id, settings.namaToko);
     if (result.ok) {
-      setNotice({
-        type: "success",
-        text: `Perintah tes print terkirim ke "${profile.name}".`,
-      });
+      notify(`Perintah tes print terkirim ke "${profile.name}".`);
     } else if (result.error !== "Dibatalkan.") {
-      setNotice({ type: "error", text: `${profile.name}: ${result.error}` });
+      notify(`${profile.name}: ${result.error}`, "error");
     }
   }
 
   function handleRemove(profile: PrinterProfile) {
     const result = removePrinter(profile.id);
     if (!result.ok) {
-      setNotice({ type: "error", text: result.error });
+      notify(result.error, "error");
     }
   }
 
   return (
     <div>
+      {toastElement}
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
           Printer Struk
@@ -208,49 +192,6 @@ export default function PengaturanPrinterTab() {
           di bawah.
         </p>
       </div>
-
-      {notice && (
-        <div
-          className={`mb-3 flex items-start gap-3 rounded-xl p-3.5 ${
-            notice.type === "success" ? "bg-lco-teal/10" : "bg-lco-coral/10"
-          }`}
-        >
-          <div
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-              notice.type === "success"
-                ? "bg-lco-teal/20 text-lco-green dark:text-lco-teal"
-                : "bg-lco-coral/20 text-lco-coral"
-            }`}
-          >
-            {notice.type === "success" ? (
-              <CheckCircle2 className="h-3.5 w-3.5" />
-            ) : (
-              <AlertCircle className="h-3.5 w-3.5" />
-            )}
-          </div>
-          <p
-            className={`flex-1 pt-0.5 text-sm ${
-              notice.type === "success"
-                ? "text-lco-green dark:text-lco-teal"
-                : "text-lco-coral"
-            }`}
-          >
-            {notice.text}
-          </p>
-          <button
-            type="button"
-            onClick={() => setNotice(null)}
-            aria-label="Tutup notifikasi"
-            className={`shrink-0 rounded-md p-1 transition-colors duration-150 ${
-              notice.type === "success"
-                ? "text-lco-green/50 hover:bg-lco-teal/20 hover:text-lco-green dark:text-lco-teal/60 dark:hover:text-lco-teal"
-                : "text-lco-coral/50 hover:bg-lco-coral/20 hover:text-lco-coral"
-            }`}
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
 
       {!isLoaded ? (
         <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-200 p-8 text-sm text-zinc-400 dark:border-zinc-800">

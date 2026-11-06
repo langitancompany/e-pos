@@ -44,7 +44,6 @@
 import { useState } from "react";
 import {
   AlertCircle,
-  CheckCircle2,
   Eye,
   EyeOff,
   Loader2,
@@ -68,6 +67,7 @@ import {
 import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
+import { useToast } from "@/app/components/ui/useToast";
 import { formatScreenDate, relativeScreenTime } from "./promoUtils";
 import ScreenLinkModal from "./ScreenLinkModal";
 import ScreenFormModal, { type ScreenFormTarget } from "./ScreenFormModal";
@@ -106,11 +106,10 @@ export default function PromoModule() {
   );
   const [deleteError, setDeleteError] = useState("");
   const [actionError, setActionError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const { notify, toastElement } = useToast();
 
   async function runAction(action: () => Promise<PromoScreenActionResult>) {
     setActionError("");
-    setSuccessMessage("");
     const result = await action();
     if (!result.ok) {
       setActionError(result.error);
@@ -120,7 +119,7 @@ export default function PromoModule() {
   function handleScreenFormSaved(message: string) {
     setScreenFormTarget(null);
     setActionError("");
-    setSuccessMessage(message);
+    notify(message);
   }
 
   async function handleConfirmDeleteScreen() {
@@ -135,7 +134,7 @@ export default function PromoModule() {
 
     setDeletingScreen(null);
     setActionError("");
-    setSuccessMessage("TV dihapus.");
+    notify("TV dihapus.");
   }
 
   if (isAuthLoading) {
@@ -179,6 +178,7 @@ export default function PromoModule() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-zinc-100 p-4 dark:bg-zinc-950 md:p-6">
+      {toastElement}
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
@@ -194,7 +194,6 @@ export default function PromoModule() {
           type="button"
           onClick={() => {
             setActionError("");
-            setSuccessMessage("");
             setScreenFormTarget({ mode: "add" });
           }}
         >
@@ -202,25 +201,6 @@ export default function PromoModule() {
           Tambah TV
         </Button>
       </div>
-
-      {successMessage && (
-        <div className="mb-3 flex items-start gap-3 rounded-xl bg-lco-teal/10 p-3.5 dark:bg-lco-teal/10">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-lco-teal/20 text-lco-green dark:text-lco-teal">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          </div>
-          <p className="flex-1 pt-0.5 text-sm text-lco-green dark:text-lco-teal">
-            {successMessage}
-          </p>
-          <button
-            type="button"
-            onClick={() => setSuccessMessage("")}
-            aria-label="Tutup notifikasi"
-            className="shrink-0 rounded-md p-1 text-lco-green/50 transition-colors duration-150 hover:bg-lco-teal/20 hover:text-lco-green dark:text-lco-teal/60 dark:hover:text-lco-teal"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
 
       {actionError && (
         <div className="mb-3 flex items-start gap-3 rounded-xl bg-lco-coral/10 p-3.5">
@@ -359,7 +339,6 @@ export default function PromoModule() {
                     disabled={isMutating}
                     onClick={() => {
                       setActionError("");
-                      setSuccessMessage("");
                       setScreenFormTarget({ mode: "rename", screen });
                     }}
                     variant="soft"

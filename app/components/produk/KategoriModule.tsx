@@ -18,6 +18,7 @@ import Modal from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import IconButton from "@/app/components/ui/IconButton";
 import Input from "@/app/components/ui/Input";
+import { useToast } from "@/app/components/ui/useToast";
 
 type CategoryForm = {
   name: string;
@@ -51,7 +52,7 @@ export default function KategoriModule() {
 
   const [form, setForm] = useState<CategoryForm>(DEFAULT_FORM);
   const [actionError, setActionError] = useState("");
-  const [success, setSuccess] = useState("");
+  const { notify, toastElement } = useToast();
 
   // Error tampil = error aksi terakhir, atau error gagal-muat dari hook bila tidak ada aksi.
   const error = actionError || loadError || "";
@@ -61,7 +62,6 @@ export default function KategoriModule() {
     setEditingId(null);
     setForm(DEFAULT_FORM);
     setError("");
-    setSuccess("");
     setShowForm(true);
   }
 
@@ -73,7 +73,6 @@ export default function KategoriModule() {
       is_active: category.is_active,
     });
     setError("");
-    setSuccess("");
     setShowForm(true);
   }
 
@@ -88,7 +87,6 @@ export default function KategoriModule() {
 
   async function handleSave() {
     setError("");
-    setSuccess("");
 
     const parsed = validateCategoryInput(form);
     if (!parsed.ok) {
@@ -113,7 +111,7 @@ export default function KategoriModule() {
     setShowForm(false);
     setEditingId(null);
     setForm(DEFAULT_FORM);
-    setSuccess(
+    notify(
       wasEditing
         ? "Kategori berhasil diperbarui."
         : "Kategori berhasil ditambahkan.",
@@ -122,7 +120,6 @@ export default function KategoriModule() {
 
   async function handleDelete(category: Category) {
     setError("");
-    setSuccess("");
 
     const confirmed = window.confirm(
       `Hapus kategori "${category.name}"?\n\nJika kategori sudah digunakan oleh produk, penghapusan mungkin gagal.`,
@@ -137,12 +134,11 @@ export default function KategoriModule() {
       return;
     }
 
-    setSuccess("Kategori berhasil dihapus.");
+    notify("Kategori berhasil dihapus.");
   }
 
   async function toggleActive(category: Category) {
     setError("");
-    setSuccess("");
 
     const result = await setCategoryActive(category.id, !category.is_active);
 
@@ -153,6 +149,7 @@ export default function KategoriModule() {
 
   return (
     <div className="space-y-6">
+      {toastElement}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -175,12 +172,6 @@ export default function KategoriModule() {
       {error && !showForm && (
         <div className="rounded-md border border-lco-coral/30 bg-lco-coral/10 px-4 py-3 text-sm text-lco-coral">
           {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="rounded-md border border-lco-green/30 bg-lco-teal/10 px-4 py-3 text-sm text-lco-green dark:text-lco-teal">
-          {success}
         </div>
       )}
 

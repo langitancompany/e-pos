@@ -5,12 +5,12 @@
 // Akses: izin modul `pengeluaran` (Lihat / Tambah / Ubah / Hapus). Yang benar-benar
 // mengikat tetap RLS dan cek izin di RPC (migration 051).
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { useAuth, hasPermission, hasPermissionAction } from "@/hooks/useAuth";
 import { useExpenseCategories } from "@/hooks/useExpenses";
 import TabSwitcher from "@/app/components/ui/TabSwitcher";
-import Toast, { type ToastVariant } from "@/app/components/ui/Toast";
+import { useToast } from "@/app/components/ui/useToast";
 import ExpensesTab from "./ExpensesTab";
 import ExpenseCategoriesTab from "./ExpenseCategoriesTab";
 
@@ -21,16 +21,10 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "categories", label: "Kategori" },
 ];
 
-const TOAST_MS = 3000;
-
 export default function PengeluaranModule() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [tab, setTab] = useState<TabKey>("expenses");
-  const [toast, setToast] = useState<{
-    message: string;
-    variant: ToastVariant;
-  } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { notify, toastElement } = useToast();
 
   const {
     categories,
@@ -41,22 +35,6 @@ export default function PengeluaranModule() {
     setCategoryActive,
     deleteCategory,
   } = useExpenseCategories();
-
-  const notify = useCallback(
-    (message: string, variant: ToastVariant = "success") => {
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-      setToast({ message, variant });
-      toastTimer.current = setTimeout(() => setToast(null), TOAST_MS);
-    },
-    [],
-  );
-
-  useEffect(
-    () => () => {
-      if (toastTimer.current) clearTimeout(toastTimer.current);
-    },
-    [],
-  );
 
   if (isAuthLoading) {
     return (
@@ -131,12 +109,7 @@ export default function PengeluaranModule() {
         />
       </div>
 
-      <Toast
-        visible={toast !== null}
-        message={toast?.message ?? ""}
-        variant={toast?.variant ?? "success"}
-        durationMs={TOAST_MS}
-      />
+      {toastElement}
     </div>
   );
 }

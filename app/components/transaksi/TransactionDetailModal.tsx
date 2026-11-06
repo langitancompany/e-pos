@@ -55,6 +55,7 @@ import { usePrinterProfiles } from "@/hooks/usePrinterProfiles";
 import { formatRupiah } from "@/lib/pos/cartLogic";
 import Modal from "@/app/components/ui/Modal";
 import IconButton from "@/app/components/ui/IconButton";
+import { useToast } from "@/app/components/ui/useToast";
 import DetailInfoSection from "./DetailInfoSection";
 import DetailItemsTable from "./DetailItemsTable";
 import DetailTotals from "./DetailTotals";
@@ -103,7 +104,8 @@ export default function TransactionDetailModal({
   const [mode, setMode] = useState<PanelMode>("detail");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  // Pesan sukses retur/void/WA cukup panjang, jadi tampil lebih lama dari default.
+  const { notify, toastElement } = useToast(5000);
 
   const [returnQtyById, setReturnQtyById] = useState<Record<string, number>>(
     {},
@@ -131,7 +133,6 @@ export default function TransactionDetailModal({
     setDetail(null);
     setMode("detail");
     setActionError(null);
-    setActionSuccess(null);
     setReturnQtyById({});
     setReturnReason("");
     setVoidReason("");
@@ -230,7 +231,6 @@ export default function TransactionDetailModal({
     if (!detail) return;
     setIsPrintDropdownOpen(false);
     setActionError(null);
-    setActionSuccess(null);
     setIsSharingWa(true);
 
     try {
@@ -240,7 +240,7 @@ export default function TransactionDetailModal({
         detail.customer_phone,
       );
 
-      setActionSuccess(
+      notify(
         result.method === "web-share"
           ? "Gambar struk dikirim — pilih WhatsApp di jendela share yang terbuka."
           : "Gambar struk sudah diunduh & WhatsApp dibuka di tab baru — lampirkan gambarnya secara manual (browser ini tidak mendukung lampiran otomatis).",
@@ -308,7 +308,7 @@ export default function TransactionDetailModal({
       if (result.points_returned > 0)
         pointParts.push(`${result.points_returned} poin dikembalikan`);
 
-      setActionSuccess(
+      notify(
         `Retur berhasil — ${result.receipt_no}, dana kembali ${formatRupiah(result.refund_amount)}` +
           (refundParts.length > 0 ? ` (${refundParts.join("; ")})` : "") +
           "." +
@@ -346,7 +346,7 @@ export default function TransactionDetailModal({
     try {
       await voidTransaction({ transactionId: detail.id, reason: voidReason });
 
-      setActionSuccess("Transaksi berhasil dibatalkan (void).");
+      notify("Transaksi berhasil dibatalkan (void).");
       onChanged();
 
       const refreshed = await getTransactionDetail(detail.id);
@@ -451,7 +451,6 @@ export default function TransactionDetailModal({
   // Pindah ke panel retur/void: bersihkan pesan lama dan tutup dropdown cetak.
   function startMode(next: "retur" | "void") {
     setActionError(null);
-    setActionSuccess(null);
     setMode(next);
     setIsPrintDropdownOpen(false);
   }
@@ -462,6 +461,7 @@ export default function TransactionDetailModal({
       padding="none"
       layout="flex"
     >
+      {toastElement}
       <div className="flex items-center justify-between p-5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -529,11 +529,6 @@ export default function TransactionDetailModal({
               tempoSettled={tempoSettled}
             />
 
-            {actionSuccess && (
-              <div className="rounded-md border border-lco-teal/30 bg-lco-teal/10 p-3 text-xs text-lco-teal">
-                {actionSuccess}
-              </div>
-            )}
             {actionError && (
               <div className="flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 p-3 text-xs text-lco-coral">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
