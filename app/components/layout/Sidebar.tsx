@@ -23,6 +23,7 @@ import {
   Wallet,
   Boxes,
   Gift,
+  HandCoins,
   Tags,
   Monitor,
   TrendingUp,
@@ -145,6 +146,18 @@ export const MENU_GROUPS: SidebarMenuGroup[] = [
         label: "Layar Promosi",
         icon: Monitor,
         permissions: ["promo"],
+      },
+    ],
+  },
+  {
+    // Biaya operasional outlet. Terpisah dari Kas & Shift: tidak menyentuh kas laci.
+    label: "Keuangan",
+    items: [
+      {
+        key: "pengeluaran",
+        label: "Pengeluaran",
+        icon: HandCoins,
+        permissions: ["pengeluaran"],
       },
     ],
   },

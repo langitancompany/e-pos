@@ -25,6 +25,7 @@ export const VALID_MENU_KEYS = [
   "label-barcode",
   "kas",
   "promo",
+  "pengeluaran",
   "laporan",
   "sampah",
   "log-aktivitas",

@@ -120,6 +120,14 @@ const HadiahModule = dynamic(() => import("./components/hadiah/HadiahModule"), {
   ssr: false,
 });
 
+// Biaya operasional outlet (migration 051): daftar pengeluaran dan kategorinya.
+const PengeluaranModule = dynamic(
+  () => import("./components/pengeluaran/PengeluaranModule"),
+  {
+    ssr: false,
+  },
+);
+
 export default function LCOPOS() {
   // ── KOREKSI (setelah login diarahkan ke Dashboard) ── Sebelumnya default
   // "kasir", jadi kasir/admin yang baru login langsung masuk layar POS.
@@ -238,6 +246,9 @@ export default function LCOPOS() {
             <KasModule onOpenKasir={openKasir} />
           )}
           {isMenuRestored && activeMenu === "promo" && <PromoModule />}
+          {isMenuRestored && activeMenu === "pengeluaran" && (
+            <PengeluaranModule />
+          )}
           {isMenuRestored && activeMenu === "laporan" && <LaporanModule />}
           {isMenuRestored && activeMenu === "sampah" && <SampahModule />}
           {isMenuRestored && activeMenu === "log-aktivitas" && (

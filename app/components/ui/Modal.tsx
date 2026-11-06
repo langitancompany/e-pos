@@ -27,9 +27,11 @@
 //   onBackdropClick  opsional — dipanggil kalau area gelap di luar kartu
 //             diklik. SENGAJA tidak aktif bawaan supaya form yang sedang diisi
 //             tidak tertutup tidak sengaja.
+//   onEscape  opsional — dipanggil saat tombol Escape ditekan. Kirim undefined
+//             selagi modal tidak boleh ditutup (mis. sedang menyimpan).
 //   Props div lain (aria-label, id, dst.) diteruskan ke kartu.
 
-import type { HTMLAttributes, ReactNode } from "react";
+import { useEffect, type HTMLAttributes, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 export type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl";
@@ -71,6 +73,7 @@ interface ModalProps extends HTMLAttributes<HTMLDivElement> {
   padding?: keyof typeof PADDING_CLASS;
   layout?: keyof typeof LAYOUT_CLASS;
   onBackdropClick?: () => void;
+  onEscape?: () => void;
   children: ReactNode;
 }
 
@@ -80,10 +83,20 @@ export default function Modal({
   padding = "lg",
   layout = "scroll",
   onBackdropClick,
+  onEscape,
   className = "",
   children,
   ...rest
 }: ModalProps) {
+  useEffect(() => {
+    if (!onEscape) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onEscape();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onEscape]);
+
   return (
     <div
       className={`fixed inset-0 z-50 flex justify-center bg-zinc-950/40 ${PLACEMENT_OVERLAY_CLASS[placement]}`}

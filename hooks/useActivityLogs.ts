@@ -53,6 +53,11 @@ export type ActivityLogAction =
   // ── TAMBAHAN (migration 044) ── hadiah/oleh-oleh (entity "gift")
   | "gift_give"
   | "gift_void"
+  // pengeluaran operasional (migration 051, entity "expense")
+  | "expense_create"
+  | "expense_update"
+  | "expense_delete"
+  | "expense_category_delete"
   // ── TAMBAHAN (hapus user & outlet) ──
   | "user_delete"
   | "branch_delete";
@@ -63,7 +68,8 @@ export type ActivityLogEntity =
   | "shift"
   | "stock_opname"
   | "stock_receipt"
-  | "gift";
+  | "gift"
+  | "expense";
 
 /** Label Indonesia per action — dipakai tabel Log Aktivitas & filter dropdown. */
 export const ACTIVITY_ACTION_LABEL: Record<ActivityLogAction, string> = {
@@ -87,6 +93,10 @@ export const ACTIVITY_ACTION_LABEL: Record<ActivityLogAction, string> = {
   stock_receive_void: "Batalkan Barang Masuk",
   gift_give: "Hadiah / Oleh-oleh",
   gift_void: "Batalkan Hadiah",
+  expense_create: "Catat Pengeluaran",
+  expense_update: "Ubah Pengeluaran",
+  expense_delete: "Hapus Pengeluaran",
+  expense_category_delete: "Hapus Kategori Pengeluaran",
   user_delete: "Hapus User",
   branch_delete: "Hapus Outlet",
 };
@@ -109,6 +119,8 @@ export function activityActionTone(
     action === "opname_cancel" ||
     action === "stock_receive_void" ||
     action === "gift_void" ||
+    action === "expense_delete" ||
+    action === "expense_category_delete" ||
     action === "user_delete" ||
     action === "branch_delete"
   ) {

@@ -48,7 +48,7 @@ const SIZE_CLASS: Record<ChipSize, string> = {
 };
 
 const IDLE_CLASS =
-  "border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:hover:border-zinc-700 dark:hover:text-zinc-100";
+  "border-zinc-200 text-zinc-600 hover:border-zinc-300 hover:text-zinc-900 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-zinc-700 dark:hover:text-zinc-100";
 
 const SELECTED_CLASS: Record<ChipVariant, Record<ChipTone, string>> = {
   outline: {

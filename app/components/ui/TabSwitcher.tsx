@@ -82,7 +82,7 @@ export default function TabSwitcher<T extends string>({
             } ${
               isActive
                 ? "bg-white text-lco-green shadow-sm dark:bg-zinc-800 dark:text-lco-teal"
-                : "text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
             }`}
           >
             {Icon && <Icon className="h-4 w-4" />}

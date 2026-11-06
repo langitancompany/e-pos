@@ -15,6 +15,26 @@
 > per langkah**, diserahkan sebagai file yang bisa diunduh — bukan banyak
 > kode sekaligus di dalam chat.
 
+## Perubahan: Menu Pengeluaran dipasang ke aplikasi (sesi #25, 2026-11-06)
+
+- **File modul baru**: `app/components/pengeluaran/`, `hooks/useExpenses.ts`,
+  `lib/pos/expenseLogic.ts` (+ tes), migration `051_expenses.sql`. Modul ini terdaftar di: `lib/pos/permissionModules.ts` (modul `pengeluaran`, aksi create/edit/delete),
+  `lib/pos/activeMenu.ts`, `Sidebar.tsx` (grup baru "Keuangan"), dan `app/page.tsx`.
+- **Migration 051 WAJIB dijalankan** di Supabase sebelum menu dipakai. User non-Super Admin
+  baru melihat menu setelah diberi izin "Pengeluaran" di Pengaturan > Hak Akses.
+- Penyamaan dengan video acuan: filter kategori menampilkan jumlah ("Gaji Pegawai (1)"),
+  kategori aktif pertama jadi pilihan bawaan di form baru (bisa diganti ke "Tanpa kategori"),
+  tab Kategori berbentuk tabel (No, Nama Kategori, Status, Aksi) di layar md ke atas,
+  teks keadaan kosong dan tombol "Catat Pengeluaran Baru" seperti di video.
+- `ui/Modal` kini punya prop `onEscape` (sebelumnya dipakai modal Pengeluaran tapi tidak ada,
+  sehingga `tsc` error dan Escape tidak menutup dialog).
+- Log Aktivitas: entitas `expense` dan aksi `expense_*` kini berlabel "Pengeluaran" (dulu jatuh ke "Produk").
+- Kontras: teks sekunder jadi `zinc-600` (terang) di modul ini; `Chip` idle ditambah
+  `dark:text-zinc-400`; tab non-aktif `TabSwitcher` jadi `zinc-600`.
+- Diuji di browser (build produksi + Supabase tiruan): 67 pemeriksaan klik (CRUD, filter,
+  izin, loading/error/kosong, mobile, 320–1280px, kontras AA terang/gelap) lulus.
+  Belum diuji terhadap database Supabase asli.
+
 ## Perubahan: Sesi Kasir & Kas ditata ulang + struk Tutup Sesi (sesi #24)
 
 - **Menu Kas & Shift** (`KasModule.tsx`) kini bergaya "Sesi Kasir & Kas": kartu
