@@ -10,7 +10,7 @@ type ToastProps = {
   message: string;
   variant?: ToastVariant;
   /**
-   * Lama notifikasi tampil sebelum hilang otomatis, dalam ms — dipakai untuk
+   * Lama notifikasi tampil sebelum hilang otomatis, dalam ms, dipakai untuk
    * mengatur durasi animasi garis countdown supaya PERSIS selesai bersamaan
    * dengan waktu pemanggil menyembunyikan toast ini (lihat `printToastTimeoutRef`
    * di PaymentModal.tsx). Default 3000ms.
@@ -19,18 +19,15 @@ type ToastProps = {
 };
 
 /**
- * Notifikasi pop-up di tengah-atas layar dengan garis countdown yang
- * menyusut sampai notifikasi hilang. Komponen ini HANYA urusan tampilan —
- * kapan `visible` jadi true/false, dan kapan toast disembunyikan (biasanya
- * lewat `setTimeout` di komponen pemanggil), diatur oleh pemanggil, bukan
- * oleh komponen ini sendiri (supaya pemanggil tetap bisa membatalkan/
- * memperpanjang timer-nya sendiri kalau perlu).
+ * Notifikasi pop-up di kanan bawah layar dengan garis countdown yang
+ * menyusut sampai notifikasi hilang. Komponen ini hanya urusan tampilan:
+ * kapan `visible` jadi true/false diatur pemanggil (biasanya lewat
+ * `setTimeout`), supaya pemanggil tetap bisa membatalkan atau memperpanjang
+ * timer-nya sendiri.
  *
- * ── CATATAN ── Karena komponen ini return `null` total saat `visible` false
- * (bukan disembunyikan lewat CSS), setiap kali `visible` berubah dari false
- * -> true, React selalu membuat node DOM yang benar-benar baru — jadi
- * animasi masuk & garis countdown otomatis restart dari awal tiap toast
- * baru muncul, tanpa perlu `key` khusus dari pemanggil.
+ * Komponen return `null` saat `visible` false, jadi tiap kali `visible` jadi
+ * true React membuat node DOM baru dan animasi masuk serta garis countdown
+ * mulai dari awal tanpa perlu `key` dari pemanggil.
  */
 export default function Toast({
   visible,
@@ -42,21 +39,15 @@ export default function Toast({
 
   const isSuccess = variant === "success";
 
-  // ── PERBAIKAN (bug toast tidak di tengah lalu "loncat") ──
-  // Dulu: satu elemen memakai `left-1/2 -translate-x-1/2` (Tailwind v4 ->
-  // properti CSS `translate`) SEKALIGUS animasi keyframe yang mengubah
-  // `transform: translate(-50%, ...)`. Di Tailwind v4 kedua properti itu
-  // DITUMPUK, jadi selama animasi masuk (200ms) toast tergeser -100% (kiri
-  // dari tengah), lalu begitu animasi selesai langsung "loncat" ke tengah.
-  // Sekarang: pemusatan dilakukan wrapper luar lewat flex (tanpa transform
-  // sama sekali), sedangkan animasi hanya di elemen dalam dan hanya
-  // menggeser sumbu Y. Keduanya tidak bisa saling bertabrakan lagi.
+  // Wrapper luar menempel di pojok kanan bawah dan menyisakan ruang untuk
+  // safe area (HP dengan notch/home bar). Animasi hanya menggeser sumbu Y di
+  // elemen dalam, tanpa class translate Tailwind, supaya tidak bertumpuk.
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-4 z-[70] flex justify-center">
+    <div className="pointer-events-none fixed bottom-0 right-0 z-[70] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))]">
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-auto w-[92vw] max-w-sm animate-toast-in"
+        className="pointer-events-auto w-[calc(100vw-2rem)] max-w-sm animate-toast-in"
       >
         <div
           className={`overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm ${
@@ -75,8 +66,8 @@ export default function Toast({
               {message}
             </p>
           </div>
-          {/* Garis countdown: lebar 100% -> 0% selama durationMs, lalu toast
-              disembunyikan pemanggil tepat saat animasi ini selesai. */}
+          {/* Lebar 100% ke 0% selama durationMs; pemanggil menyembunyikan toast
+              tepat saat animasi ini selesai. */}
           <div className="h-0.5 w-full bg-zinc-200 dark:bg-zinc-800">
             <div
               className={`h-full ${isSuccess ? "bg-lco-green" : "bg-lco-coral"} animate-toast-countdown`}

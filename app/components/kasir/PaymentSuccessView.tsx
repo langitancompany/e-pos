@@ -36,10 +36,8 @@ export default function PaymentSuccessView({
 }) {
   return (
     <>
-      {/* ── PERBAIKAN (auto-print setelah bayar) ── Toast dirender sebagai
-            saudara (bukan anak) dari overlay modal di bawah, supaya posisinya
-            benar-benar "tengah-atas LAYAR" (fixed viewport), bukan cuma
-            tengah-atas kartu modal. */}
+      {/* Toast saudara dari overlay modal, bukan anak, supaya posisinya fixed
+          di kanan bawah layar, bukan di kartu modal. */}
       <Toast
         visible={printToastVisible}
         message="Struk berhasil dicetak"
