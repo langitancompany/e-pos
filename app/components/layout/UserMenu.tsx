@@ -12,9 +12,11 @@
 // dipakai bergantian.
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Loader2, LogOut } from "lucide-react";
+import { createPortal } from "react-dom";
+import { ChevronDown, Fingerprint, Loader2, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { clearStoredMenu } from "@/lib/pos/activeMenu";
+import PasskeyModal from "./PasskeyModal";
 
 /** Inisial maksimal 2 huruf dari nama (mis. "MTs Al Falahiyah" → "MA"). */
 function getInitials(name: string) {
@@ -33,6 +35,8 @@ export default function UserMenu() {
   const [open, setOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState("");
+  // ── TAMBAHAN (login passkey) ── Dialog kelola sidik jari/passkey.
+  const [passkeyOpen, setPasskeyOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   // Tutup dropdown saat klik di luar atau tekan Escape (pola sama dengan
@@ -131,6 +135,18 @@ export default function UserMenu() {
             <button
               type="button"
               role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                setPasskeyOpen(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-zinc-700 transition-colors duration-150 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-900"
+            >
+              <Fingerprint className="h-4 w-4" />
+              Sidik jari & passkey
+            </button>
+            <button
+              type="button"
+              role="menuitem"
               onClick={() => void handleSignOut()}
               disabled={isSigningOut}
               className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-lco-coral transition-colors duration-150 hover:bg-lco-coral/10 disabled:cursor-not-allowed disabled:opacity-60"
@@ -150,6 +166,15 @@ export default function UserMenu() {
           </div>
         </div>
       )}
+
+      {/* Header bersifat sticky + z-10 (membentuk stacking context), jadi
+          dialog dirender lewat portal ke <body> supaya `fixed inset-0`-nya
+          menutupi seluruh layar, bukan terjebak di bawah elemen lain. */}
+      {passkeyOpen &&
+        createPortal(
+          <PasskeyModal onClose={() => setPasskeyOpen(false)} />,
+          document.body,
+        )}
     </div>
   );
 }

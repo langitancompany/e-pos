@@ -84,6 +84,44 @@ npm run dev
 Buka [http://localhost:3000](http://localhost:3000), login pakai akun dari
 Langkah 3.
 
+## Login sidik jari / passkey (opsional)
+
+Kasir bisa masuk dengan **passkey**: verifikasi biometrik atau kunci layar
+perangkat — sidik jari di HP Android, Face ID/Touch ID di iPhone/Mac, Windows
+Hello di laptop. Metode yang dipakai mengikuti apa yang dimiliki perangkat;
+aplikasi tidak pernah menerima data sidik jari atau wajah.
+
+**Cara pakai (kasir):** login seperti biasa → klik avatar di header →
+**Sidik jari & passkey** → **Daftarkan perangkat ini**. Login berikutnya cukup
+tekan **Masuk dengan passkey**. Email & password tetap berfungsi sebagai
+cadangan. Satu akun bisa punya beberapa perangkat (maks. 10 secara bawaan).
+
+**Syarat server** — fitur ini dijalankan oleh Supabase Auth (butuh
+`@supabase/supabase-js` >= 2.105; di sini sudah lebih baru), bukan oleh
+aplikasi ini. Situs harus diakses lewat **HTTPS** (kecuali `localhost`).
+
+- **Supabase cloud:** Dashboard → Authentication → Passkeys → aktifkan, lalu
+  isi *Relying Party ID* (domain tanpa `https://`), *Display Name*, dan
+  *Origins* (URL aplikasi ini).
+- **Self-hosted** (aplikasi ini memakai schema `e_pos` di Supabase
+  self-hosted): tambahkan env berikut di service `auth` pada
+  `docker-compose.yml`, lalu recreate service auth:
+
+  ```yaml
+  GOTRUE_PASSKEY_ENABLED: "true"
+  GOTRUE_WEBAUTHN_RP_ID: pos.contoh.com          # domain aplikasi, tanpa skema/port
+  GOTRUE_WEBAUTHN_RP_DISPLAY_NAME: "LCO POS"
+  GOTRUE_WEBAUTHN_RP_ORIGINS: https://pos.contoh.com
+  ```
+
+  Cek dengan `POST <url-supabase>/auth/v1/passkeys/authentication/options`
+  (header `apikey`): respons 200 berisi `challenge_id` = aktif; error
+  `passkey_disabled` = konfigurasi belum terbaca.
+
+> **Jangan ganti RP ID setelah ada yang mendaftar** — semua passkey yang sudah
+> terdaftar jadi tidak bisa dipakai dan harus didaftarkan ulang. Fitur passkey
+> Supabase masih berstatus beta, jadi API-nya bisa berubah.
+
 ## Menggunakan beberapa akun GitHub (gh auth switch)
 
 Kalau Anda mengelola beberapa akun GitHub di komputer yang sama (misalnya

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
@@ -9,9 +9,12 @@ import {
   PackageSearch,
   Eye,
   EyeOff,
+  Fingerprint,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { clearStoredMenu } from "@/lib/pos/activeMenu";
+import { describePasskeyError } from "@/lib/pos/passkeyErrors";
+import { isPasskeySupported, signInWithPasskey } from "@/lib/supabase/passkey";
 import Button from "@/app/components/ui/Button";
 
 // ── PERBAIKAN (tampilan login) ── Desain ulang total dari versi sebelumnya:
@@ -27,6 +30,11 @@ import Button from "@/app/components/ui/Button";
 //    disembunyikan di layar sempit) + panel kanan (form login) — pola umum
 //    aplikasi POS/back-office profesional, dan brand kiri sekaligus jadi
 //    "tempat sampah" visual layar kosong yang sebelumnya terasa polos.
+// Dukungan passkey tidak pernah berubah selama halaman terbuka, jadi tidak ada
+// yang perlu di-subscribe; fungsi kosong ini hanya memenuhi tanda tangan
+// useSyncExternalStore.
+const subscribeNoop = () => () => {};
+
 export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useAuth();
@@ -37,6 +45,35 @@ export default function LoginPage() {
   const [formError, setFormError] = useState<string | null>(null);
   // ── TAMBAHAN (tombol lihat password) ──
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  // ── TAMBAHAN (login passkey) ── `window` tidak ada di server, jadi dukungan
+  // WebAuthn dibaca lewat useSyncExternalStore: snapshot server selalu false,
+  // klien membaca nilai asli setelah hydration — tidak ada mismatch HTML.
+  // Tombol hanya muncul di browser yang punya WebAuthn.
+  const isPasskeyReady = useSyncExternalStore(
+    subscribeNoop,
+    isPasskeySupported,
+    () => false,
+  );
+  const [isPasskeySubmitting, setIsPasskeySubmitting] = useState(false);
+
+  // ── TAMBAHAN (login passkey) ── Sidik jari / Face ID / kunci layar, sesuai
+  // yang dimiliki perangkat. Akun dipilih dari passkey yang tersimpan di
+  // perangkat, jadi tidak perlu mengisi email. Setelah sukses alurnya sama
+  // dengan login password (menu terakhir dibuang, mulai dari Dashboard).
+  async function handlePasskeySignIn() {
+    setIsPasskeySubmitting(true);
+    setFormError(null);
+    try {
+      await signInWithPasskey();
+    } catch (err) {
+      console.error("[passkey] login gagal:", err);
+      setFormError(describePasskeyError(err, "login"));
+      setIsPasskeySubmitting(false);
+      return;
+    }
+    clearStoredMenu();
+    router.push("/");
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -235,7 +272,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isPasskeySubmitting}
               size="lg"
               fullWidth
               className="mt-1"
@@ -244,6 +281,38 @@ export default function LoginPage() {
               Masuk
             </Button>
           </form>
+
+          {/* ── TAMBAHAN (login passkey) ── Muncul hanya kalau browser mendukung
+              WebAuthn. Label sengaja "passkey" + keterangan metode, bukan
+              "sidik jari" saja, karena perangkat bisa memakai Face ID atau
+              kunci layar. */}
+          {isPasskeyReady && (
+            <div className="mt-5">
+              <div className="mb-4 flex items-center gap-3 text-xs text-zinc-400 dark:text-zinc-600">
+                <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+                atau
+                <span className="h-px flex-1 bg-zinc-200 dark:bg-zinc-800" />
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                fullWidth
+                onClick={() => void handlePasskeySignIn()}
+                disabled={isSubmitting || isPasskeySubmitting}
+              >
+                {isPasskeySubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Fingerprint className="w-4 h-4" />
+                )}
+                Masuk dengan passkey
+              </Button>
+              <p className="mt-2 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                Pakai sidik jari, Face ID, atau kunci layar perangkat ini.
+              </p>
+            </div>
+          )}
 
           <p className="mt-6 text-center text-xs text-zinc-400 dark:text-zinc-600">
             Lupa kata sandi? Hubungi admin toko kamu.
