@@ -2639,3 +2639,50 @@ sebaiknya dikerjakan sebagai fase terpisah.
 **Catatan:** `schema_e_pos.sql` adalah dump lama; jalankan 047 di database, lalu
 dump ulang bila ingin menyinkronkannya. `tsc --noEmit` hanya menyisakan 1 error
 lama (`LayoutProps` di `app/layout.tsx`).
+
+
+---
+
+## Sesi: Produk, harga, dan stok per outlet (migration 052)
+
+**Ringkas:** master produk tetap satu, tetapi ketersediaan, stok, minimum stok,
+dan harga khusus kini dimiliki per outlet (alur mengikuti Kula POS: produk
+"diaktifkan" di outlet). Kasir hanya melihat produk yang aktif di outlet aktifnya.
+Kategori dan pelanggan tetap global.
+
+**Database (`supabase/migrations/052_branch_inventory.sql`, schema `e_pos`,
+WAJIB setelah 047-049):** tabel `product_branches` (stok, min_stock,
+price_override, is_active; hanya ditulis lewat RPC/trigger); `branch_id` di
+`stock_movements`, `stock_receipts`, `stock_opname_sessions`, `gift_records`;
+tabel `stock_transfers` + `stock_transfer_items`; jenis mutasi `transfer_out`/
+`transfer_in`. `products.stock` tetap ada sebagai TOTAL semua outlet. Stok lama
+dipindah ke outlet utama; produk jasa aktif di semua outlet.
+`create_transaction`/`return_transaction`/`void_transaction` TIDAK diubah:
+trigger `stock_movements` menentukan outlet (dari transaksi/hadiah sumber),
+menolak stok minus per outlet, dan memperbarui `product_branches`; trigger
+`transaction_items` menolak produk yang tidak dijual di outlet transaksi.
+RPC `adjust_stock`, `receive_stock`, `start_stock_opname`, `give_gift`,
+`stock_movement_summary` mendapat `p_branch_id`; `void_stock_receipt`,
+`save_opname_count`, `finalize_stock_opname`, `delete_branch` dipatch. Semua patch
+dikerjakan atas definisi LIVE dengan potongan teks yang harus ketemu tepat satu
+kali (gagal = seluruh migration dibatalkan). RPC baru: `assign_product_branch`,
+`bulk_assign_product_branch`, `update_product_branch`, `transfer_stock`,
+`resolve_branch`. View `stock_ledger` dan `stock_opname_session_stats` membawa
+`branch_id`.
+
+**Aplikasi:** `lib/pos/productBranch.ts` (logika murni + tes),
+`lib/pos/productBranchApi.ts` (RPC), `hooks/useProducts.ts` menimpa stok/harga/
+status dengan data outlet aktif (opsi `includeUnlisted` untuk layar admin; tanpa
+migration 052 jatuh ke perilaku lama), `hooks/useStockTransfers.ts`. Hook stok,
+barang masuk, opname, hadiah, dan Dashboard (stok menipis) kini per outlet.
+UI: tombol "Atur Outlet", filter "Belum diaktifkan", dan "Aktifkan semua" di
+Produk; tab "Transfer" di Stok & Opname.
+
+**Perilaku yang perlu diketahui:** retur mengembalikan stok ke outlet tempat
+barang dijual; seluruh riwayat mutasi lama tercatat di outlet utama; outlet
+lain mulai tanpa produk sampai diaktifkan.
+
+**Tes (belum dijalankan, dikerjakan pemilik):** `supabase/tests/052_branch_inventory_test.sql`
+(rollback otomatis) dan `lib/pos/__tests__/productBranch.test.ts` (vitest).
+`node_modules` tidak ada di zip, jadi `node_modules/next/dist/docs` yang diminta
+AGENTS.md tidak bisa dibaca sesi ini.

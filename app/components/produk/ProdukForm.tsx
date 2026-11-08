@@ -45,6 +45,8 @@ type ProdukFormProps = {
   error?: string | null;
   mode?: "create" | "edit";
   initialValues?: ProductFormValues;
+  /** Nama outlet aktif. Diisi: stok awal dan minimum stok berlaku untuk outlet ini. */
+  branchName?: string | null;
 };
 
 const PRODUCT_TYPES: ProductType[] = [
@@ -81,6 +83,7 @@ export default function ProdukForm({
   error = null,
   mode = "create",
   initialValues,
+  branchName = null,
 }: ProdukFormProps) {
   const isEdit = mode === "edit";
 
@@ -358,9 +361,12 @@ export default function ProdukForm({
                   />
                   {!isEdit && (
                     <p className="mt-1.5 text-xs text-zinc-400">
-                      Stok awal tercatat di riwayat mutasi sebagai Stok Awal.
+                      {branchName
+                        ? `Stok awal untuk outlet ${branchName}, tercatat di riwayat mutasi. `
+                        : "Stok awal tercatat di riwayat mutasi sebagai Stok Awal. "}
                       Untuk menambah stok berikutnya, pakai Barang Masuk di
-                      menu Stok &amp; Opname.
+                      menu Stok &amp; Opname. Outlet lain diaktifkan lewat
+                      tombol Atur Outlet.
                     </p>
                   )}
                   {isEdit && (
@@ -373,7 +379,7 @@ export default function ProdukForm({
 
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Minimum Stok
+                    Minimum Stok{branchName ? ` (${branchName})` : ""}
                   </label>
                   <Input
                     type="number"

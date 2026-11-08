@@ -80,6 +80,8 @@ const FILTER_TYPES: StockMovementType[] = [
   "stock_in",
   "initial",
   "gift",
+  "transfer_in",
+  "transfer_out",
 ];
 
 interface StokRiwayatTabProps {

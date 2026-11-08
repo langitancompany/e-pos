@@ -33,7 +33,15 @@ export interface Product {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  /** Harga master sebelum harga khusus outlet. Diisi useProducts saat ada outlet aktif. */
+  base_sell_price?: number;
+  /** Status produk di outlet aktif. Diisi useProducts saat ada outlet aktif. */
+  branch_availability?: BranchAvailability;
+  /** Harga khusus outlet aktif, null kalau memakai harga master. */
+  branch_price_override?: number | null;
 }
+
+export type BranchAvailability = "available" | "inactive" | "unlisted";
 
 // Baris asli tabel `categories`
 export interface Category {

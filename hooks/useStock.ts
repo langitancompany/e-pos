@@ -21,6 +21,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getActiveBranchId, useBranchScope } from "@/hooks/useActiveBranch";
 
 const supabase = createClient();
 
@@ -34,7 +35,10 @@ export type StockMovementType =
   | "stock_in"
   | "initial"
   // ── TAMBAHAN (migration 044) ── hadiah/oleh-oleh keluar (atau pembatalannya).
-  | "gift";
+  | "gift"
+  // Migration 052: pindah stok antar outlet.
+  | "transfer_out"
+  | "transfer_in";
 
 /** Jenis mutasi yang bisa dibuat manual dari UI (sisanya otomatis dari RPC transaksi). */
 export type ManualMovementType = Extract<
@@ -52,6 +56,8 @@ export const MOVEMENT_TYPE_LABEL: Record<StockMovementType, string> = {
   stock_in: "Barang Masuk",
   initial: "Stok Awal",
   gift: "Hadiah",
+  transfer_out: "Transfer Keluar",
+  transfer_in: "Transfer Masuk",
 };
 
 // Satu baris kartu stok (view `stock_ledger`, migration 037).
@@ -244,6 +250,9 @@ export function useStock(options: UseStockOptions = {}): UseStockResult {
   // tiap render. Dikunci jadi string supaya perbandingannya by value.
   const typesKey = types && types.length > 0 ? types.slice().sort().join(",") : "";
 
+  // Riwayat dan ringkasan hanya untuk outlet aktif; tunggu daftar outlet selesai dimuat.
+  const { branchId, ready: branchReady } = useBranchScope();
+
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [summary, setSummary] = useState<StockSummary | null>(null);
@@ -258,6 +267,7 @@ export function useStock(options: UseStockOptions = {}): UseStockResult {
     let isCancelled = false;
 
     async function load() {
+      if (!branchReady) return;
       setIsLoading(true);
       setError(null);
 
@@ -274,6 +284,7 @@ export function useStock(options: UseStockOptions = {}): UseStockResult {
 
       if (productId) query = query.eq("product_id", productId);
       if (userId) query = query.eq("created_by", userId);
+      if (branchId) query = query.eq("branch_id", branchId);
       if (typesKey) query = query.in("type", typesKey.split(","));
       if (fromIso) query = query.gte("created_at", fromIso);
       if (toIso) query = query.lt("created_at", toIso);
@@ -315,7 +326,7 @@ export function useStock(options: UseStockOptions = {}): UseStockResult {
     return () => {
       isCancelled = true;
     };
-  }, [productId, userId, typesKey, dateFrom, dateTo, page, pageSize, reloadToken]);
+  }, [productId, userId, typesKey, dateFrom, dateTo, page, pageSize, reloadToken, branchId, branchReady]);
 
   // ---------------- Ringkasan (seluruh baris sesuai filter) ----------------
   // Sengaja tidak bergantung pada `page`: total tidak berubah saat pindah halaman.
@@ -323,12 +334,14 @@ export function useStock(options: UseStockOptions = {}): UseStockResult {
     let isCancelled = false;
 
     async function loadSummary() {
+      if (!branchReady) return;
       const { data, error: rpcError } = await supabase.rpc(
         "stock_movement_summary",
         {
           p_from: startOfDayIso(dateFrom),
           p_to: startOfNextDayIso(dateTo),
           p_product_id: productId,
+          p_branch_id: branchId,
           p_types: typesKey ? typesKey.split(",") : null,
           // Hanya dikirim saat filter user aktif: selama filter itu tidak dipakai,
           // ringkasan tetap jalan walau migration 043 belum dijalankan.
@@ -356,7 +369,7 @@ export function useStock(options: UseStockOptions = {}): UseStockResult {
     return () => {
       isCancelled = true;
     };
-  }, [productId, userId, typesKey, dateFrom, dateTo, reloadToken]);
+  }, [productId, userId, typesKey, dateFrom, dateTo, reloadToken, branchId, branchReady]);
 
   const adjustStock = useCallback(
     async ({
@@ -397,6 +410,7 @@ export function useStock(options: UseStockOptions = {}): UseStockResult {
         p_type: type,
         p_value: value,
         p_reason: reason.trim(),
+        p_branch_id: getActiveBranchId(),
       });
 
       if (rpcError) {
@@ -443,6 +457,8 @@ export const STOCK_EXPORT_MAX_ROWS = 20000;
 const EXPORT_PAGE = 1000;
 
 export interface StockExportFilters {
+  /** Batasi ke satu outlet. Kosong = semua outlet yang boleh diakses. */
+  branchId?: string | null;
   productId?: string | null;
   userId?: string | null;
   types?: StockMovementType[];
@@ -484,6 +500,7 @@ export async function fetchMovementsForExport(
       .range(from, from + EXPORT_PAGE - 1);
 
     if (filters.productId) query = query.eq("product_id", filters.productId);
+    if (filters.branchId) query = query.eq("branch_id", filters.branchId);
     if (filters.userId) query = query.eq("created_by", filters.userId);
     if (types.length > 0) query = query.in("type", types);
     if (fromIso) query = query.gte("created_at", fromIso);

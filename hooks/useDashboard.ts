@@ -66,6 +66,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useBranchScope } from "@/hooks/useActiveBranch";
+import { isMissingBranchInventoryError } from "@/lib/pos/productBranch";
 import { branchFilter } from "@/lib/pos/branches";
 import { chunk, dateKey } from "@/lib/pos/dateRange";
 // ── Logika hitung dipindahkan ke lib/pos/dashboardLogic.ts (fungsi murni, ada
@@ -313,7 +314,7 @@ async function loadActionGroups(
   branchId: string | null,
 ): Promise<ActionGroup[]> {
   const [lowStock, receivables, openShifts] = await Promise.all([
-    loadLowStock(),
+    loadLowStock(branchId),
     loadReceivables(todayStart),
     loadStaleShifts(todayStart, branchId),
   ]);
@@ -325,12 +326,56 @@ async function loadActionGroups(
   );
 }
 
-async function loadLowStock(): Promise<ActionGroup | null> {
+async function loadLowStock(branchId: string | null): Promise<ActionGroup | null> {
   // PostgREST tidak bisa membandingkan dua kolom (`stock <= min_stock`) lewat
-  // filter biasa, jadi penyaringan akhir dilakukan di sini. Untuk menekan jumlah
-  // baris yang ditarik, hanya produk yang PUNYA ambang batas (`min_stock > 0`)
-  // yang diambil — produk tanpa ambang memang tidak pernah "menipis".
-  // Produk jasa dikecualikan: stoknya tidak bermakna (pola sama dengan T-05).
+  // filter biasa, jadi penyaringan akhir dilakukan di sini. Hanya produk yang
+  // PUNYA ambang batas (`min_stock > 0`) yang ditarik.
+  if (branchId) {
+    const { data: rows, error: rowsError } = await supabase
+      .from("product_branches")
+      .select("product_id, stock, min_stock")
+      .eq("branch_id", branchId)
+      .eq("is_active", true)
+      .gt("min_stock", 0)
+      .order("stock", { ascending: true });
+
+    if (!rowsError) {
+      const ids = (rows ?? []).map((r) => r.product_id as string);
+      if (ids.length === 0) return buildLowStockGroup([]);
+
+      const { data: products, error: productsError } = await supabase
+        .from("products")
+        .select("id, name, unit")
+        .in("id", ids)
+        .eq("is_active", true)
+        .eq("is_service", false)
+        .is("deleted_at", null);
+
+      if (productsError) {
+        console.error("Action List (stok menipis) gagal dimuat:", productsError);
+        return null;
+      }
+
+      type LowStockProductRow = { id: string; name: string; unit: string | null };
+      const byId = new Map(
+        ((products ?? []) as LowStockProductRow[]).map((p) => [p.id, p] as const),
+      );
+      const merged: RawLowStockProduct[] = [];
+      for (const r of rows ?? []) {
+        const p = byId.get(r.product_id as string);
+        if (p) {
+          merged.push({ id: p.id, name: p.name, unit: p.unit, stock: r.stock, min_stock: r.min_stock });
+        }
+      }
+      return buildLowStockGroup(merged);
+    }
+    // Migration 052 belum dijalankan: pakai stok global seperti sebelumnya.
+    if (!isMissingBranchInventoryError(rowsError)) {
+      console.error("Action List (stok menipis) gagal dimuat:", rowsError);
+      return null;
+    }
+  }
+
   const { data, error } = await supabase
     .from("products")
     .select("id, name, stock, min_stock, unit")

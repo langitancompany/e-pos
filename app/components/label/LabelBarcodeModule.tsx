@@ -241,7 +241,7 @@ export default function LabelBarcodeModule() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const canAccess = hasPermission(user, "produk");
 
-  const { products, isLoading, error, refetch } = useProducts();
+  const { products, isLoading, error, refetch } = useProducts({ includeUnlisted: true });
 
   // ── Jenis label ──
   const [presetKey, setPresetKey] = useState(DEFAULT_PRESET_KEY);

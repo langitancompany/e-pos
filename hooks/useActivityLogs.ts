@@ -60,7 +60,12 @@ export type ActivityLogAction =
   | "expense_category_delete"
   // ── TAMBAHAN (hapus user & outlet) ──
   | "user_delete"
-  | "branch_delete";
+  | "branch_delete"
+  // migration 052: stok dan ketersediaan produk per outlet
+  | "stock_transfer"
+  | "product_branch_assign"
+  | "product_branch_bulk_assign"
+  | "product_branch_update";
 
 export type ActivityLogEntity =
   | "transaction"
@@ -69,7 +74,8 @@ export type ActivityLogEntity =
   | "stock_opname"
   | "stock_receipt"
   | "gift"
-  | "expense";
+  | "expense"
+  | "stock_transfer";
 
 /** Label Indonesia per action — dipakai tabel Log Aktivitas & filter dropdown. */
 export const ACTIVITY_ACTION_LABEL: Record<ActivityLogAction, string> = {
@@ -93,6 +99,10 @@ export const ACTIVITY_ACTION_LABEL: Record<ActivityLogAction, string> = {
   stock_receive_void: "Batalkan Barang Masuk",
   gift_give: "Hadiah / Oleh-oleh",
   gift_void: "Batalkan Hadiah",
+  stock_transfer: "Transfer Stok",
+  product_branch_assign: "Aktifkan Produk di Outlet",
+  product_branch_bulk_assign: "Aktifkan Banyak Produk di Outlet",
+  product_branch_update: "Ubah Produk di Outlet",
   expense_create: "Catat Pengeluaran",
   expense_update: "Ubah Pengeluaran",
   expense_delete: "Hapus Pengeluaran",

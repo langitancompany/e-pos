@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getActiveBranchId, useBranchScope } from "@/hooks/useActiveBranch";
 
 const supabase = createClient();
 
@@ -152,6 +153,7 @@ export function useStockReceipts(): UseStockReceiptsResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const { branchId, ready: branchReady } = useBranchScope();
 
   const refetch = useCallback(() => setReloadToken((t) => t + 1), []);
 
@@ -159,15 +161,20 @@ export function useStockReceipts(): UseStockReceiptsResult {
     let isCancelled = false;
 
     async function load() {
+      if (!branchReady) return;
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from("stock_receipts")
         .select(RECEIPT_COLUMNS)
         .order("received_at", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(200);
+
+      if (branchId) query = query.eq("branch_id", branchId);
+
+      const { data, error: fetchError } = await query;
 
       if (isCancelled) return;
 
@@ -191,7 +198,7 @@ export function useStockReceipts(): UseStockReceiptsResult {
     return () => {
       isCancelled = true;
     };
-  }, [reloadToken]);
+  }, [reloadToken, branchId, branchReady]);
 
   const receiveStock = useCallback(
     async ({
@@ -230,6 +237,7 @@ export function useStockReceipts(): UseStockReceiptsResult {
           unit_cost: line.unitCost,
         })),
         p_update_cost: updateCost,
+        p_branch_id: getActiveBranchId(),
       });
 
       if (rpcError) {

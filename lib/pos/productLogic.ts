@@ -1,5 +1,6 @@
 import { createClient } from "../supabase/client";
 import type { ProductType } from "./types";
+import { assignProductBranch, updateProductBranch } from "./productBranchApi";
 
 const supabase = createClient();
 
@@ -18,6 +19,12 @@ export type CreateProductInput = {
   is_active: boolean;
   /** Migration 045: tampilkan di Biaya Tambahan Kasir (stok tetap dihitung). */
   is_extra_charge?: boolean;
+  /**
+   * Outlet aktif (migration 052). Diisi: produk langsung diaktifkan di outlet ini
+   * dengan stok awal dan minimum dari form, dan perubahan minimum stok berlaku
+   * untuk outlet ini. Kosong: perilaku lama (stok disimpan di master produk).
+   */
+  branch_id?: string | null;
 };
 
 export type CreateProductResult =
@@ -26,6 +33,8 @@ export type CreateProductResult =
       product: {
         id: string;
       };
+      /** Produk tersimpan tetapi langkah outlet gagal. Tampilkan ke user. */
+      warning?: string;
     }
   | {
       success: false;
@@ -97,7 +106,9 @@ export async function createProduct(
       unit: unit || null,
       sell_price: input.sell_price,
       cost_price: input.cost_price > 0 ? input.cost_price : null,
-      stock: isService ? 0 : input.stock,
+      // Dengan outlet, stok awal dicatat lewat assign_product_branch supaya masuk
+      // ke stok outlet dan kartu stok, bukan ke master.
+      stock: isService || input.branch_id ? 0 : input.stock,
       min_stock: isService ? 0 : input.min_stock,
       photo_url: photoUrl || null,
       is_active: input.is_active,
@@ -118,6 +129,23 @@ export async function createProduct(
       success: false,
       error: error.message,
     };
+  }
+
+  if (input.branch_id) {
+    const assigned = await assignProductBranch({
+      productId: data.id,
+      branchId: input.branch_id,
+      stock: isService ? 0 : input.stock,
+      minStock: isService ? 0 : input.min_stock,
+    });
+
+    if (!assigned.success) {
+      return {
+        success: true,
+        product: { id: data.id },
+        warning: `Produk tersimpan, tetapi belum aktif di outlet ini: ${assigned.error} Aktifkan lewat tombol Atur Outlet.`,
+      };
+    }
   }
 
   return {
@@ -255,6 +283,18 @@ export async function updateProduct(
       success: false,
       error: error.message,
     };
+  }
+
+  if (input.branch_id && !isService) {
+    const saved = await updateProductBranch({
+      productId: data.id,
+      branchId: input.branch_id,
+      minStock: input.min_stock,
+    });
+    // Produk belum diaktifkan di outlet ini bukan kegagalan simpan master.
+    if (!saved.success && !/belum diaktifkan/i.test(saved.error)) {
+      return { success: false, error: saved.error };
+    }
   }
 
   return {

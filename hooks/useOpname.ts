@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getActiveBranchId, useBranchScope } from "@/hooks/useActiveBranch";
 
 const supabase = createClient();
 
@@ -114,7 +115,7 @@ function describeError(
 }
 
 const SESSION_COLUMNS =
-  "id, number, name, category_id, category_name, status, note, created_by, created_at, finalized_by, cancelled_by, finalized_at, cancelled_at, cancel_reason, item_count, counted_count, diff_count, diff_qty, diff_value";
+  "id, number, name, category_id, category_name, status, note, created_by, created_at, finalized_by, cancelled_by, finalized_at, cancelled_at, cancel_reason, item_count, counted_count, diff_count, diff_qty, diff_value, branch_id";
 
 type RawSession = Omit<
   OpnameSession,
@@ -180,6 +181,7 @@ export function useOpnameSessions(): UseOpnameSessionsResult {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const { branchId, ready: branchReady } = useBranchScope();
 
   const refetch = useCallback(() => setReloadToken((t) => t + 1), []);
 
@@ -187,14 +189,19 @@ export function useOpnameSessions(): UseOpnameSessionsResult {
     let isCancelled = false;
 
     async function load() {
+      if (!branchReady) return;
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from("stock_opname_session_stats")
         .select(SESSION_COLUMNS)
         .order("created_at", { ascending: false })
         .limit(200);
+
+      if (branchId) query = query.eq("branch_id", branchId);
+
+      const { data, error: fetchError } = await query;
 
       if (isCancelled) return;
 
@@ -218,7 +225,7 @@ export function useOpnameSessions(): UseOpnameSessionsResult {
     return () => {
       isCancelled = true;
     };
-  }, [reloadToken]);
+  }, [reloadToken, branchId, branchReady]);
 
   const startSession = useCallback(
     async ({
@@ -236,6 +243,7 @@ export function useOpnameSessions(): UseOpnameSessionsResult {
           p_name: name.trim() || null,
           p_category_id: categoryId,
           p_note: note.trim() || null,
+          p_branch_id: getActiveBranchId(),
         },
       );
 

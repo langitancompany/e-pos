@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { getActiveBranchId, useBranchScope } from "@/hooks/useActiveBranch";
 
 const supabase = createClient();
 
@@ -182,12 +183,15 @@ export function useGifts(options: UseGiftsOptions = {}): UseGiftsResult {
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
+  const { branchId, ready: branchReady } = useBranchScope();
+
   const refetch = useCallback(() => setReloadToken((t) => t + 1), []);
 
   useEffect(() => {
     let isCancelled = false;
 
     async function load() {
+      if (!branchReady) return;
       setIsLoading(true);
       setError(null);
 
@@ -198,6 +202,7 @@ export function useGifts(options: UseGiftsOptions = {}): UseGiftsResult {
         .order("created_at", { ascending: false })
         .limit(1000);
 
+      if (branchId) query = query.eq("branch_id", branchId);
       if (dateFrom) query = query.gte("given_at", dateFrom);
       if (dateTo) query = query.lte("given_at", dateTo);
 
@@ -225,7 +230,7 @@ export function useGifts(options: UseGiftsOptions = {}): UseGiftsResult {
     return () => {
       isCancelled = true;
     };
-  }, [dateFrom, dateTo, reloadToken]);
+  }, [dateFrom, dateTo, reloadToken, branchId, branchReady]);
 
   const giveGift = useCallback(
     async ({
@@ -261,6 +266,7 @@ export function useGifts(options: UseGiftsOptions = {}): UseGiftsResult {
           product_id: line.productId,
           qty: line.qty,
         })),
+        p_branch_id: getActiveBranchId(),
       });
 
       if (rpcError) {

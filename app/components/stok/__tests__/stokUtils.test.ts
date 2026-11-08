@@ -86,6 +86,7 @@ describe("kelas warna", () => {
   it("movementTypeColorClass: semua jenis mutasi punya kelas", () => {
     const types: StockMovementType[] = [
       "sale", "return", "void", "stock_in", "initial", "opname", "adjustment", "gift",
+      "transfer_in", "transfer_out",
     ];
     for (const t of types) {
       expect(movementTypeColorClass(t)).toBeTruthy();
@@ -97,6 +98,8 @@ describe("kelas warna", () => {
     expect(movementTypeColorClass("adjustment")).toContain("lco-mustard");
     expect(movementTypeColorClass("gift")).toContain("lco-mustard");
     expect(movementTypeColorClass("opname")).toContain("sky");
+    expect(movementTypeColorClass("transfer_in")).toContain("lco-green");
+    expect(movementTypeColorClass("transfer_out")).toContain("lco-mustard");
   });
 
   it("stockStatusColorClass", () => {

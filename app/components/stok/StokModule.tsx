@@ -29,6 +29,7 @@
 import { useCallback, useState } from "react";
 import {
   ClipboardCheck,
+  ArrowRightLeft,
   ClipboardList,
   History,
   Package,
@@ -47,6 +48,7 @@ import { useAuth, hasPermission, hasPermissionAction } from "@/hooks/useAuth";
 import AdjustStockModal from "./AdjustStockModal";
 import BarangMasukTab from "./BarangMasukTab";
 import OpnameTab from "./OpnameTab";
+import TransferTab from "./TransferTab";
 import StokSaatIniTab from "./StokSaatIniTab";
 import StokRiwayatTab, {
   EMPTY_RIWAYAT_FILTERS,
@@ -55,11 +57,12 @@ import StokRiwayatTab, {
 import TabSwitcher from "@/app/components/ui/TabSwitcher";
 import Button from "@/app/components/ui/Button";
 
-type StokTab = "saat_ini" | "barang_masuk" | "opname" | "riwayat";
+type StokTab = "saat_ini" | "barang_masuk" | "transfer" | "opname" | "riwayat";
 
 const TABS: { key: StokTab; label: string; icon: typeof Package }[] = [
   { key: "saat_ini", label: "Stok Saat Ini", icon: Package },
   { key: "barang_masuk", label: "Barang Masuk", icon: PackagePlus },
+  { key: "transfer", label: "Transfer", icon: ArrowRightLeft },
   { key: "opname", label: "Sesi Opname", icon: ClipboardList },
   { key: "riwayat", label: "Riwayat Mutasi", icon: History },
 ];
@@ -216,6 +219,14 @@ export default function StokModule() {
 
       {activeTab === "barang_masuk" && (
         <BarangMasukTab
+          products={products}
+          canEdit={canAdjustStock}
+          onStockChanged={handleOpnameStockChanged}
+        />
+      )}
+
+      {activeTab === "transfer" && (
+        <TransferTab
           products={products}
           canEdit={canAdjustStock}
           onStockChanged={handleOpnameStockChanged}

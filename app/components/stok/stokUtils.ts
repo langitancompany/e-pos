@@ -66,6 +66,10 @@ export function movementTypeColorClass(type: StockMovementType): string {
     case "void":
     case "stock_in":
       return "text-lco-green dark:text-lco-teal";
+    case "transfer_in":
+      return "text-lco-green dark:text-lco-teal";
+    case "transfer_out":
+      return "text-lco-mustard";
     case "initial":
       return "text-zinc-500 dark:text-zinc-400";
     case "opname":

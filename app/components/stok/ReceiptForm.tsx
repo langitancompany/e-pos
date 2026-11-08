@@ -420,7 +420,9 @@ export default function ReceiptForm({
                         />
                       </td>
                       <td className="px-4 py-3 text-right">
+                        <div className="ml-auto w-32">
                         <MoneyInput
+                          size="md"
                           value={line.unitCost}
                           onValueChange={(raw) =>
                             updateLine(line.productId, {
@@ -434,8 +436,9 @@ export default function ReceiptForm({
                               : "-"
                           }
                           aria-label={`Harga beli ${line.name}`}
-                          className={`w-32 text-right font-mono tabular-nums`}
+                          className="text-right font-mono tabular-nums"
                         />
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right font-mono tabular-nums">
                         {hasSubtotal ? formatRupiah(lineQty * lineCost) : "-"}
