@@ -22,6 +22,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { hasPermission, hasPermissionAction, useAuth } from "@/hooks/useAuth";
+import { useSettings } from "@/hooks/useSettings";
 import {
   useCustomerAdmin,
   isNamelessCustomer,
@@ -38,10 +39,6 @@ import Button from "@/app/components/ui/Button";
 import Chip from "@/app/components/ui/Chip";
 import Input from "@/app/components/ui/Input";
 
-// Nilai 1 poin = Rp 100. HARUS sama dengan LOYALTY_POINT_VALUE di
-// app/components/kasir/KasirModule.tsx (konstanta itu tidak di-export);
-// ubah keduanya bersamaan kalau tarif poin berubah.
-const LOYALTY_POINT_VALUE = 100;
 const PAGE_SIZE = 50;
 
 type StatusFilter = "aktif" | "arsip" | "semua";
@@ -111,6 +108,9 @@ function exportCsv(rows: CustomerWithStats[]) {
 }
 
 export default function PelangganModule() {
+  // Nilai 1 poin mengikuti outlet aktif, sama dengan yang dipakai Kasir.
+  const { outlet } = useSettings();
+  const loyaltyPointValue = outlet.loyaltyPointValue;
   const { user, isLoading: isAuthLoading } = useAuth();
   const canView = hasPermission(user, "pelanggan");
   const canCreate = hasPermissionAction(user, "pelanggan", "create");
@@ -303,7 +303,7 @@ export default function PelangganModule() {
               {summary.totalPoints.toLocaleString("id-ID")}
             </p>
             <p className="text-[11px] text-zinc-500">
-              ≈ {formatRupiah(summary.totalPoints * LOYALTY_POINT_VALUE)}
+              ≈ {formatRupiah(summary.totalPoints * loyaltyPointValue)}
             </p>
           </div>
           <div className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
@@ -591,7 +591,7 @@ export default function PelangganModule() {
       {selected && (
         <PelangganDetailPanel
           customer={selected}
-          pointValue={LOYALTY_POINT_VALUE}
+          pointValue={loyaltyPointValue}
           canEdit={canEdit}
           canDelete={canDelete}
           onClose={() => setSelectedId(null)}
@@ -615,7 +615,7 @@ export default function PelangganModule() {
       {adjustOpen && selected && (
         <PoinAdjustModal
           customer={selected}
-          pointValue={LOYALTY_POINT_VALUE}
+          pointValue={loyaltyPointValue}
           onClose={() => setAdjustOpen(false)}
           onSubmit={async (delta, reason) => {
             await adjustPoints(selected.id, delta, reason);

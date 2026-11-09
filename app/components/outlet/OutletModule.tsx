@@ -38,7 +38,13 @@ import {
 import { hasPermission, hasPermissionAction, useAuth } from "@/hooks/useAuth";
 import { useBranches } from "@/hooks/useBranches";
 import { useActiveBranch } from "@/hooks/useActiveBranch";
-import { BRANCH_TYPE_LABEL, pusatBranch, timezoneLabel, type Branch } from "@/lib/pos/branches";
+import {
+  BRANCH_TYPE_LABEL,
+  loyaltyRuleGroups,
+  pusatBranch,
+  timezoneLabel,
+  type Branch,
+} from "@/lib/pos/branches";
 import Button from "@/app/components/ui/Button";
 import Modal from "@/app/components/ui/Modal";
 import OutletFormModal, { type OutletFormTab } from "./OutletFormModal";
@@ -321,6 +327,8 @@ export default function OutletModule() {
     [branches],
   );
 
+  const loyaltyGroups = useMemo(() => loyaltyRuleGroups(branches), [branches]);
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return branches.filter((b) => {
@@ -394,6 +402,28 @@ export default function OutletModule() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-zinc-100 p-4 dark:bg-zinc-950 md:p-6">
+      {loyaltyGroups.length > 1 && (
+        <div className="mb-4 flex items-start gap-3 rounded-xl border border-lco-mustard/40 bg-white p-4 text-sm dark:bg-zinc-900">
+          <Coins className="mt-0.5 h-4 w-4 shrink-0 text-lco-mustard" />
+          <div className="min-w-0">
+            <p className="font-semibold">Aturan poin member berbeda antar outlet</p>
+            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+              Saldo poin pelanggan dipakai bersama semua outlet, tetapi cara mendapat dan menukarnya mengikuti
+              outlet kasir. Pelanggan bisa memilih outlet yang paling menguntungkan. Samakan aturannya kecuali
+              memang disengaja.
+            </p>
+            <ul className="mt-2 space-y-1 text-xs">
+              {loyaltyGroups.map((g) => (
+                <li key={`${g.spendPerPoint}:${g.pointValue}`}>
+                  <span className="font-medium">{g.branchNames.join(", ")}</span>: 1 poin per Rp{" "}
+                  {g.spendPerPoint.toLocaleString("id-ID")}, 1 poin bernilai Rp {g.pointValue.toLocaleString("id-ID")}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {/* Kepala halaman */}
       <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex min-w-0 items-center gap-3">

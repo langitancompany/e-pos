@@ -2709,3 +2709,14 @@ lain mulai tanpa produk sampai diaktifkan.
 (rollback otomatis) dan `lib/pos/__tests__/productBranch.test.ts` (vitest).
 `node_modules` tidak ada di zip, jadi `node_modules/next/dist/docs` yang diminta
 AGENTS.md tidak bisa dibaca sesi ini.
+
+---
+
+## Sesi: Poin member antar outlet
+
+Saldo poin pelanggan satu untuk semua outlet, tetapi aturan (belanja per poin, nilai
+poin) dibaca dari outlet shift kasir. Halaman Pelanggan kini memakai nilai poin outlet
+aktif (sebelumnya konstanta Rp 100). Menu Outlet menampilkan peringatan bila aturan poin
+berbeda antar outlet aktif (`loyaltyRuleGroups` di `lib/pos/branches.ts`). Menyamakan
+aturan adalah keputusan bisnis, tidak diubah otomatis. Service charge, pembulatan, dan
+zona waktu per outlet masih tersimpan saja dan belum dipakai perhitungan.

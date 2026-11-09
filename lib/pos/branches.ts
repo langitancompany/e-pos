@@ -402,3 +402,32 @@ export function productTargetBranches(active: Branch | null, branches: Branch[])
       return usable;
   }
 }
+
+export interface LoyaltyRuleGroup {
+  spendPerPoint: number;
+  pointValue: number;
+  branchNames: string[];
+}
+
+/**
+ * Saldo poin pelanggan dipakai bersama semua cabang, tetapi cara mendapat dan
+ * menukar poin dibaca dari cabang kasir. Kalau cabang aktif yang program poinnya
+ * menyala punya aturan berbeda, pelanggan bisa memilih cabang yang paling untung.
+ * Mengembalikan satu grup per aturan berbeda; lebih dari satu grup = tidak seragam.
+ */
+export function loyaltyRuleGroups(branches: Branch[]): LoyaltyRuleGroup[] {
+  const groups = new Map<string, LoyaltyRuleGroup>();
+  for (const b of branches) {
+    if (!b.is_active || !b.loyalty_enabled) continue;
+    const key = `${b.loyalty_spend_per_point}:${b.loyalty_point_value}`;
+    const group = groups.get(key);
+    if (group) group.branchNames.push(b.name);
+    else
+      groups.set(key, {
+        spendPerPoint: b.loyalty_spend_per_point,
+        pointValue: b.loyalty_point_value,
+        branchNames: [b.name],
+      });
+  }
+  return [...groups.values()];
+}

@@ -13,6 +13,7 @@ import {
   canAccessBranch,
   isMissingBranchColumnError,
   isValidTimezone,
+  loyaltyRuleGroups,
   normalizeBranch,
   resolveActiveBranchId,
   timezoneLabel,
@@ -252,5 +253,34 @@ describe("jenis outlet (migration 053)", () => {
     const a = mk("a");
     const b = mk("b", { is_active: false });
     expect(productTargetBranches(a, [a, b]).map((x) => x.id)).toEqual(["a"]);
+  });
+});
+
+describe("loyaltyRuleGroups", () => {
+  const rule = (id: string, spend: number, value: number, over: Partial<Branch> = {}) =>
+    mk(id, { loyalty_enabled: true, loyalty_spend_per_point: spend, loyalty_point_value: value, ...over });
+
+  it("satu grup kalau semua outlet aktif memakai aturan yang sama", () => {
+    const groups = loyaltyRuleGroups([rule("a", 10000, 100), rule("b", 10000, 100)]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].branchNames).toEqual(["Cabang a", "Cabang b"]);
+  });
+
+  it("beberapa grup kalau aturan berbeda", () => {
+    const groups = loyaltyRuleGroups([rule("a", 10000, 100), rule("b", 1000, 1000)]);
+    expect(groups).toHaveLength(2);
+  });
+
+  it("mengabaikan outlet nonaktif dan outlet tanpa program poin", () => {
+    const groups = loyaltyRuleGroups([
+      rule("a", 10000, 100),
+      rule("b", 1000, 1000, { is_active: false }),
+      rule("c", 500, 500, { loyalty_enabled: false }),
+    ]);
+    expect(groups).toHaveLength(1);
+  });
+
+  it("kosong kalau tidak ada program poin yang menyala", () => {
+    expect(loyaltyRuleGroups([rule("a", 10000, 100, { loyalty_enabled: false })])).toEqual([]);
   });
 });
