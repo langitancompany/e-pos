@@ -4,6 +4,14 @@
 
 export type ThermalPaper = "58mm" | "80mm";
 
+/** Pusat dan cabang punya daftar produk sendiri; pusat bisa memasang produknya ke cabang (migration 053). */
+export type BranchType = "pusat" | "cabang";
+
+export const BRANCH_TYPE_LABEL: Record<BranchType, string> = {
+  pusat: "Pusat",
+  cabang: "Cabang",
+};
+
 /** Nilai pembulatan yang diizinkan (0 = tidak dibulatkan). Cermin constraint migration 048. */
 export const ROUNDING_STEPS = [0, 100, 500, 1000] as const;
 
@@ -15,6 +23,8 @@ export interface Branch {
   phone: string | null;
   is_active: boolean;
   sort_order: number;
+  /** Migration 053. Database tanpa kolom ini: semua outlet terbaca sebagai cabang. */
+  branch_type: BranchType;
   // ── migration 048 (pengaturan per outlet) ──
   timezone: string;
   ppn_enabled: boolean;
@@ -35,12 +45,17 @@ export interface Branch {
    * jangan ditimpa nilai bawaan outlet.
    */
   has_settings: boolean;
+  /** BUKAN kolom database. False kalau baris datang tanpa kolom migration 053 (jenis outlet belum dikenal). */
+  has_type: boolean;
 }
 
 /** Kolom dasar (migration 047). Dipakai sebagai cadangan kalau migration 048 belum dijalankan. */
 export const BRANCH_BASE_COLUMNS = "id, name, code, address, phone, is_active, sort_order";
 
-export const BRANCH_COLUMNS = `${BRANCH_BASE_COLUMNS}, timezone, ppn_enabled, ppn_rate, service_charge_enabled, service_charge_rate, rounding_step, loyalty_enabled, loyalty_spend_per_point, loyalty_point_value, paper_thermal, auto_print, receipt_header, receipt_footer`;
+/** Kolom sampai migration 048. Cadangan kalau migration 053 (jenis outlet) belum dijalankan. */
+export const BRANCH_COLUMNS_NO_TYPE = `${BRANCH_BASE_COLUMNS}, timezone, ppn_enabled, ppn_rate, service_charge_enabled, service_charge_rate, rounding_step, loyalty_enabled, loyalty_spend_per_point, loyalty_point_value, paper_thermal, auto_print, receipt_header, receipt_footer`;
+
+export const BRANCH_COLUMNS = `${BRANCH_COLUMNS_NO_TYPE}, branch_type`;
 
 /** Nilai awal pengaturan outlet baru (sama dengan form "Tambah Outlet Baru"). */
 export const BRANCH_SETTING_DEFAULTS = {
@@ -81,6 +96,7 @@ export function normalizeBranch(row: Record<string, unknown>): Branch {
     phone: str(row.phone),
     is_active: bool(row.is_active, true),
     sort_order: num(row.sort_order, 0),
+    branch_type: row.branch_type === "pusat" ? "pusat" : "cabang",
     timezone: str(row.timezone) ?? "Asia/Jakarta",
     ppn_enabled: bool(row.ppn_enabled, false),
     ppn_rate: num(row.ppn_rate, 11),
@@ -96,6 +112,7 @@ export function normalizeBranch(row: Record<string, unknown>): Branch {
     receipt_header: str(row.receipt_header),
     receipt_footer: str(row.receipt_footer),
     has_settings: hasNewColumns,
+    has_type: "branch_type" in row,
   };
 }
 
@@ -105,6 +122,12 @@ export function isMissingBranchColumnError(message: string | null | undefined): 
   return /column .*(timezone|ppn_|service_charge|rounding_step|loyalty_|paper_thermal|auto_print|receipt_)/i.test(
     message,
   );
+}
+
+/** Pesan error karena kolom branch_type (migration 053) belum ada. */
+export function isMissingBranchTypeError(message: string | null | undefined): boolean {
+  if (!message) return false;
+  return /branch_type/.test(message) && /does not exist|schema cache|Could not find/i.test(message);
 }
 
 /** Singkatan zona waktu Indonesia (WIB/WITA/WIT); zona lain ditampilkan apa adanya. */
@@ -143,6 +166,7 @@ export function roundingLabel(step: number): string {
 export interface BranchFormValues {
   name: string;
   code: string;
+  branch_type: BranchType;
   phone: string;
   address: string;
   timezone: string;
@@ -167,6 +191,7 @@ export function branchToFormValues(branch: Branch | null): BranchFormValues {
     return {
       name: "",
       code: "",
+      branch_type: "cabang",
       phone: "",
       address: "",
       timezone: BRANCH_SETTING_DEFAULTS.timezone,
@@ -188,6 +213,7 @@ export function branchToFormValues(branch: Branch | null): BranchFormValues {
   return {
     name: branch.name,
     code: branch.code ?? "",
+    branch_type: branch.branch_type,
     phone: branch.phone ?? "",
     address: branch.address ?? "",
     timezone: branch.timezone,
@@ -213,10 +239,29 @@ export function branchToFormValues(branch: Branch | null): BranchFormValues {
  */
 export function validateBranchForm(
   v: BranchFormValues,
+  context?: { branches: Branch[]; editingId: string | null },
 ): { message: string; tab: "profil" | "pajak" | "struk" } | null {
   if (v.name.trim().length < 2) return { message: "Nama outlet minimal 2 karakter.", tab: "profil" };
   if (v.code.trim().length === 0) return { message: "Kode outlet wajib diisi.", tab: "profil" };
   if (v.code.trim().length > 12) return { message: "Kode outlet maksimal 12 karakter.", tab: "profil" };
+  if (v.branch_type !== "pusat" && v.branch_type !== "cabang") {
+    return { message: "Pilih jenis outlet: pusat atau cabang.", tab: "profil" };
+  }
+  if (context && v.branch_type === "pusat") {
+    const other = context.branches.find((b) => b.branch_type === "pusat" && b.id !== context.editingId);
+    if (other) {
+      return {
+        message: `Outlet pusat sudah ada: ${other.name}. Ubah jenis ${other.name} menjadi cabang dulu, baru jadikan outlet ini pusat.`,
+        tab: "profil",
+      };
+    }
+  }
+  if (!v.is_active && v.branch_type === "pusat") {
+    return {
+      message: "Outlet pusat tidak bisa dinonaktifkan. Ubah jenisnya menjadi cabang dulu.",
+      tab: "profil",
+    };
+  }
   if (!isValidTimezone(v.timezone)) {
     return { message: "Zona waktu tidak dikenali. Contoh: Asia/Jakarta.", tab: "profil" };
   }
@@ -319,4 +364,41 @@ export function branchName(branches: Branch[], id: string): string {
  */
 export function branchFilter(branchId: string | null): Record<string, string> {
   return branchId ? { branch_id: branchId } : {};
+}
+
+/** Outlet pusat dari daftar, atau null kalau belum ada yang berjenis pusat. */
+export function pusatBranch(branches: Branch[]): Branch | null {
+  return branches.find((b) => b.branch_type === "pusat") ?? null;
+}
+
+/**
+ * Peran outlet aktif untuk urusan produk:
+ * "pusat" = outlet induk yang bisa memasang produknya ke cabang, "cabang" = outlet biasa,
+ * "tanpa-pusat" = jenis outlet belum dikenal (belum ada outlet aktif, atau database belum
+ * di-migrate 053), sehingga perilaku lama berlaku.
+ * Hanya outlet aktif yang dilihat: user yang dibatasi ke cabang tidak menerima baris
+ * pusat dari database.
+ */
+export type OutletRole = "pusat" | "cabang" | "tanpa-pusat";
+
+export function outletRole(active: Branch | null): OutletRole {
+  if (!active || !active.has_type) return "tanpa-pusat";
+  return active.branch_type === "pusat" ? "pusat" : "cabang";
+}
+
+/**
+ * Outlet yang boleh diatur ketersediaannya dari layar Produk di outlet aktif:
+ * pusat memilih di antara cabang aktif, cabang hanya mengatur dirinya sendiri,
+ * jenis outlet belum dikenal: semua outlet aktif (perilaku lama).
+ */
+export function productTargetBranches(active: Branch | null, branches: Branch[]): Branch[] {
+  const usable = branches.filter((b) => b.is_active);
+  switch (outletRole(active)) {
+    case "pusat":
+      return usable.filter((b) => b.branch_type === "cabang");
+    case "cabang":
+      return usable.filter((b) => b.id === active?.id);
+    default:
+      return usable;
+  }
 }

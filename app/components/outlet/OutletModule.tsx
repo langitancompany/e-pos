@@ -38,7 +38,7 @@ import {
 import { hasPermission, hasPermissionAction, useAuth } from "@/hooks/useAuth";
 import { useBranches } from "@/hooks/useBranches";
 import { useActiveBranch } from "@/hooks/useActiveBranch";
-import { timezoneLabel, type Branch } from "@/lib/pos/branches";
+import { BRANCH_TYPE_LABEL, pusatBranch, timezoneLabel, type Branch } from "@/lib/pos/branches";
 import Button from "@/app/components/ui/Button";
 import Modal from "@/app/components/ui/Modal";
 import OutletFormModal, { type OutletFormTab } from "./OutletFormModal";
@@ -94,7 +94,11 @@ function OutletCard({
   onDelete: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const showMenu = (branch.is_active && !isCurrent) || canEdit || canDelete;
+  const isPusat = branch.branch_type === "pusat";
+  // Pusat tidak bisa dinonaktifkan atau dihapus; ubah jenisnya lewat Pengaturan outlet.
+  const canToggle = canEdit && !isPusat;
+  const canRemove = canDelete && !isPusat;
+  const showMenu = (branch.is_active && !isCurrent) || canToggle || canRemove;
 
   return (
     <li
@@ -113,6 +117,17 @@ function OutletCard({
             {isCurrent && (
               <span className="rounded-md bg-lco-green/10 px-2 py-0.5 text-[10px] font-semibold text-lco-green dark:bg-lco-teal/15 dark:text-lco-teal">
                 Sedang dipilih
+              </span>
+            )}
+            {branch.has_type && (
+              <span
+                className={`rounded-md px-2 py-0.5 text-[10px] font-semibold ${
+                  isPusat
+                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    : "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                }`}
+              >
+                {BRANCH_TYPE_LABEL[branch.branch_type]}
               </span>
             )}
             <span
@@ -235,7 +250,7 @@ function OutletCard({
                     </button>
                   </li>
                 )}
-                {canEdit && (
+                {canToggle && (
                   <li role="none">
                     <button
                       type="button"
@@ -252,7 +267,7 @@ function OutletCard({
                     </button>
                   </li>
                 )}
-                {canDelete && (
+                {canRemove && (
                   <li role="none">
                     <button
                       type="button"
@@ -318,6 +333,8 @@ export default function OutletModule() {
 
   // Database belum di-migrate ke 048: kartu tetap tampil, tapi beri petunjuk jelas.
   const needsMigration = branches.length > 0 && branches.some((b) => !b.has_settings);
+  const needsTypeMigration = branches.length > 0 && branches.some((b) => !b.has_type);
+  const missingPusat = branches.length > 0 && !needsTypeMigration && !pusatBranch(branches);
 
   async function handleToggle(b: Branch) {
     setBusyId(b.id);
@@ -468,6 +485,15 @@ export default function OutletModule() {
         </div>
       </div>
 
+      {(missingPusat || (needsTypeMigration && !needsMigration)) && !error && !actionError && (
+        <div className="mb-3 flex items-start gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          {needsTypeMigration
+            ? "Jenis outlet belum aktif. Jalankan migration 053_branch_type.sql di Supabase, lalu muat ulang halaman."
+            : "Belum ada outlet pusat. Pilih satu outlet lalu ubah jenisnya menjadi Pusat lewat Pengaturan outlet."}
+        </div>
+      )}
+
       {(error || actionError || needsMigration) && (
         <div className="mb-3 flex items-start gap-2 rounded-md border border-lco-coral/30 bg-lco-coral/10 px-3 py-2 text-sm text-lco-coral">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -557,6 +583,7 @@ export default function OutletModule() {
         <OutletFormModal
           key={`${editing.branch?.id ?? "new"}-${editing.tab}`}
           branch={editing.branch}
+          branches={branches}
           initialTab={editing.tab}
           onClose={() => setEditing(null)}
           onSubmit={(values) =>

@@ -45,6 +45,8 @@ type ProdukFormProps = {
   error?: string | null;
   mode?: "create" | "edit";
   initialValues?: ProductFormValues;
+  /** Kategori produk yang diedit; ditampilkan walau belum terpasang di outlet ini. */
+  currentCategory?: { id: string; name: string } | null;
   /** Nama outlet aktif. Diisi: stok awal dan minimum stok berlaku untuk outlet ini. */
   branchName?: string | null;
 };
@@ -83,6 +85,7 @@ export default function ProdukForm({
   error = null,
   mode = "create",
   initialValues,
+  currentCategory,
   branchName = null,
 }: ProdukFormProps) {
   const isEdit = mode === "edit";
@@ -286,6 +289,10 @@ export default function ProdukForm({
                     ? "Memuat kategori..."
                     : "Pilih kategori"}
                 </option>
+
+                {currentCategory && !categories.some((c) => c.id === currentCategory.id) && (
+                  <option value={currentCategory.id}>{currentCategory.name}</option>
+                )}
 
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>

@@ -121,13 +121,19 @@ describe("overlayBranchProducts", () => {
   const products = [product("a"), product("b"), product("c")];
   const rows = [row("a"), row("b", { is_active: false })];
 
-  it("mode kasir hanya mengembalikan produk tersedia", () => {
-    expect(overlayBranchProducts(products, rows, true).map((p) => p.id)).toEqual(["a"]);
+  it("scope available hanya mengembalikan produk tersedia (kasir)", () => {
+    expect(overlayBranchProducts(products, rows, "available").map((p) => p.id)).toEqual(["a"]);
   });
 
-  it("mode admin mengembalikan semua produk dengan statusnya", () => {
-    const out = overlayBranchProducts(products, rows, false);
-    expect(out.map((p) => p.branch_availability)).toEqual(["available", "inactive", "unlisted"]);
+  it("scope listed membuang produk yang belum dipasang di outlet, nonaktif tetap ikut", () => {
+    const out = overlayBranchProducts(products, rows, "listed");
+    expect(out.map((p) => p.id)).toEqual(["a", "b"]);
+    expect(out.map((p) => p.branch_availability)).toEqual(["available", "inactive"]);
+  });
+
+  it("produk baru dari pusat tidak muncul di cabang sebagai baris stok 0", () => {
+    const out = overlayBranchProducts([product("baru")], [], "listed");
+    expect(out).toEqual([]);
   });
 });
 

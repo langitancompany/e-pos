@@ -15,6 +15,29 @@
 > per langkah**, diserahkan sebagai file yang bisa diunduh — bukan banyak
 > kode sekaligus di dalam chat.
 
+## Perubahan: Jenis outlet pusat/cabang + produk baru tidak lagi muncul di cabang (sesi #26, 2026-11-09)
+
+- **Masalah:** layar Produk/Stok/Hadiah/Label memakai `includeUnlisted`, jadi semua produk master
+  tampil di setiap cabang dengan stok 0 ("Belum diaktifkan").
+- **Aturan baru:** pusat dan cabang punya daftar produk sendiri. Produk yang dibuat di pusat hanya ada di
+  pusat; muncul di cabang setelah pusat menekan "Tambahkan di Cabang" (pilih cabang). Produk yang dibuat
+  di cabang hanya ada di cabang itu dan tidak muncul di pusat; cabang tidak bisa memasangnya ke pusat.
+- **Migration `053_branch_type.sql` WAJIB dijalankan** (setelah 052): kolom `branches.branch_type`,
+  satu pusat (unique index), outlet pertama otomatis jadi pusat, pusat tidak bisa dinonaktifkan/dihapus.
+  Tes SQL: `supabase/tests/053_branch_type_test.sql`.
+- **Kategori mengikuti aturan yang sama (migration `054_category_branches.sql`, WAJIB setelah 053):** tabel
+  `category_branches`, RPC `create_category` (buat + pasang di outlet aktif) dan `set_category_branch`
+  (pusat memasang/melepas di cabang). Kategori buatan cabang tidak muncul di pusat. Data lama: semua kategori
+  di pusat + outlet yang sudah punya produk berkategori itu. Kode: `categoryBranch.ts`, `categoryBranchApi.ts`,
+  `useCategories`, `CategoryBranchesModal`, `KategoriModule`; form Produk tetap menampilkan kategori produk
+  yang diedit walau belum terpasang di outlet itu. Tes SQL: `supabase/tests/054_category_branches_test.sql`.
+- **Kode:** `lib/pos/branches.ts` (BranchType, outletRole, canCreateProductAt, productTargetBranches),
+  `lib/pos/branchQuery.ts` (baca outlet dengan kolom cadangan), `productBranch.ts` (scope available/listed),
+  `useProducts` (produk belum terpasang tidak ikut), `ProdukModule`, `ProductBranchesModal`,
+  `OutletFormModal` (Jenis Outlet), `OutletModule`, `BranchSwitcher`, `productLogic.createProduct` (coba ulang tanpa stok).
+- Transfer stok cabang ke pusat tetap membuat baris produk di pusat (aksi eksplisit, tidak diubah).
+- **Belum dicoba:** typecheck, `npm test`, dan klik di browser (tidak dijalankan di lingkungan pengerjaan).
+
 ## Perubahan: Menu Pengeluaran dipasang ke aplikasi (sesi #25, 2026-11-06)
 
 - **File modul baru**: `app/components/pengeluaran/`, `hooks/useExpenses.ts`,

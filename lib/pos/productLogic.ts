@@ -132,18 +132,34 @@ export async function createProduct(
   }
 
   if (input.branch_id) {
+    const initialStock = isService ? 0 : input.stock;
+    const minStock = isService ? 0 : input.min_stock;
     const assigned = await assignProductBranch({
       productId: data.id,
       branchId: input.branch_id,
-      stock: isService ? 0 : input.stock,
-      minStock: isService ? 0 : input.min_stock,
+      stock: initialStock,
+      minStock,
     });
 
     if (!assigned.success) {
+      // Stok awal butuh izin ubah stok. Tanpa izin itu, pasang produk dengan stok 0
+      // supaya produknya tetap muncul di outlet, lalu beri tahu stok awalnya belum masuk.
+      const withoutStock =
+        initialStock > 0
+          ? await assignProductBranch({
+              productId: data.id,
+              branchId: input.branch_id,
+              stock: 0,
+              minStock,
+            })
+          : null;
+
       return {
         success: true,
         product: { id: data.id },
-        warning: `Produk tersimpan, tetapi belum aktif di outlet ini: ${assigned.error} Aktifkan lewat tombol Atur Outlet.`,
+        warning: withoutStock?.success
+          ? `Produk tersimpan dan aktif di outlet ini, tetapi stok awal tidak tercatat: ${assigned.error} Isi stok lewat Barang Masuk.`
+          : `Produk tersimpan, tetapi belum aktif di outlet ini: ${assigned.error} Aktifkan lewat tombol di baris produknya.`,
       };
     }
   }

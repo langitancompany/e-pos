@@ -10,8 +10,12 @@
 //   sekarang lewat useCategories({ includeInactive: true }). Validasi form ada di lib/pos/categoryLogic.ts.
 
 import { useState } from "react";
-import { Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Loader2, Pencil, Plus, Store, Trash2, X } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
+import { useActiveBranch } from "@/hooks/useActiveBranch";
+import { useAuth, hasPermissionAction } from "@/hooks/useAuth";
+import { outletRole, productTargetBranches } from "@/lib/pos/branches";
+import CategoryBranchesModal from "./CategoryBranchesModal";
 import { validateCategoryInput } from "@/lib/pos/categoryLogic";
 import type { Category } from "@/lib/pos/types";
 import Modal from "@/app/components/ui/Modal";
@@ -44,6 +48,12 @@ export default function KategoriModule() {
     deleteCategory,
     setCategoryActive,
   } = useCategories({ includeInactive: true });
+
+  const { user } = useAuth();
+  const { activeBranch, branches } = useActiveBranch();
+  const role = outletRole(activeBranch);
+  const canEditProduct = hasPermissionAction(user, "produk", "edit");
+  const [branchCategory, setBranchCategory] = useState<Category | null>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -160,6 +170,8 @@ export default function KategoriModule() {
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
             Kelola kategori yang digunakan pada produk.
+            {role === "cabang" && " Kategori yang Anda buat di sini hanya tersedia di cabang ini dan tidak muncul di pusat."}
+            {role === "pusat" && " Kategori buatan pusat hanya tampil di pusat sampai ditambahkan ke cabang."}
           </p>
         </div>
 
@@ -242,6 +254,20 @@ export default function KategoriModule() {
 
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-1">
+                        {role === "pusat" && (
+                          <Button
+                            type="button"
+                            onClick={() => setBranchCategory(category)}
+                            title="Pilih cabang yang memakai kategori ini"
+                            variant="secondary"
+                            size="sm"
+                            className="mr-1 self-center"
+                          >
+                            <Store className="h-3.5 w-3.5" />
+                            Tambahkan di Cabang
+                          </Button>
+                        )}
+
                         <IconButton
                           type="button"
                           onClick={() => openEditForm(category)}
@@ -273,6 +299,15 @@ export default function KategoriModule() {
           </div>
         )}
       </div>
+
+      {branchCategory && (
+        <CategoryBranchesModal
+          category={branchCategory}
+          branches={productTargetBranches(activeBranch, branches)}
+          canEdit={canEditProduct}
+          onClose={() => setBranchCategory(null)}
+        />
+      )}
 
       {showForm && (
         <Modal size="md" padding="none" layout="clip">

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  BRANCH_COLUMNS,
+  BRANCH_COLUMNS_NO_TYPE,
   branchFilter,
+  isMissingBranchTypeError,
+  outletRole,
+  productTargetBranches,
+  pusatBranch,
   branchName,
   branchSettingsOverlay,
   branchToFormValues,
@@ -153,5 +159,98 @@ describe("isMissingBranchColumnError", () => {
     expect(isMissingBranchColumnError("column branches.loyalty_enabled does not exist")).toBe(true);
     expect(isMissingBranchColumnError('relation "e_pos.branches" does not exist')).toBe(false);
     expect(isMissingBranchColumnError(null)).toBe(false);
+  });
+});
+
+const typed = (id: string, type: "pusat" | "cabang", over: Partial<Branch> = {}): Branch =>
+  mk(id, { branch_type: type, has_type: true, ...over });
+
+describe("jenis outlet (migration 053)", () => {
+  it("normalizeBranch membaca branch_type dan menandai has_type", () => {
+    const pusat = normalizeBranch({ id: "a", name: "A", branch_type: "pusat" });
+    expect(pusat.branch_type).toBe("pusat");
+    expect(pusat.has_type).toBe(true);
+    const lama = normalizeBranch({ id: "b", name: "B" });
+    expect(lama.branch_type).toBe("cabang");
+    expect(lama.has_type).toBe(false);
+  });
+
+  it("nilai branch_type yang aneh dianggap cabang", () => {
+    expect(normalizeBranch({ id: "a", name: "A", branch_type: "x" }).branch_type).toBe("cabang");
+  });
+
+  it("form outlet baru default cabang, form edit membawa jenis outlet", () => {
+    expect(branchToFormValues(null).branch_type).toBe("cabang");
+    expect(branchToFormValues(typed("a", "pusat")).branch_type).toBe("pusat");
+  });
+
+  it("kolom penuh memuat branch_type, kolom cadangan tidak", () => {
+    expect(BRANCH_COLUMNS).toContain("branch_type");
+    expect(BRANCH_COLUMNS_NO_TYPE).not.toContain("branch_type");
+    expect(BRANCH_COLUMNS_NO_TYPE).toContain("timezone");
+  });
+
+  it("isMissingBranchTypeError hanya untuk kolom branch_type yang hilang", () => {
+    expect(isMissingBranchTypeError("column branches.branch_type does not exist")).toBe(true);
+    expect(isMissingBranchTypeError("Could not find the 'branch_type' column of 'branches' in the schema cache")).toBe(true);
+    expect(isMissingBranchTypeError("column branches.timezone does not exist")).toBe(false);
+    expect(isMissingBranchTypeError(null)).toBe(false);
+  });
+
+  const valid = () => ({ ...branchToFormValues(null), name: "Outlet Baru", code: "OB-1" });
+
+  it("validateBranchForm menolak pusat kedua", () => {
+    const branches = [typed("a", "pusat", { name: "Pusat Lama" }), typed("b", "cabang")];
+    const res = validateBranchForm(
+      { ...valid(), branch_type: "pusat" },
+      { branches, editingId: "b" },
+    );
+    expect(res?.tab).toBe("profil");
+    expect(res?.message).toContain("Pusat Lama");
+  });
+
+  it("validateBranchForm mengizinkan pusat yang sama diedit", () => {
+    const branches = [typed("a", "pusat"), typed("b", "cabang")];
+    expect(
+      validateBranchForm({ ...valid(), branch_type: "pusat" }, { branches, editingId: "a" }),
+    ).toBeNull();
+  });
+
+  it("validateBranchForm menolak pusat nonaktif", () => {
+    const res = validateBranchForm({ ...valid(), branch_type: "pusat", is_active: false });
+    expect(res?.message).toContain("tidak bisa dinonaktifkan");
+  });
+
+  it("validateBranchForm menolak jenis di luar pusat/cabang", () => {
+    const res = validateBranchForm({ ...valid(), branch_type: "x" as never });
+    expect(res?.tab).toBe("profil");
+  });
+
+  it("pusatBranch mengembalikan pusat atau null", () => {
+    expect(pusatBranch([typed("a", "cabang"), typed("b", "pusat")])?.id).toBe("b");
+    expect(pusatBranch([typed("a", "cabang")])).toBeNull();
+  });
+
+  it("outletRole: pusat, cabang, dan jenis belum dikenal", () => {
+    expect(outletRole(typed("a", "pusat"))).toBe("pusat");
+    expect(outletRole(typed("a", "cabang"))).toBe("cabang");
+    expect(outletRole(mk("a"))).toBe("tanpa-pusat");
+    expect(outletRole(null)).toBe("tanpa-pusat");
+  });
+
+  it("productTargetBranches: pusat memilih cabang aktif, cabang hanya dirinya", () => {
+    const pusat = typed("p", "pusat");
+    const c1 = typed("c1", "cabang");
+    const c2 = typed("c2", "cabang", { is_active: false });
+    const c3 = typed("c3", "cabang");
+    const all = [pusat, c1, c2, c3];
+    expect(productTargetBranches(pusat, all).map((b) => b.id)).toEqual(["c1", "c3"]);
+    expect(productTargetBranches(c1, all).map((b) => b.id)).toEqual(["c1"]);
+  });
+
+  it("productTargetBranches: jenis belum dikenal memakai semua outlet aktif", () => {
+    const a = mk("a");
+    const b = mk("b", { is_active: false });
+    expect(productTargetBranches(a, [a, b]).map((x) => x.id)).toEqual(["a"]);
   });
 });

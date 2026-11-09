@@ -89,7 +89,12 @@ export default function BranchSwitcher({ fallbackName }: { fallbackName: string 
                   }`}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate">{b.name}</span>
+                    <span className="block truncate">
+                      {b.name}
+                      {b.has_type && b.branch_type === "pusat" && (
+                        <span className="ml-1.5 text-[11px] font-normal text-zinc-400">Pusat</span>
+                      )}
+                    </span>
                     {b.address && (
                       <span className="block truncate text-[11px] font-normal text-zinc-400">{b.address}</span>
                     )}

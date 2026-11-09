@@ -1,8 +1,9 @@
 "use client";
 
-// Atur ketersediaan satu produk di setiap outlet: aktifkan dengan stok awal,
+// Atur ketersediaan satu produk di outlet: aktifkan dengan stok awal,
 // ubah minimum stok dan harga khusus, atau nonaktifkan di outlet tertentu.
 // Stok berjalan tidak diubah dari sini (pakai Barang Masuk, Opname, atau Transfer).
+// Dari pusat daftar berisi cabang yang bisa dipilih; dari cabang hanya cabang itu sendiri.
 
 import { useCallback, useEffect, useState } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
@@ -10,7 +11,7 @@ import Modal, { ModalHeader } from "@/app/components/ui/Modal";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
 import MoneyInput from "@/app/components/ui/MoneyInput";
-import type { Branch } from "@/lib/pos/branches";
+import type { Branch, OutletRole } from "@/lib/pos/branches";
 import type { Product } from "@/lib/pos/types";
 import {
   availabilityLabel,
@@ -28,12 +29,20 @@ interface Props {
   product: Pick<Product, "id" | "name" | "sku" | "type" | "is_service" | "sell_price" | "min_stock"> & {
     base_sell_price?: number;
   };
+  /** Outlet yang boleh diatur dari outlet aktif (lihat productTargetBranches). */
   branches: Branch[];
+  mode: OutletRole;
   canEdit: boolean;
   canSetStock: boolean;
   onClose: () => void;
   onChanged: () => void;
 }
+
+const TITLE: Record<OutletRole, string> = {
+  pusat: "Tambahkan di Cabang",
+  cabang: "Atur di Outlet Ini",
+  "tanpa-pusat": "Atur Outlet",
+};
 
 interface Draft {
   stock: string;
@@ -50,6 +59,7 @@ const toDraft = (row: ProductBranchRow | undefined, defaultMin: number): Draft =
 export default function ProductBranchesModal({
   product,
   branches,
+  mode,
   canEdit,
   canSetStock,
   onClose,
@@ -154,11 +164,16 @@ export default function ProductBranchesModal({
   return (
     <Modal size="2xl" padding="none" layout="flex" aria-label={`Atur outlet ${product.name}`}>
       <div className="border-b border-zinc-200 px-6 py-4 dark:border-zinc-800">
-        <ModalHeader title="Atur Outlet" onClose={onClose} />
+        <ModalHeader title={TITLE[mode]} onClose={onClose} />
         <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           {product.name} · <span className="font-mono">{product.sku}</span> · harga master{" "}
           <span className="font-mono tabular-nums">Rp {masterPrice.toLocaleString("id-ID")}</span>
         </p>
+        {mode === "pusat" && (
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Produk hanya tampil di cabang yang Anda tambahkan di sini.
+          </p>
+        )}
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto px-6 py-4">
@@ -175,7 +190,11 @@ export default function ProductBranchesModal({
             Memuat outlet...
           </div>
         ) : usable.length === 0 ? (
-          <p className="py-8 text-center text-sm text-zinc-500">Belum ada outlet aktif yang bisa Anda akses.</p>
+          <p className="py-8 text-center text-sm text-zinc-500">
+            {mode === "pusat"
+              ? "Belum ada cabang aktif. Tambahkan cabang di Pengaturan > Outlet."
+              : "Belum ada outlet aktif yang bisa Anda akses."}
+          </p>
         ) : (
           usable.map((branch) => {
             const row = rows.find((r) => r.branch_id === branch.id);
@@ -198,7 +217,9 @@ export default function ProductBranchesModal({
                           : "text-zinc-400"
                       }`}
                     >
-                      {availabilityLabel(status)}
+                      {status === "unlisted" && mode === "pusat"
+                        ? "Belum ditambahkan"
+                        : availabilityLabel(status)}
                       {row && !isService ? ` · stok ${row.stock}` : ""}
                     </p>
                   </div>
@@ -268,7 +289,7 @@ export default function ProductBranchesModal({
                     ) : (
                       <Button type="button" size="sm" disabled={busy} onClick={() => activate(branch.id)}>
                         {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                        Aktifkan di outlet ini
+                        {mode === "pusat" ? "Tambahkan di cabang ini" : "Aktifkan di outlet ini"}
                       </Button>
                     )}
                   </div>

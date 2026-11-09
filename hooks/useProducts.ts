@@ -30,15 +30,14 @@ export interface ProductWithCategory extends Product {
 interface UseProductsOptions {
   /**
    * false (default) → hanya produk aktif, dipakai layar Kasir.
-   * true → semua produk (aktif & nonaktif), dipakai layar admin Produk.
+   * true → semua produk yang dipasang di outlet aktif (aktif & nonaktif), dipakai layar
+   * admin Produk, Stok, dan Hadiah.
    * Soft-deleted (deleted_at terisi) selalu dikecualikan di kedua mode.
+   * Produk yang belum dipasang di outlet aktif tidak ikut: produk dari pusat baru muncul
+   * di cabang setelah dipasang lewat "Tambahkan di Cabang", dan produk buatan cabang
+   * tidak muncul di pusat.
    */
   includeInactive?: boolean;
-  /**
-   * Layar admin (Produk, Stok) memakai true: produk yang belum aktif di outlet
-   * tetap muncul dengan `branch_availability`. Kasir memakai false (default).
-   */
-  includeUnlisted?: boolean;
 }
 
 interface UseProductsResult {
@@ -73,7 +72,7 @@ async function fetchBranchRows(
 export function useProducts(
   options: UseProductsOptions = {},
 ): UseProductsResult {
-  const { includeInactive = false, includeUnlisted = includeInactive } = options;
+  const { includeInactive = false } = options;
   const { branchId, ready: branchReady } = useBranchScope();
 
   const [products, setProducts] = useState<ProductWithCategory[]>([]);
@@ -129,10 +128,14 @@ export function useProducts(
       return;
     }
 
-    const merged = overlayBranchProducts(masters, branchRows.rows, !includeUnlisted);
+    const merged = overlayBranchProducts(
+      masters,
+      branchRows.rows,
+      includeInactive ? "listed" : "available",
+    );
     setProducts(merged);
     setIsLoading(false);
-  }, [includeInactive, includeUnlisted, branchId, branchReady]);
+  }, [includeInactive, branchId, branchReady]);
 
   useEffect(() => {
     fetchProducts();

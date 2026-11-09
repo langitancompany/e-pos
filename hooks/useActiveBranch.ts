@@ -21,13 +21,11 @@ import { useCallback, useSyncExternalStore } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   ACTIVE_BRANCH_STORAGE_KEY,
-  BRANCH_BASE_COLUMNS,
-  BRANCH_COLUMNS,
-  isMissingBranchColumnError,
   normalizeBranch,
   resolveActiveBranchId,
   type Branch,
 } from "@/lib/pos/branches";
+import { selectBranchRows } from "@/lib/pos/branchQuery";
 
 const supabase = createClient();
 
@@ -76,25 +74,8 @@ async function fetchBranches(): Promise<void> {
     return;
   }
 
-  const first = await supabase
-    .from("branches")
-    .select(BRANCH_COLUMNS)
-    .order("sort_order", { ascending: true })
-    .order("name", { ascending: true });
-  let rows: unknown = first.data;
-  let errorMessage: string | null = first.error?.message ?? null;
-
-  // Migration 048 (pengaturan per outlet) belum dijalankan -> pakai kolom dasar
-  // supaya cabang tetap termuat; kolom yang hilang diisi nilai bawaan lama.
-  if (errorMessage && isMissingBranchColumnError(errorMessage)) {
-    const retry = await supabase
-      .from("branches")
-      .select(BRANCH_BASE_COLUMNS)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-    rows = retry.data;
-    errorMessage = retry.error?.message ?? null;
-  }
+  // Migration 053/048 yang belum dijalankan ditangani selectBranchRows (kolom cadangan).
+  const { rows, errorMessage } = await selectBranchRows(supabase);
 
   if (errorMessage) {
     // Paling sering: migration 047 belum dijalankan -> app tetap jalan tanpa mode cabang.
@@ -102,9 +83,7 @@ async function fetchBranches(): Promise<void> {
     return;
   }
 
-  const branches: Branch[] = ((rows ?? []) as Record<string, unknown>[]).map(
-    normalizeBranch,
-  );
+  const branches: Branch[] = rows.map(normalizeBranch);
   const activeId = resolveActiveBranchId(branches, state.activeId ?? readStoredId());
   writeStoredId(activeId);
   emit({ branches, activeId, loaded: true, error: null });

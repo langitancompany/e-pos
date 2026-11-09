@@ -27,10 +27,9 @@ import {
 import { useAuth, hasPermission, hasPermissionAction } from "@/hooks/useAuth";
 import { useProducts, type ProductWithCategory } from "@/hooks/useProducts";
 import { useActiveBranch } from "@/hooks/useActiveBranch";
+import { outletRole, productTargetBranches } from "@/lib/pos/branches";
 import { availabilityLabel } from "@/lib/pos/productBranch";
-import { bulkAssignProductBranch } from "@/lib/pos/productBranchApi";
 import ProductBranchesModal from "./ProductBranchesModal";
-import Chip from "@/app/components/ui/Chip";
 import {
   createProduct,
   deleteProduct,
@@ -105,10 +104,18 @@ export default function ProdukModule() {
   const canEditProduct = hasPermissionAction(user, "produk", "edit");
   const canDeleteProduct = hasPermissionAction(user, "produk", "delete");
 
-  // Admin harus melihat produk yang belum aktif di outlet ini supaya bisa mengaktifkannya.
-  const { products, isLoading, error, refetch } = useProducts({ includeUnlisted: true });
   const { activeBranch, activeBranchId, branches } = useActiveBranch();
   const canSetStock = hasPermissionAction(user, "stok", "edit");
+
+  const role = outletRole(activeBranch);
+
+  // Hanya produk yang dipasang di outlet aktif: produk buatan cabang tidak muncul di
+  // pusat, dan produk pusat yang belum ditambahkan ke cabang tidak muncul di cabang.
+  const { products, isLoading, error, refetch } = useProducts({ includeInactive: true });
+  const targetBranches = useMemo(
+    () => productTargetBranches(activeBranch, branches),
+    [activeBranch, branches],
+  );
 
   const [activeTab, setActiveTab] = useState<ProdukTab>("produk");
   const [search, setSearch] = useState("");
@@ -128,37 +135,24 @@ export default function ProdukModule() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const [availabilityFilter, setAvailabilityFilter] = useState<"all" | "available" | "unlisted">("all");
   const [branchProduct, setBranchProduct] = useState<ProductWithCategory | null>(null);
-  const [bulkBusy, setBulkBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const filteredProducts = useMemo(() => {
     const keyword = search.trim().toLowerCase();
 
-    const byAvailability = products.filter((product) => {
-      if (!activeBranchId || availabilityFilter === "all") return true;
-      return availabilityFilter === "available"
-        ? product.branch_availability === "available"
-        : product.branch_availability !== "available";
-    });
-
     if (!keyword) {
-      return byAvailability;
+      return products;
     }
 
-    return byAvailability.filter((product) => {
+    return products.filter((product) => {
       return (
         product.name.toLowerCase().includes(keyword) ||
         product.sku.toLowerCase().includes(keyword) ||
         (product.barcode ?? "").toLowerCase().includes(keyword)
       );
     });
-  }, [products, search, availabilityFilter, activeBranchId]);
-
-  const unlistedProducts = products.filter(
-    (product) => product.branch_availability === "unlisted",
-  );
+  }, [products, search]);
 
   const activeProducts = products.filter((product) => product.is_active).length;
 
@@ -240,25 +234,6 @@ export default function ProdukModule() {
     refetch();
   }
 
-  async function handleBulkActivate() {
-    if (!activeBranchId || unlistedProducts.length === 0) return;
-    setBulkBusy(true);
-    setNotice(null);
-    const result = await bulkAssignProductBranch(
-      activeBranchId,
-      unlistedProducts.map((product) => product.id),
-    );
-    setBulkBusy(false);
-    if (!result.success) {
-      setNotice(result.error);
-      return;
-    }
-    setNotice(
-      `${result.assigned} produk diaktifkan di ${activeBranch?.name ?? "outlet ini"} dengan stok 0. Isi stoknya lewat Barang Masuk atau Transfer.`,
-    );
-    refetch();
-  }
-
   // ── TAMBAHAN (T-09) ── Hapus (soft-delete) produk lewat RPC
   // `soft_delete_product` (migration 014, dipanggil via `deleteProduct()` di
   // productLogic.ts). Produk yang dihapus pindah ke halaman Sampah (belum
@@ -315,6 +290,12 @@ export default function ProdukModule() {
             Kelola produk & kategori yang tersedia di kasir.
             {activeBranch ? ` Stok dan harga di bawah milik outlet ${activeBranch.name}.` : ""}
           </p>
+
+          {role === "cabang" && (
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              Produk yang Anda buat di sini hanya tersedia di cabang ini dan tidak muncul di pusat.
+            </p>
+          )}
         </div>
 
         {activeTab === "produk" && canCreateProduct && (
@@ -404,40 +385,6 @@ export default function ProdukModule() {
             </Button>
           </div>
 
-          {activeBranchId && (
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <Chip selected={availabilityFilter === "all"} onClick={() => setAvailabilityFilter("all")}>
-                Semua
-              </Chip>
-              <Chip
-                selected={availabilityFilter === "available"}
-                onClick={() => setAvailabilityFilter("available")}
-              >
-                Tersedia di outlet ini
-              </Chip>
-              <Chip
-                selected={availabilityFilter === "unlisted"}
-                onClick={() => setAvailabilityFilter("unlisted")}
-              >
-                Belum diaktifkan ({unlistedProducts.length})
-              </Chip>
-
-              {canEditProduct && unlistedProducts.length > 0 && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  className="ml-auto"
-                  disabled={bulkBusy}
-                  onClick={handleBulkActivate}
-                >
-                  {bulkBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Store className="h-3.5 w-3.5" />}
-                  Aktifkan semua di {activeBranch?.name ?? "outlet ini"}
-                </Button>
-              )}
-            </div>
-          )}
-
           {notice && (
             <div className="mb-4 flex items-start gap-3 border border-zinc-200 bg-white p-3 text-xs text-zinc-600 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
               <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -481,9 +428,11 @@ export default function ProdukModule() {
                 <p className="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
                   {search
                     ? "Coba gunakan nama produk, SKU, atau barcode yang berbeda."
-                    : canManageProducts
-                      ? "Tambahkan produk agar produk dapat digunakan di Kasir."
-                      : "Belum ada produk. Minta admin atau supervisor menambahkannya."}
+                    : role === "cabang"
+                      ? "Belum ada produk di cabang ini. Tambahkan produk baru, atau minta pusat memasangkan produknya ke cabang ini."
+                      : canManageProducts
+                        ? "Tambahkan produk agar produk dapat digunakan di Kasir."
+                        : "Belum ada produk. Minta admin atau supervisor menambahkannya."}
                 </p>
 
                 {!search && canCreateProduct && (
@@ -630,12 +579,20 @@ export default function ProdukModule() {
                                   <Button
                                     type="button"
                                     onClick={() => setBranchProduct(product)}
-                                    title="Atur ketersediaan, harga, dan minimum stok per outlet"
+                                    title={
+                                      role === "pusat"
+                                        ? "Pilih cabang yang menjual produk ini"
+                                        : "Atur ketersediaan, harga, dan minimum stok di outlet ini"
+                                    }
                                     variant="secondary"
                                     size="sm"
                                   >
                                     <Store className="h-3.5 w-3.5" />
-                                    Atur Outlet
+                                    {role === "pusat"
+                                      ? "Tambahkan di Cabang"
+                                      : role === "cabang"
+                                        ? "Atur di Outlet Ini"
+                                        : "Atur Outlet"}
                                   </Button>
                                 )}
 
@@ -697,6 +654,11 @@ export default function ProdukModule() {
           error={formError}
           mode={editingProduct ? "edit" : "create"}
           branchName={activeBranch?.name ?? null}
+          currentCategory={
+            editingProduct?.category
+              ? { id: editingProduct.category.id, name: editingProduct.category.name }
+              : null
+          }
           initialValues={
             editingProduct
               ? {
@@ -722,7 +684,8 @@ export default function ProdukModule() {
       {branchProduct && (
         <ProductBranchesModal
           product={branchProduct}
-          branches={branches}
+          branches={targetBranches}
+          mode={role}
           canEdit={canEditProduct}
           canSetStock={canSetStock}
           onClose={() => setBranchProduct(null)}

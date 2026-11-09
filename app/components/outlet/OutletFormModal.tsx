@@ -8,6 +8,8 @@
 //   3. Format Struk    : lebar kertas, auto-cetak, header & footer struk.
 // Satu tombol "Simpan Outlet" menyimpan semua tab sekaligus. Kalau ada isian yang
 // tidak valid, form pindah ke tab tempat masalahnya.
+// Tab Profil memuat Jenis Outlet (pusat atau cabang, migration 053): pusat dan cabang
+// punya daftar produk sendiri-sendiri.
 
 import { useState } from "react";
 import {
@@ -19,12 +21,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import {
+  BRANCH_TYPE_LABEL,
   ROUNDING_STEPS,
   branchToFormValues,
   roundingLabel,
   validateBranchForm,
   type Branch,
   type BranchFormValues,
+  type BranchType,
 } from "@/lib/pos/branches";
 import Button from "@/app/components/ui/Button";
 import Input from "@/app/components/ui/Input";
@@ -54,14 +58,24 @@ function toNumber(value: string): number {
   return Number.isFinite(n) ? n : Number.NaN;
 }
 
+const TYPE_HINT: Record<BranchType, string> = {
+  pusat:
+    "Produk yang dibuat di pusat hanya tampil di pusat, dan baru tampil di cabang setelah ditambahkan ke cabang itu. Hanya boleh ada satu pusat.",
+  cabang:
+    "Cabang bisa membuat produk sendiri yang hanya tampil di cabang itu, dan tidak bisa memasang produk ke pusat.",
+};
+
 export default function OutletFormModal({
   branch,
+  branches,
   initialTab = "profil",
   onClose,
   onSubmit,
 }: {
   /** null = tambah outlet baru. */
   branch: Branch | null;
+  /** Semua outlet, untuk memeriksa aturan satu pusat. */
+  branches: Branch[];
   initialTab?: OutletFormTab;
   onClose: () => void;
   onSubmit: (values: BranchFormValues) => Promise<void>;
@@ -80,7 +94,7 @@ export default function OutletFormModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (saving) return;
-    const problem = validateBranchForm(form);
+    const problem = validateBranchForm(form, { branches, editingId: branch?.id ?? null });
     if (problem) {
       setError(problem.message);
       setTab(problem.tab);
@@ -161,6 +175,21 @@ export default function OutletFormModal({
                 placeholder="Contoh: Cabang Sudirman"
                 autoFocus
               />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="outlet-type">
+                Jenis Outlet <span className="text-lco-coral">*</span>
+              </label>
+              <Select
+                id="outlet-type"
+                fullWidth
+                value={form.branch_type}
+                onChange={(e) => set("branch_type", e.target.value as BranchType)}
+              >
+                <option value="cabang">{BRANCH_TYPE_LABEL.cabang}</option>
+                <option value="pusat">{BRANCH_TYPE_LABEL.pusat}</option>
+              </Select>
+              <p className={hintClass}>{TYPE_HINT[form.branch_type]}</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>

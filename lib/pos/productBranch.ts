@@ -66,18 +66,27 @@ export function applyBranchRow<T extends Product>(product: T, row: ProductBranch
 }
 
 /**
- * Gabungkan master produk dengan baris outlet.
- * `onlyAvailable` (layar Kasir) membuang produk yang belum/tidak aktif di outlet;
- * layar admin memakai false supaya produk itu tetap bisa diaktifkan.
+ * "available" = hanya produk yang tampil di kasir outlet (layar Kasir).
+ * "listed"    = semua produk yang sudah dipasang di outlet, termasuk yang dinonaktifkan
+ *               di sana (layar Produk, Stok, Hadiah). Produk yang tidak
+ *               pernah dipasang di outlet tidak ikut, jadi tidak muncul sebagai baris
+ *               berstok 0.
  */
+export type BranchProductScope = "available" | "listed";
+
+/** Gabungkan master produk dengan baris outlet, lalu saring sesuai `scope`. */
 export function overlayBranchProducts<T extends Product>(
   products: T[],
   rows: ProductBranchRow[],
-  onlyAvailable: boolean,
+  scope: BranchProductScope,
 ): T[] {
   const byProduct = new Map(rows.map((r) => [r.product_id, r]));
   const merged = products.map((p) => applyBranchRow(p, byProduct.get(p.id)));
-  return onlyAvailable ? merged.filter((p) => p.branch_availability === "available") : merged;
+  return merged.filter((p) =>
+    scope === "available"
+      ? p.branch_availability === "available"
+      : p.branch_availability !== "unlisted",
+  );
 }
 
 export function availabilityLabel(a: BranchAvailability): string {

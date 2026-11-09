@@ -10,19 +10,21 @@
 // pengaturan_toko.edit. ── TAMBAHAN (migration 049) ── Hapus cabang lewat RPC
 // delete_branch (izin pengaturan_toko.delete): hanya cabang yang belum punya
 // riwayat; cabang yang sudah dipakai transaksi cukup dinonaktifkan.
+// ── TAMBAHAN (migration 053) ── Jenis outlet pusat/cabang. Pusat tidak bisa
+// dinonaktifkan atau dihapus selama masih pusat.
 
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
-  BRANCH_BASE_COLUMNS,
-  BRANCH_COLUMNS,
   isMissingBranchColumnError,
+  isMissingBranchTypeError,
   normalizeBranch,
   type Branch,
   type BranchFormValues,
 } from "@/lib/pos/branches";
+import { selectBranchRows } from "@/lib/pos/branchQuery";
 import { reloadBranches } from "@/hooks/useActiveBranch";
 
 const supabase = createClient();
@@ -40,6 +42,7 @@ function toRow(input: BranchInput) {
   return {
     name: input.name.trim(),
     code: clean(input.code),
+    branch_type: input.branch_type,
     address: clean(input.address),
     phone: clean(input.phone),
     is_active: input.is_active,
@@ -60,6 +63,13 @@ function toRow(input: BranchInput) {
 }
 
 function friendlyError(message: string): string {
+  if (/branches_single_pusat_idx/.test(message)) {
+    return "Outlet pusat sudah ada. Ubah jenis outlet pusat yang lama menjadi cabang dulu.";
+  }
+  if (/branches_branch_type_check/.test(message)) return "Jenis outlet harus pusat atau cabang.";
+  if (isMissingBranchTypeError(message)) {
+    return "Database belum diperbarui. Jalankan migration 053_branch_type.sql di Supabase terlebih dulu.";
+  }
   if (isMissingBranchColumnError(message)) {
     return "Database belum diperbarui. Jalankan migration 048_outlet_settings.sql di Supabase terlebih dulu.";
   }
@@ -74,6 +84,9 @@ function friendlyError(message: string): string {
   return message;
 }
 
+const PUSAT_LOCKED_MESSAGE =
+  "Outlet pusat tidak bisa dinonaktifkan atau dihapus. Ubah jenisnya menjadi cabang dulu dan jadikan outlet lain sebagai pusat.";
+
 export function useBranches() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,30 +95,12 @@ export function useBranches() {
   const fetchAll = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    const first = await supabase
-      .from("branches")
-      .select(BRANCH_COLUMNS)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
-    let rows: unknown = first.data;
-    let fetchError: { message: string } | null = first.error;
-    // Migration 048 belum dijalankan: tampilkan cabang dengan kolom dasar.
-    if (fetchError && isMissingBranchColumnError(fetchError.message)) {
-      const retry = await supabase
-        .from("branches")
-        .select(BRANCH_BASE_COLUMNS)
-        .order("sort_order", { ascending: true })
-        .order("name", { ascending: true });
-      rows = retry.data;
-      fetchError = retry.error;
-    }
-    if (fetchError) {
-      setError(fetchError.message);
+    const { rows, errorMessage } = await selectBranchRows(supabase);
+    if (errorMessage) {
+      setError(errorMessage);
       setBranches([]);
     } else {
-      setBranches(
-        ((rows ?? []) as Record<string, unknown>[]).map(normalizeBranch),
-      );
+      setBranches(rows.map(normalizeBranch));
     }
     setIsLoading(false);
   }, []);
@@ -151,6 +146,9 @@ export function useBranches() {
       ) {
         throw new Error("Minimal harus ada satu outlet aktif.");
       }
+      if (!input.is_active && input.branch_type === "pusat") {
+        throw new Error(PUSAT_LOCKED_MESSAGE);
+      }
       const { error: updateError } = await supabase
         .from("branches")
         .update({ ...toRow(input), updated_at: new Date().toISOString() })
@@ -166,6 +164,9 @@ export function useBranches() {
       if (!isActive && branches.filter((b) => b.is_active).length <= 1) {
         throw new Error("Minimal harus ada satu outlet aktif.");
       }
+      if (!isActive && branches.find((b) => b.id === id)?.branch_type === "pusat") {
+        throw new Error(PUSAT_LOCKED_MESSAGE);
+      }
       const { error: updateError } = await supabase
         .from("branches")
         .update({ is_active: isActive, updated_at: new Date().toISOString() })
@@ -178,6 +179,9 @@ export function useBranches() {
 
   const deleteBranch = useCallback(
     async (id: string) => {
+      if (branches.find((b) => b.id === id)?.branch_type === "pusat") {
+        throw new Error(PUSAT_LOCKED_MESSAGE);
+      }
       const { error: rpcError } = await supabase.rpc("delete_branch", { p_branch_id: id });
       if (rpcError) {
         if (/function .*delete_branch|Could not find the function/i.test(rpcError.message)) {
@@ -187,7 +191,7 @@ export function useBranches() {
       }
       await refreshAll();
     },
-    [refreshAll],
+    [branches, refreshAll],
   );
 
   return {

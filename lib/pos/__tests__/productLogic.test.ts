@@ -13,6 +13,8 @@ const h = vi.hoisted(() => {
     stockResult: { data: { stock: 0 }, error: null } as Result,
     rpcResult: { data: { success: true }, error: null } as Result,
     rpcCall: undefined as { name: string; args: Record<string, unknown> } | undefined,
+    rpcCalls: [] as { name: string; args: Record<string, unknown> }[],
+    rpcQueue: [] as Result[],
   };
   function makeChain() {
     let op: "select" | "insert" | "update" = "select";
@@ -49,7 +51,8 @@ vi.mock("../../supabase/client", () => ({
     from: () => h.makeChain(),
     rpc: (name: string, args: Record<string, unknown>) => {
       h.state.rpcCall = { name, args };
-      return Promise.resolve(h.state.rpcResult);
+      h.state.rpcCalls.push({ name, args });
+      return Promise.resolve(h.state.rpcQueue.shift() ?? h.state.rpcResult);
     },
   }),
 }));
@@ -85,6 +88,8 @@ beforeEach(() => {
   h.state.stockResult = { data: { stock: 0 }, error: null };
   h.state.rpcResult = { data: { success: true }, error: null };
   h.state.rpcCall = undefined;
+  h.state.rpcCalls = [];
+  h.state.rpcQueue = [];
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -256,5 +261,53 @@ describe("deleteProduct / restoreProduct (RPC)", () => {
   it("restoreProduct memanggil restore_product", async () => {
     expect(await restoreProduct("p9")).toEqual({ success: true });
     expect(h.state.rpcCall).toEqual({ name: "restore_product", args: { p_product_id: "p9" } });
+  });
+});
+
+describe("createProduct — dipasang di outlet aktif (pusat)", () => {
+  const withBranch: CreateProductInput = { ...valid, branch_id: "pusat-1" };
+  const fail = { data: null, error: { message: "Mengisi stok awal butuh izin ubah stok" } };
+
+  it("memasang produk hanya di outlet aktif dengan stok awal dari form", async () => {
+    const res = await createProduct(withBranch);
+    expect(res.success).toBe(true);
+    expect((res as { warning?: string }).warning).toBeUndefined();
+    expect(h.state.rpcCalls).toHaveLength(1);
+    expect(h.state.rpcCalls[0].name).toBe("assign_product_branch");
+    expect(h.state.rpcCalls[0].args).toMatchObject({
+      p_product_id: "p1",
+      p_branch_id: "pusat-1",
+      p_stock: 10,
+      p_min_stock: 2,
+    });
+    expect(h.state.insertPayload?.stock).toBe(0);
+  });
+
+  it("gagal pasang dengan stok awal: dicoba ulang tanpa stok supaya produk tetap tampil", async () => {
+    h.state.rpcQueue = [fail, { data: { success: true }, error: null }];
+    const res = await createProduct(withBranch);
+    expect(res.success).toBe(true);
+    expect(h.state.rpcCalls).toHaveLength(2);
+    expect(h.state.rpcCalls[1].args.p_stock).toBe(0);
+    expect((res as { warning?: string }).warning).toContain("stok awal tidak tercatat");
+  });
+
+  it("gagal dua kali: produk tersimpan dengan peringatan belum aktif", async () => {
+    h.state.rpcQueue = [fail, fail];
+    const res = await createProduct(withBranch);
+    expect(res.success).toBe(true);
+    expect((res as { warning?: string }).warning).toContain("belum aktif di outlet ini");
+  });
+
+  it("stok awal 0 yang gagal tidak dicoba ulang", async () => {
+    h.state.rpcQueue = [fail];
+    const res = await createProduct({ ...withBranch, stock: 0 });
+    expect(h.state.rpcCalls).toHaveLength(1);
+    expect((res as { warning?: string }).warning).toContain("belum aktif di outlet ini");
+  });
+
+  it("tanpa branch_id tidak memanggil RPC outlet", async () => {
+    await createProduct(valid);
+    expect(h.state.rpcCalls).toHaveLength(0);
   });
 });

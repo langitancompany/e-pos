@@ -5,12 +5,21 @@
 // ── TAMBAHAN ── Opsi includeInactive + fungsi tulis (create/update/remove/setActive),
 // supaya KategoriModule tidak lagi memanggil supabase.from("categories") langsung
 // (pola yang sama dengan useProducts). Default hook tidak berubah: hanya kategori aktif.
+// ── TAMBAHAN (migration 054) ── Kategori per outlet: hanya kategori yang terpasang di
+// outlet aktif yang ikut, dan kategori baru langsung dipasang di outlet aktif.
 
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Category } from "@/lib/pos/types";
+import { useBranchScope } from "@/hooks/useActiveBranch";
+import { filterCategoriesForBranch } from "@/lib/pos/categoryBranch";
+import {
+  CATEGORY_MIGRATION_HINT,
+  createCategoryAtBranch,
+  fetchBranchCategoryRows,
+} from "@/lib/pos/categoryBranchApi";
 import {
   CATEGORY_DELETE_ERROR_MESSAGE,
   categorySaveErrorMessage,
@@ -54,12 +63,14 @@ export function useCategories(
   options: UseCategoriesOptions = {},
 ): UseCategoriesResult {
   const { includeInactive = false } = options;
+  const { branchId, ready: branchReady } = useBranchScope();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchCategories = useCallback(async () => {
+    if (!branchReady) return;
     setIsLoading(true);
     setError(null);
 
@@ -81,12 +92,34 @@ export function useCategories(
     if (fetchError) {
       setError(fetchError.message);
       setCategories([]);
+      setIsLoading(false);
+      return;
+    }
+
+    const all = (data ?? []) as Category[];
+
+    // Tanpa outlet aktif, atau migration 054 belum dijalankan: semua kategori tampil (perilaku lama).
+    if (!branchId) {
+      setCategories(all);
+      setIsLoading(false);
+      return;
+    }
+
+    const listed = await fetchBranchCategoryRows(branchId);
+
+    if (listed.error) {
+      setError(listed.error);
+      setCategories([]);
+    } else if (listed.missing) {
+      setCategories(all);
     } else {
-      setCategories((data ?? []) as Category[]);
+      setCategories(
+        filterCategoriesForBranch(all, new Set(listed.rows.map((r) => r.category_id))),
+      );
     }
 
     setIsLoading(false);
-  }, [includeInactive]);
+  }, [includeInactive, branchId, branchReady]);
 
   useEffect(() => {
     fetchCategories();
@@ -95,6 +128,22 @@ export function useCategories(
   // Setiap tulis yang sukses memuat ulang daftar supaya UI selalu sinkron dengan DB.
   const createCategory = useCallback(
     async (input: CategoryInput): Promise<CategoryWriteResult> => {
+      // Dengan outlet aktif, kategori dibuat dan dipasang di outlet itu dalam satu langkah.
+      if (branchId) {
+        const created = await createCategoryAtBranch({
+          name: input.name,
+          sortOrder: input.sort_order,
+          isActive: input.is_active,
+          branchId,
+        });
+        if (created.success) {
+          await fetchCategories();
+          return { error: null };
+        }
+        // Migration 054 belum jalan: pakai jalur lama di bawah.
+        if (created.error !== CATEGORY_MIGRATION_HINT) return { error: created.error };
+      }
+
       const { error: writeError } = await supabase
         .from("categories")
         .insert(input);
@@ -102,7 +151,7 @@ export function useCategories(
       await fetchCategories();
       return { error: null };
     },
-    [fetchCategories],
+    [fetchCategories, branchId],
   );
 
   const updateCategory = useCallback(
