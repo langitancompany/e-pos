@@ -246,10 +246,16 @@ export default function ProdukForm({
                 value={form.barcode}
                 onChange={(e) => updateField("barcode", e.target.value)}
                 disabled={saving}
-                placeholder="Opsional"
+                placeholder={isEdit ? "Opsional" : "Kosongkan untuk dibuat otomatis"}
                 size="lg"
                 className="font-mono tabular-nums"
               />
+              {!isEdit && (
+                <p className="mt-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+                  Jika kosong, sistem membuat barcode saat produk disimpan. Barcode dipakai di
+                  menu Label.
+                </p>
+              )}
             </div>
 
             <div>

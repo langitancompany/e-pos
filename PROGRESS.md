@@ -15,6 +15,27 @@
 > per langkah**, diserahkan sebagai file yang bisa diunduh — bukan banyak
 > kode sekaligus di dalam chat.
 
+## Perubahan: Tambah produk lewat Upload Excel + barcode otomatis (sesi #27, 2026-11-10)
+
+- **Tombol Tambah Produk** kini menu 3 pilihan: Buat produk manual, Upload Excel, Download template
+  (`ProdukAddMenu.tsx`). Alur: buat kategori dulu di tab Kategori, lalu unduh template. Dropdown
+  Kategori di Excel berisi kategori aktif outlet aktif (sama dengan dropdown form Produk).
+- **Template** (`buildProductTemplateSheets` di `lib/pos/productImport.ts`): sheet Produk (judul beku,
+  dropdown Jenis/Kategori/Status, kolom SKU dan Barcode berformat Teks), Petunjuk, Daftar (isi dropdown).
+  `xlsxWriter.ts` ditambah `validations`, `columnFormats`, `freezeHeaderRow` (output lama tidak berubah).
+- **Upload** (`ProdukImportModal.tsx`): `xlsxReader.ts` membaca .xlsx (maks 5 MB, 1000 baris), baris
+  divalidasi dulu (wajib, SKU/barcode kembar di file dan di database, kategori harus ada, angka bulat).
+  Baris bermasalah dilewati dan ditampilkan; baris valid disimpan lewat `createProduct` (4 paralel).
+  Stok awal dan minimum masuk ke outlet aktif seperti form manual. Tidak ada migration baru.
+- **Barcode otomatis**: `createProduct` mengisi barcode kosong (EAN-13 berawalan 20, `productBarcode.ts`,
+  keunikan dicek ke database di `productCodesApi.ts`). Berlaku untuk form manual dan Excel. Edit produk
+  tidak mengisi otomatis. Menu Label sudah memakai `barcode`, jadi tidak diubah.
+- `globals.css`: aturan dasar `cursor: pointer` untuk kontrol aktif (berlaku ke seluruh app).
+- Tes baru: `productBarcode`, `productImport`, `productImportApi`, `productCodesApi`, `xlsxReader`,
+  `xlsxWriterValidation`; `productLogic.test.ts` diperbarui (barcode kosong kini terisi otomatis).
+- **Belum dicoba**: typecheck, `npm test`, klik di browser, dan buka template di Excel/Google Sheets
+  (tidak dijalankan di sesi ini atas permintaan pemilik). Jalankan `npm run typecheck && npm test`.
+
 ## Perubahan: Jenis outlet pusat/cabang + produk baru tidak lagi muncul di cabang (sesi #26, 2026-11-09)
 
 - **Masalah:** layar Produk/Stok/Hadiah/Label memakai `includeUnlisted`, jadi semua produk master

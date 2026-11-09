@@ -1,6 +1,7 @@
 import { createClient } from "../supabase/client";
 import type { ProductType } from "./types";
 import { assignProductBranch, updateProductBranch } from "./productBranchApi";
+import { generateUniqueBarcode } from "./productCodesApi";
 
 const supabase = createClient();
 
@@ -46,7 +47,7 @@ export async function createProduct(
 ): Promise<CreateProductResult> {
   const name = input.name.trim();
   const sku = input.sku.trim().toUpperCase();
-  const barcode = input.barcode.trim();
+  let barcode = input.barcode.trim();
   const unit = input.unit.trim();
   const photoUrl = input.photo_url.trim();
 
@@ -93,6 +94,18 @@ export async function createProduct(
   }
 
   const isService = input.type === "JASA";
+
+  // Barcode kosong diisi sistem supaya produk selalu punya kode untuk label.
+  if (!barcode) {
+    const generated = await generateUniqueBarcode();
+    if (!generated.success) {
+      return {
+        success: false,
+        error: `Barcode otomatis gagal dibuat: ${generated.error}`,
+      };
+    }
+    barcode = generated.barcode;
+  }
 
   const { data, error } = await supabase
     .from("products")

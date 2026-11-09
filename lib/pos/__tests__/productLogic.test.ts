@@ -57,6 +57,11 @@ vi.mock("../../supabase/client", () => ({
   }),
 }));
 
+vi.mock("../productCodesApi", () => ({
+  generateUniqueBarcode: vi.fn(),
+}));
+
+import { generateUniqueBarcode } from "../productCodesApi";
 import {
   createProduct,
   deleteProduct,
@@ -91,6 +96,11 @@ beforeEach(() => {
   h.state.rpcCalls = [];
   h.state.rpcQueue = [];
   vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.mocked(generateUniqueBarcode).mockReset();
+  vi.mocked(generateUniqueBarcode).mockResolvedValue({
+    success: true,
+    barcode: "2000000000015",
+  });
 });
 
 describe("createProduct — validasi", () => {
@@ -128,7 +138,7 @@ describe("createProduct — data yang disimpan", () => {
     expect(h.state.insertPayload).toMatchObject({
       name: "Kaos Polos",
       sku: "KP-001",
-      barcode: null,
+      barcode: "2000000000015",
       category_id: null,
       unit: null,
       photo_url: null,
@@ -158,6 +168,35 @@ describe("createProduct — data yang disimpan", () => {
       stock: 10,
       min_stock: 2,
     });
+  });
+});
+
+describe("createProduct — barcode otomatis", () => {
+  it("barcode kosong diisi hasil generator", async () => {
+    await createProduct({ ...valid, barcode: "" });
+    expect(generateUniqueBarcode).toHaveBeenCalledTimes(1);
+    expect(h.state.insertPayload?.barcode).toBe("2000000000015");
+  });
+
+  it("barcode isian pengguna dipakai apa adanya tanpa memanggil generator", async () => {
+    await createProduct({ ...valid, barcode: " 8990001 " });
+    expect(generateUniqueBarcode).not.toHaveBeenCalled();
+    expect(h.state.insertPayload?.barcode).toBe("8990001");
+  });
+
+  it("generator gagal -> error, produk tidak disimpan", async () => {
+    vi.mocked(generateUniqueBarcode).mockResolvedValue({ success: false, error: "koneksi putus" });
+    const result = await createProduct({ ...valid, barcode: "" });
+    expect(result).toEqual({
+      success: false,
+      error: "Barcode otomatis gagal dibuat: koneksi putus",
+    });
+    expect(h.state.writeCalls).toBe(0);
+  });
+
+  it("validasi gagal tidak membuang barcode otomatis", async () => {
+    await createProduct({ ...valid, barcode: "", name: " " });
+    expect(generateUniqueBarcode).not.toHaveBeenCalled();
   });
 });
 

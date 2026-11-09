@@ -18,7 +18,6 @@ import {
   Loader2,
   Package,
   Pencil,
-  Plus,
   RefreshCw,
   Search,
   Store,
@@ -26,6 +25,9 @@ import {
 } from "lucide-react";
 import { useAuth, hasPermission, hasPermissionAction } from "@/hooks/useAuth";
 import { useProducts, type ProductWithCategory } from "@/hooks/useProducts";
+import { useCategories } from "@/hooks/useCategories";
+import { downloadXlsx } from "@/lib/pos/xlsxWriter";
+import { buildProductTemplateSheets } from "@/lib/pos/productImport";
 import { useActiveBranch } from "@/hooks/useActiveBranch";
 import { outletRole, productTargetBranches } from "@/lib/pos/branches";
 import { availabilityLabel } from "@/lib/pos/productBranch";
@@ -38,6 +40,8 @@ import {
 } from "@/lib/pos/productLogic";
 import type { ProductType } from "@/lib/pos/types";
 import ProdukForm, { type ProductFormValues } from "./ProdukForm";
+import ProdukAddMenu from "./ProdukAddMenu";
+import ProdukImportModal from "./ProdukImportModal";
 import KategoriModule from "./KategoriModule";
 import TabSwitcher from "@/app/components/ui/TabSwitcher";
 import Modal from "@/app/components/ui/Modal";
@@ -137,6 +141,40 @@ export default function ProdukModule() {
 
   const [branchProduct, setBranchProduct] = useState<ProductWithCategory | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  const [showImport, setShowImport] = useState(false);
+  const [templateBusy, setTemplateBusy] = useState(false);
+  const { categories, refetch: refetchCategories } = useCategories();
+
+  // Kategori dibuat di tab Kategori lewat instance hook lain. Dimuat ulang saat
+  // kembali ke tab produk supaya dropdown template dan impor tidak ketinggalan.
+  function handleTabChange(tab: ProdukTab) {
+    setActiveTab(tab);
+    if (tab === "produk") refetchCategories();
+  }
+
+  async function handleDownloadTemplate() {
+    if (templateBusy) return;
+    setTemplateBusy(true);
+
+    try {
+      await downloadXlsx(
+        buildProductTemplateSheets(categories.map((category) => category.name)),
+        "template-produk.xlsx",
+      );
+      if (categories.length === 0) {
+        setNotice(
+          "Template diunduh tanpa dropdown Kategori karena belum ada kategori aktif. Buat kategori di tab Kategori, lalu unduh template lagi.",
+        );
+      }
+    } catch (err) {
+      setNotice(
+        `Gagal membuat template: ${err instanceof Error ? err.message : "kesalahan tak dikenal"}.`,
+      );
+    } finally {
+      setTemplateBusy(false);
+    }
+  }
 
   const filteredProducts = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -299,10 +337,12 @@ export default function ProdukModule() {
         </div>
 
         {activeTab === "produk" && canCreateProduct && (
-          <Button type="button" onClick={openForm} size="lg">
-            <Plus className="h-4 w-4" />
-            Tambah Produk
-          </Button>
+          <ProdukAddMenu
+            onManual={openForm}
+            onUpload={() => setShowImport(true)}
+            onTemplate={() => void handleDownloadTemplate()}
+            templateBusy={templateBusy}
+          />
         )}
       </div>
 
@@ -318,7 +358,7 @@ export default function ProdukModule() {
             : []),
         ]}
         value={activeTab}
-        onChange={setActiveTab}
+        onChange={handleTabChange}
         className="mb-6"
       />
 
@@ -407,7 +447,11 @@ export default function ProdukModule() {
             </div>
           )}
 
-          <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+          <div
+            className={`rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 ${
+              !isLoading && filteredProducts.length === 0 ? "" : "overflow-hidden"
+            }`}
+          >
             {isLoading ? (
               <div className="flex min-h-64 items-center justify-center">
                 <div className="flex items-center gap-2 text-sm text-zinc-500">
@@ -436,10 +480,14 @@ export default function ProdukModule() {
                 </p>
 
                 {!search && canCreateProduct && (
-                  <Button type="button" onClick={openForm} className="mt-4">
-                    <Plus className="h-4 w-4" />
-                    Tambah Produk
-                  </Button>
+                  <ProdukAddMenu
+                    className="mt-4"
+                    align="center"
+                    onManual={openForm}
+                    onUpload={() => setShowImport(true)}
+                    onTemplate={() => void handleDownloadTemplate()}
+                    templateBusy={templateBusy}
+                  />
                 )}
               </div>
             ) : (
@@ -678,6 +726,18 @@ export default function ProdukModule() {
                 }
               : undefined
           }
+        />
+      )}
+
+      {showImport && (
+        <ProdukImportModal
+          categories={categories}
+          branchId={activeBranchId}
+          branchName={activeBranch?.name ?? null}
+          onClose={() => setShowImport(false)}
+          onImported={refetch}
+          onDownloadTemplate={() => void handleDownloadTemplate()}
+          templateBusy={templateBusy}
         />
       )}
 

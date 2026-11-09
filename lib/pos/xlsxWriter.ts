@@ -30,6 +30,28 @@ export interface XlsxFormatRange {
   format: string;
 }
 
+/** Dropdown pilihan pada rentang sel, sumbernya rentang sel lain (boleh di sheet lain). */
+export interface XlsxListValidation {
+  /** Rentang yang diberi dropdown, mis. "E2:E1001". */
+  range: string;
+  /** Sumber daftar, mis. "Daftar!$A$2:$A$10". */
+  source: string;
+  /** Judul dan isi pesan saat isian di luar daftar (batas Excel 32 dan 255 karakter). */
+  errorTitle?: string;
+  error?: string;
+  /** Petunjuk yang muncul saat sel dipilih. */
+  promptTitle?: string;
+  prompt?: string;
+}
+
+/** Format bawaan satu kolom penuh, berlaku juga untuk sel yang masih kosong. */
+export interface XlsxColumnFormat {
+  /** Indeks kolom, 0 = kolom A. */
+  column: number;
+  /** Mis. "@" supaya isian diperlakukan sebagai teks. */
+  format: string;
+}
+
 export interface XlsxSheet {
   /** Nama tab. Karakter terlarang Excel diganti "-" dan dipotong 31 karakter. */
   name: string;
@@ -41,6 +63,12 @@ export interface XlsxSheet {
    * diabaikan. Kalau beberapa rentang mengenai sel yang sama, yang terakhir menang.
    */
   formats?: XlsxFormatRange[];
+  /** Format per kolom penuh, termasuk sel kosong yang nanti diisi pengguna. */
+  columnFormats?: XlsxColumnFormat[];
+  /** Dropdown pilihan untuk sel yang diisi pengguna. */
+  validations?: XlsxListValidation[];
+  /** Baris pertama tetap terlihat saat sheet digulir. */
+  freezeHeaderRow?: boolean;
 }
 
 export const XLSX_MIME_TYPE =
@@ -61,6 +89,7 @@ const BUILTIN_FORMAT_IDS: Record<string, number> = {
   "#,##0.00": 4,
   "0%": 9,
   "0.00%": 10,
+  "@": 49,
 };
 const FIRST_CUSTOM_FORMAT_ID = 164;
 
@@ -256,23 +285,76 @@ function buildSheetXml(sheet: XlsxSheet, styles: StyleRegistry): string {
     }
   });
 
-  const colsXml =
-    sheet.colWidths && sheet.colWidths.length > 0
-      ? `<cols>${sheet.colWidths
-          .map(
-            (width, i) =>
-              `<col min="${i + 1}" max="${i + 1}" width="${width}" customWidth="1"/>`,
-          )
-          .join("")}</cols>`
-      : "";
+  const viewsXml = sheet.freezeHeaderRow
+    ? '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A2" sqref="A2"/></sheetView></sheetViews>'
+    : "";
 
+  // Urutan elemen mengikuti skema OOXML: sheetViews, cols, sheetData, dataValidations.
   return (
     '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-    colsXml +
+    viewsXml +
+    buildColsXml(sheet, styles) +
     `<sheetData>${rowsXml.join("")}</sheetData>` +
+    buildValidationsXml(sheet.validations) +
     "</worksheet>"
   );
+}
+
+const DEFAULT_COLUMN_WIDTH = 8.43;
+const MAX_ERROR_TITLE_LENGTH = 32;
+const MAX_MESSAGE_LENGTH = 255;
+
+function buildColsXml(sheet: XlsxSheet, styles: StyleRegistry): string {
+  const widths = sheet.colWidths ?? [];
+  const formats = sheet.columnFormats ?? [];
+  const count = Math.max(widths.length, ...formats.map((f) => f.column + 1));
+
+  const cols: string[] = [];
+  for (let i = 0; i < count; i += 1) {
+    const width = widths[i];
+    const format = formats.find((f) => f.column === i);
+    if (width === undefined && !format) continue;
+
+    const style = format ? styles.indexFor(format.format) : 0;
+    cols.push(
+      `<col min="${i + 1}" max="${i + 1}" width="${width ?? DEFAULT_COLUMN_WIDTH}" customWidth="1"${style ? ` style="${style}"` : ""}/>`,
+    );
+  }
+  return cols.length > 0 ? `<cols>${cols.join("")}</cols>` : "";
+}
+
+function buildValidationsXml(
+  validations: XlsxListValidation[] | undefined,
+): string {
+  if (!validations || validations.length === 0) return "";
+
+  const items = validations.map((v) => {
+    const attrs = ['type="list"', 'allowBlank="1"', 'showErrorMessage="1"'];
+    if (v.errorTitle) {
+      attrs.push(
+        `errorTitle="${escapeXml(v.errorTitle.slice(0, MAX_ERROR_TITLE_LENGTH))}"`,
+      );
+    }
+    if (v.error) {
+      attrs.push(`error="${escapeXml(v.error.slice(0, MAX_MESSAGE_LENGTH))}"`);
+    }
+    if (v.promptTitle || v.prompt) {
+      attrs.push('showInputMessage="1"');
+      if (v.promptTitle) {
+        attrs.push(
+          `promptTitle="${escapeXml(v.promptTitle.slice(0, MAX_ERROR_TITLE_LENGTH))}"`,
+        );
+      }
+      if (v.prompt) {
+        attrs.push(`prompt="${escapeXml(v.prompt.slice(0, MAX_MESSAGE_LENGTH))}"`);
+      }
+    }
+    attrs.push(`sqref="${escapeXml(v.range)}"`);
+    return `<dataValidation ${attrs.join(" ")}><formula1>${escapeXml(v.source)}</formula1></dataValidation>`;
+  });
+
+  return `<dataValidations count="${items.length}">${items.join("")}</dataValidations>`;
 }
 
 // ── Workbook → kumpulan file XML ─────────────────────────────────────────────
