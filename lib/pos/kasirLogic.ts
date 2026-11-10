@@ -5,7 +5,7 @@
 // filter produk & pelanggan, dan penyusunan data struk.
 
 import type { CartItem, Product } from "./types";
-import { getAvailableStock, isOutOfStock } from "./cartLogic";
+import { cartItemLabel, getAvailableStock, isOutOfStock } from "./cartLogic";
 import type { ReceiptData } from "./printLogic";
 import type { PaymentMethod, SplitPaymentLine } from "./transactionApi";
 
@@ -295,7 +295,7 @@ export function buildSaleReceipt(params: {
     cashierName: params.cashierName,
     customerName: params.customerName,
     items: params.cart.map((item) => ({
-      name: item.product.name,
+      name: cartItemLabel(item),
       price: item.product.sell_price,
       qty: item.qty,
     })),

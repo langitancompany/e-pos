@@ -35,6 +35,7 @@ import KasirCartPanel from "./KasirCartPanel";
 import KasirHoldModal from "./KasirHoldModal";
 import KasirHeldOrdersModal from "./KasirHeldOrdersModal";
 import KasirBiayaTambahanModal from "./KasirBiayaTambahanModal";
+import KasirCustomPriceModal from "./KasirCustomPriceModal";
 import { CashMovementModal } from "./CashMovementModal";
 import { CloseShiftModal, CloseShiftSummaryModal } from "./CloseShiftModal";
 import { useKasirLayoutMode } from "./useKasirLayoutMode";
@@ -514,6 +515,15 @@ export default function KasirModule({
           cart={cart}
           onAddProduct={cartState.handleAddExtraCharge}
           onClose={() => setIsBiayaTambahanModalOpen(false)}
+        />
+      )}
+
+      {cartState.customPriceTarget && (
+        <KasirCustomPriceModal
+          product={cartState.customPriceTarget.product}
+          initialQty={cartState.customPriceTarget.qty}
+          onConfirm={cartState.confirmCustomPrice}
+          onClose={cartState.closeCustomPrice}
         />
       )}
     </div>

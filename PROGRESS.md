@@ -15,6 +15,26 @@
 > per langkah**, diserahkan sebagai file yang bisa diunduh — bukan banyak
 > kode sekaligus di dalam chat.
 
+## Perubahan: Produk Jasa harga bebas untuk fotocopy dan cetak (sesi #28, 2026-11-10)
+
+- **Migration 055** (`055_custom_price_products.sql`, tes: `supabase/tests/055_custom_price_products_test.sql`):
+  kolom `products.is_custom_price` dan `min_price` (hanya JASA, ada CHECK). `create_transaction` dipatch
+  lewat penggantian teks definisi LIVE (pola migration 048): item harga bebas wajib punya `description`
+  dan harga lebih dari 0 dan tidak di bawah `min_price`; nama item tersimpan "Nama Produk: deskripsi",
+  jadi struk, riwayat, retur, cek struk ikut tanpa perubahan. Migration berhenti dengan error bila teks
+  yang dicari tidak ditemukan. Tanpa migration, produk biasa tetap bisa disimpan (kolom tidak dikirim).
+- **Form Produk**: untuk jenis Jasa ada kotak "Harga bebas" + harga minimum; Harga Jual menjadi harga acuan.
+- **Kasir**: produk harga bebas selalu membuka `KasirCustomPriceModal` (deskripsi, jumlah, harga) dari semua
+  jalur tambah (tap, kode PC, scan kamera, Biaya Tambahan). Baris keranjang punya `lineId`, jadi produk yang
+  sama boleh muncul berkali-kali; operasi qty/hapus/sorot kini memakai `cartLineKey(item)` bukan `product.id`.
+- **Pesanan tertunda**: snapshot menyimpan `unit_price` dan `note` untuk baris harga bebas (kolom jsonb, tanpa
+  migration); saat dilanjutkan dicek ulang terhadap `min_price` terkini.
+- **Belum dibuat**: izin khusus "isi harga bebas" (sistem izin perlu ubah banyak file + `has_permission_action`);
+  untuk sekarang pengendalinya adalah penandaan produk + harga minimum. Juga belum ada tingkat harga per jumlah
+  (jenis 1) dan DP/pelunasan pesanan (jenis 3). Server masih mempercayai `unit_price` dari klien untuk produk biasa.
+- **Belum dicoba**: typecheck, `npm test`, klik di browser, dan migration di Supabase (tidak dijalankan di sesi ini).
+  Urutan: jalankan migration 055, lalu tes SQL-nya, lalu `npm run typecheck && npm test`.
+
 ## Perubahan: Tambah produk lewat Upload Excel + barcode otomatis (sesi #27, 2026-11-10)
 
 - **Tombol Tambah Produk** kini menu 3 pilihan: Buat produk manual, Upload Excel, Download template

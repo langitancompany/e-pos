@@ -275,6 +275,7 @@ export async function createTransaction(
     unit_price: item.product.sell_price,
     discount: 0,
     subtotal: item.product.sell_price * item.qty,
+    ...(item.note ? { description: item.note } : {}),
   }));
 
   // ── TAMBAHAN (Midtrans) ── Ada digitalOrderId => lewat RPC pembungkus yang

@@ -248,6 +248,11 @@ export default function ProdukModule() {
           : values.type === "JASA"
             ? false
             : values.is_extra_charge,
+      is_custom_price: values.type === "JASA" && values.is_custom_price,
+      min_price:
+        values.type === "JASA" && values.is_custom_price
+          ? parseNumber(values.min_price)
+          : null,
     };
 
     const result = editingProduct
@@ -723,6 +728,8 @@ export default function ProdukModule() {
                   photo_url: editingProduct.photo_url ?? "",
                   is_active: editingProduct.is_active,
                   is_extra_charge: editingProduct.is_extra_charge ?? false,
+                  is_custom_price: editingProduct.is_custom_price ?? false,
+                  min_price: String(editingProduct.min_price ?? ""),
                 }
               : undefined
           }

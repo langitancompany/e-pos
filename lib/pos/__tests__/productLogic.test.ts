@@ -200,6 +200,58 @@ describe("createProduct — barcode otomatis", () => {
   });
 });
 
+describe("harga bebas (JASA)", () => {
+  const jasa = { ...valid, type: "JASA" as const, sell_price: 10000 };
+  const withoutStock = (({ stock: _stock, ...rest }) => rest)(jasa);
+
+  it("create: menyimpan is_custom_price dan min_price", async () => {
+    const result = await createProduct({ ...jasa, is_custom_price: true, min_price: 5000 });
+    expect(result.success).toBe(true);
+    expect(h.state.insertPayload).toMatchObject({ is_custom_price: true, min_price: 5000 });
+  });
+
+  it("create: min_price kosong atau 0 disimpan sebagai null", async () => {
+    await createProduct({ ...jasa, is_custom_price: true, min_price: 0 });
+    expect(h.state.insertPayload).toMatchObject({ is_custom_price: true, min_price: null });
+  });
+
+  it("create produk biasa tidak mengirim kolom harga bebas (aman sebelum migration 055)", async () => {
+    await createProduct(valid);
+    expect(h.state.insertPayload).not.toHaveProperty("is_custom_price");
+    expect(h.state.insertPayload).not.toHaveProperty("min_price");
+  });
+
+  it("menolak harga bebas untuk produk non JASA", async () => {
+    const result = await createProduct({ ...valid, is_custom_price: true });
+    expect(result).toEqual({
+      success: false,
+      error: "Harga bebas hanya untuk produk berjenis Jasa.",
+    });
+    expect(h.state.writeCalls).toBe(0);
+  });
+
+  it("menolak harga minimum di atas harga acuan", async () => {
+    const result = await createProduct({ ...jasa, is_custom_price: true, min_price: 20000 });
+    expect(result).toEqual({
+      success: false,
+      error: "Harga minimum tidak boleh lebih besar dari harga acuan.",
+    });
+    expect(h.state.writeCalls).toBe(0);
+  });
+
+  it("update: mematikan harga bebas menulis false dan null", async () => {
+    h.state.stockResult = { data: { stock: 0 }, error: null };
+    await updateProduct({ ...withoutStock, id: "p1", is_custom_price: false });
+    expect(h.state.updatePayload).toMatchObject({ is_custom_price: false, min_price: null });
+  });
+
+  it("update: menyalakan harga bebas dengan minimum", async () => {
+    h.state.stockResult = { data: { stock: 0 }, error: null };
+    await updateProduct({ ...withoutStock, id: "p1", is_custom_price: true, min_price: 3000 });
+    expect(h.state.updatePayload).toMatchObject({ is_custom_price: true, min_price: 3000 });
+  });
+});
+
 describe("createProduct — error database", () => {
   it("SKU duplikat (kode 23505) -> pesan ramah", async () => {
     h.state.writeResult = { data: null, error: { code: "23505", message: "duplicate key" } };

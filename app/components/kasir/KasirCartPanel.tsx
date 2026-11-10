@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import type { CartItem } from "@/lib/pos/types";
 import {
+  cartLineKey,
   formatRupiah,
   getAvailableStock,
   getCartItemCount,
@@ -38,8 +39,8 @@ interface KasirCartPanelProps {
   heldCount: number;
   onOpenHeldList: () => void;
   cart: CartItem[];
-  onUpdateQty: (productId: string, delta: number) => void;
-  onRemoveFromCart: (productId: string) => void;
+  onUpdateQty: (lineKey: string, delta: number) => void;
+  onRemoveFromCart: (lineKey: string) => void;
   transactionError: string | null;
   resumeNotice: string | null;
   onDismissResumeNotice: () => void;
@@ -127,13 +128,18 @@ export default function KasirCartPanel({
           <div className="flex flex-col gap-2">
             {cart.map((item) => (
               <div
-                key={item.product.id}
+                key={cartLineKey(item)}
                 className="bg-white dark:bg-zinc-950 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 flex gap-3"
               >
                 <div className="flex-1">
                   <h4 className="text-sm font-medium line-clamp-1 text-zinc-900 dark:text-zinc-100">
                     {item.product.name}
                   </h4>
+                  {item.note && (
+                    <p className="mt-0.5 line-clamp-2 break-words text-xs text-zinc-600 dark:text-zinc-400">
+                      {item.note}
+                    </p>
+                  )}
                   <p className="font-mono tabular-nums text-xs text-zinc-500 mt-0.5">
                     {formatRupiah(item.product.sell_price)}
                   </p>
@@ -143,7 +149,7 @@ export default function KasirCartPanel({
                     <div className="flex items-center bg-zinc-50 dark:bg-zinc-900 rounded-md p-0.5 border border-zinc-200 dark:border-zinc-800">
                       <IconButton
                         onClick={() =>
-                          onUpdateQty(item.product.id, -1)
+                          onUpdateQty(cartLineKey(item), -1)
                         }
                         aria-label="Kurangi jumlah"
                         variant="soft"
@@ -156,7 +162,7 @@ export default function KasirCartPanel({
                       </span>
                       <IconButton
                         onClick={() =>
-                          onUpdateQty(item.product.id, 1)
+                          onUpdateQty(cartLineKey(item), 1)
                         }
                         disabled={
                           item.qty >= getAvailableStock(item.product)
@@ -170,7 +176,7 @@ export default function KasirCartPanel({
                     </div>
                     <IconButton
                       onClick={() =>
-                        onRemoveFromCart(item.product.id)
+                        onRemoveFromCart(cartLineKey(item))
                       }
                       aria-label="Hapus dari keranjang"
                       variant="soft"

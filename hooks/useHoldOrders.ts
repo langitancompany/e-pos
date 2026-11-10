@@ -28,18 +28,31 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CartItem, Product } from "@/lib/pos/types";
-import { getAvailableStock } from "@/lib/pos/cartLogic";
+import {
+  addCustomLine,
+  customLineError,
+  getAvailableStock,
+  isCustomPriceProduct,
+} from "@/lib/pos/cartLogic";
 import { useBranchScope } from "@/hooks/useActiveBranch";
 import { branchFilter } from "@/lib/pos/branches";
 
 const supabase = createClient();
 
 // Baris asli tabel `held_orders` (migration 019).
+/** Satu baris snapshot. unit_price dan note hanya ada untuk baris produk harga bebas. */
+export interface HeldOrderItem {
+  product_id: string;
+  qty: number;
+  unit_price?: number;
+  note?: string;
+}
+
 export interface HeldOrder {
   id: string;
   cashier_id: string;
   label: string | null;
-  items: Array<{ product_id: string; qty: number }>;
+  items: HeldOrderItem[];
   item_count: number;
   subtotal: number;
   created_at: string;
@@ -133,6 +146,9 @@ export function useHoldOrders(): UseHoldOrdersResult {
         items: cart.map((item) => ({
           product_id: item.product.id,
           qty: item.qty,
+          ...(item.note
+            ? { unit_price: item.product.sell_price, note: item.note }
+            : {}),
         })),
         item_count: itemCount,
         subtotal,
@@ -163,10 +179,26 @@ export function useHoldOrders(): UseHoldOrdersResult {
       const cart: CartItem[] = [];
       const skippedItems: string[] = [];
 
-      for (const raw of data.items as Array<{ product_id: string; qty: number }>) {
+      for (const raw of data.items as HeldOrderItem[]) {
         const product = productMap.get(raw.product_id);
         if (!product || !product.is_active) {
           skippedItems.push(`Produk tidak ditemukan (${raw.product_id})`);
+          continue;
+        }
+        // Baris harga bebas dikembalikan dengan harga dan deskripsi yang tersimpan,
+        // dicek ulang terhadap aturan produk saat ini (mis. harga minimum baru).
+        if (isCustomPriceProduct(product)) {
+          const input = {
+            price: raw.unit_price ?? 0,
+            qty: raw.qty,
+            note: raw.note ?? "",
+          };
+          const problem = customLineError(product, input);
+          if (problem) {
+            skippedItems.push(`${product.name} (${problem})`);
+            continue;
+          }
+          cart.push(...addCustomLine([], product, input));
           continue;
         }
         const availableStock = getAvailableStock(product);

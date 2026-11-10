@@ -36,6 +36,9 @@ export type ProductFormValues = {
   photo_url: string;
   is_active: boolean;
   is_extra_charge: boolean;
+  /** Hanya JASA: harga diisi kasir saat transaksi, harga jual jadi harga acuan. */
+  is_custom_price: boolean;
+  min_price: string;
 };
 
 type ProdukFormProps = {
@@ -76,6 +79,8 @@ const EMPTY_FORM: ProductFormValues = {
   photo_url: "",
   is_active: true,
   is_extra_charge: false,
+  is_custom_price: false,
+  min_price: "",
 };
 
 export default function ProdukForm({
@@ -143,6 +148,18 @@ export default function ProdukForm({
     if (!Number.isFinite(sellPrice) || sellPrice <= 0) {
       setValidationError("Harga jual harus lebih dari 0.");
       return;
+    }
+
+    if (form.type === "JASA" && form.is_custom_price) {
+      const minPrice = Number(form.min_price || 0);
+      if (!Number.isFinite(minPrice) || minPrice < 0) {
+        setValidationError("Harga minimum tidak boleh negatif.");
+        return;
+      }
+      if (minPrice > sellPrice) {
+        setValidationError("Harga minimum tidak boleh lebih besar dari harga acuan.");
+        return;
+      }
     }
 
     if (!Number.isFinite(costPrice) || costPrice < 0) {
@@ -330,7 +347,7 @@ export default function ProdukForm({
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Harga Jual
+                {form.type === "JASA" && form.is_custom_price ? "Harga Acuan" : "Harga Jual"}
               </label>
               <MoneyInput
                 value={form.sell_price}
@@ -430,6 +447,49 @@ export default function ProdukForm({
                 </p>
               </div>
             </label>
+          )}
+
+          {form.type === "JASA" && (
+            <div className="space-y-3 rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+              <label className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={form.is_custom_price}
+                  onChange={(e) => updateField("is_custom_price", e.target.checked)}
+                  disabled={saving}
+                  className="h-4 w-4 rounded border-zinc-300 text-lco-green focus:ring-lco-teal"
+                />
+                <div>
+                  <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
+                    Harga bebas (diisi kasir saat transaksi)
+                  </p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    Untuk jasa yang harganya berbeda tiap pesanan, mis. cetak undangan atau
+                    spanduk. Kasir mengisi deskripsi, jumlah, dan harga. Harga Jual di atas
+                    menjadi harga acuan.
+                  </p>
+                </div>
+              </label>
+
+              {form.is_custom_price && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    Harga Minimum per Satuan
+                  </label>
+                  <MoneyInput
+                    value={form.min_price}
+                    onValueChange={(raw) => updateField("min_price", raw)}
+                    disabled={saving}
+                    placeholder="Kosongkan bila tanpa batas"
+                    size="lg"
+                    className="font-mono tabular-nums"
+                  />
+                  <p className="mt-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+                    Kasir tidak bisa memasukkan harga di bawah ini.
+                  </p>
+                </div>
+              )}
+            </div>
           )}
 
           <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">

@@ -49,7 +49,7 @@ import {
   Lock,
   Link2,
 } from "lucide-react";
-import { formatRupiah } from "@/lib/pos/cartLogic";
+import { cartItemLabel, cartLineKey, formatRupiah } from "@/lib/pos/cartLogic";
 import type { CartItem } from "@/lib/pos/types";
 import type { Customer } from "@/hooks/useCustomers";
 import type { ProductWithCategory } from "@/hooks/useProducts";
@@ -68,11 +68,11 @@ interface KasirModulePCProps {
   tax: number;
   discount: number;
   grandTotal: number;
-  onUpdateQty: (productId: string, delta: number) => void;
-  onRemoveFromCart: (productId: string) => void;
+  onUpdateQty: (lineKey: string, delta: number) => void;
+  onRemoveFromCart: (lineKey: string) => void;
   onClearCart: () => void;
 
-  /** product.id dari baris keranjang yang sedang disorot (navigasi ↑↓). */
+  /** Kunci (cartLineKey) baris keranjang yang sedang disorot (navigasi ↑↓). */
   selectedProductId: string | null;
   onSelectProductId: (productId: string | null) => void;
 
@@ -273,9 +273,9 @@ export default function KasirModulePC({
     isCustomerDropdownOpen && customerQuery.trim().length > 0;
 
   const selectedItem =
-    cart.find((item) => item.product.id === selectedProductId) ?? null;
+    cart.find((item) => cartLineKey(item) === selectedProductId) ?? null;
   const selectedIndex = selectedItem
-    ? cart.findIndex((item) => item.product.id === selectedProductId)
+    ? cart.findIndex((item) => cartLineKey(item) === selectedProductId)
     : -1;
 
   useEffect(() => {
@@ -307,8 +307,8 @@ export default function KasirModulePC({
   // tidak kosong padahal keranjang ada isinya.
   useEffect(() => {
     if (cart.length === 0) return;
-    if (!cart.some((item) => item.product.id === selectedProductId)) {
-      onSelectProductId(cart[cart.length - 1].product.id);
+    if (!cart.some((item) => cartLineKey(item) === selectedProductId)) {
+      onSelectProductId(cartLineKey(cart[cart.length - 1]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart]);
@@ -381,14 +381,14 @@ export default function KasirModulePC({
     if (e.key === "ArrowUp") {
       e.preventDefault();
       if (selectedIndex > 0) {
-        onSelectProductId(cart[selectedIndex - 1].product.id);
+        onSelectProductId(cartLineKey(cart[selectedIndex - 1]));
       } else if (cart.length > 0 && selectedIndex === -1) {
-        onSelectProductId(cart[cart.length - 1].product.id);
+        onSelectProductId(cartLineKey(cart[cart.length - 1]));
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       if (selectedIndex > -1 && selectedIndex < cart.length - 1) {
-        onSelectProductId(cart[selectedIndex + 1].product.id);
+        onSelectProductId(cartLineKey(cart[selectedIndex + 1]));
       }
     }
   };
@@ -775,14 +775,14 @@ export default function KasirModulePC({
                 </tr>
               ) : (
                 cart.map((item, idx) => {
-                  const isSelected = item.product.id === selectedProductId;
+                  const isSelected = cartLineKey(item) === selectedProductId;
                   const lineTotal = item.product.sell_price * item.qty;
                   const cell =
                     "border-b border-zinc-100 px-2.5 py-1.5 dark:border-zinc-900";
                   return (
                     <tr
-                      key={item.product.id}
-                      onClick={() => onSelectProductId(item.product.id)}
+                      key={cartLineKey(item)}
+                      onClick={() => onSelectProductId(cartLineKey(item))}
                       className={`cursor-pointer transition-colors duration-100 ${
                         isSelected
                           ? "bg-lco-teal/10"
@@ -804,16 +804,17 @@ export default function KasirModulePC({
                         {item.product.sku}
                       </td>
                       <td
+                        title={cartItemLabel(item)}
                         className={`${cell} truncate font-mono text-[13px] font-semibold text-zinc-800 dark:text-zinc-100`}
                       >
-                        {item.product.name}
+                        {cartItemLabel(item)}
                       </td>
                       <td className={cell}>
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onUpdateQty(item.product.id, -1);
+                              onUpdateQty(cartLineKey(item), -1);
                             }}
                             className="flex h-6 w-6 items-center justify-center rounded text-zinc-400 transition-colors duration-150 hover:text-lco-teal"
                           >
@@ -825,7 +826,7 @@ export default function KasirModulePC({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              onUpdateQty(item.product.id, 1);
+                              onUpdateQty(cartLineKey(item), 1);
                             }}
                             className="flex h-6 w-6 items-center justify-center rounded text-zinc-400 transition-colors duration-150 hover:text-lco-teal"
                           >
@@ -864,7 +865,7 @@ export default function KasirModulePC({
                           <IconButton
                             onClick={(e) => {
                               e.stopPropagation();
-                              onRemoveFromCart(item.product.id);
+                              onRemoveFromCart(cartLineKey(item));
                             }}
                             aria-label="Hapus dari keranjang"
                             tone="danger"

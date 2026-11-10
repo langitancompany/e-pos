@@ -85,7 +85,9 @@ export default function KasirBiayaTambahanModal({
                   )}
                 </span>
                 <span className="text-right font-mono text-sm text-zinc-500">
-                  {formatRupiah(product.sell_price)}
+                  {product.is_custom_price
+                    ? "Harga bebas"
+                    : formatRupiah(product.sell_price)}
                   {!product.is_service && (
                     <span
                       className={`block text-[10px] ${soldOut ? "text-lco-coral" : "text-zinc-400"}`}

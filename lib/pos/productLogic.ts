@@ -20,6 +20,10 @@ export type CreateProductInput = {
   is_active: boolean;
   /** Migration 045: tampilkan di Biaya Tambahan Kasir (stok tetap dihitung). */
   is_extra_charge?: boolean;
+  /** Migration 055: harga diisi kasir saat transaksi. Hanya untuk JASA, sell_price jadi harga acuan. */
+  is_custom_price?: boolean;
+  /** Migration 055: harga satuan terendah untuk produk harga bebas. Kosong = tanpa batas. */
+  min_price?: number | null;
   /**
    * Outlet aktif (migration 052). Diisi: produk langsung diaktifkan di outlet ini
    * dengan stok awal dan minimum dari form, dan perubahan minimum stok berlaku
@@ -27,6 +31,40 @@ export type CreateProductInput = {
    */
   branch_id?: string | null;
 };
+
+type CustomPriceFields = { is_custom_price: boolean; min_price: number | null };
+
+/**
+ * Aturan harga bebas, dipakai create dan update. `fields` null berarti tidak ada
+ * yang perlu ditulis (create tanpa harga bebas), supaya simpan produk biasa tetap
+ * jalan walau migration 055 belum dijalankan.
+ */
+function resolveCustomPrice(
+  input: Pick<CreateProductInput, "type" | "sell_price" | "is_custom_price" | "min_price">,
+  alwaysWrite: boolean,
+): { error: string } | { fields: CustomPriceFields | null } {
+  if (!input.is_custom_price) {
+    return { fields: alwaysWrite ? { is_custom_price: false, min_price: null } : null };
+  }
+  if (input.type !== "JASA") {
+    return { error: "Harga bebas hanya untuk produk berjenis Jasa." };
+  }
+  const minPrice = input.min_price ?? 0;
+  if (minPrice < 0) {
+    return { error: "Harga minimum tidak boleh negatif." };
+  }
+  if (minPrice > input.sell_price) {
+    return { error: "Harga minimum tidak boleh lebih besar dari harga acuan." };
+  }
+  return { fields: { is_custom_price: true, min_price: minPrice > 0 ? minPrice : null } };
+}
+
+const MIGRATION_055_HINT =
+  "Database belum mendukung harga bebas. Jalankan migration 055_custom_price_products.sql di Supabase.";
+
+function isMissingCustomPriceColumn(message: string): boolean {
+  return /is_custom_price|min_price/.test(message);
+}
 
 export type CreateProductResult =
   | {
@@ -95,6 +133,9 @@ export async function createProduct(
 
   const isService = input.type === "JASA";
 
+  const customPrice = resolveCustomPrice(input, false);
+  if ("error" in customPrice) return { success: false, error: customPrice.error };
+
   // Barcode kosong diisi sistem supaya produk selalu punya kode untuk label.
   if (!barcode) {
     const generated = await generateUniqueBarcode();
@@ -126,6 +167,7 @@ export async function createProduct(
       photo_url: photoUrl || null,
       is_active: input.is_active,
       is_extra_charge: input.is_extra_charge ?? false,
+      ...customPrice.fields,
     })
     .select("id")
     .single();
@@ -140,7 +182,7 @@ export async function createProduct(
 
     return {
       success: false,
-      error: error.message,
+      error: isMissingCustomPriceColumn(error.message) ? MIGRATION_055_HINT : error.message,
     };
   }
 
@@ -253,6 +295,9 @@ export async function updateProduct(
 
   const isService = input.type === "JASA";
 
+  const customPrice = resolveCustomPrice(input, true);
+  if ("error" in customPrice) return { success: false, error: customPrice.error };
+
   // Produk jasa tidak punya stok. Kalau produk fisik yang masih punya stok
   // diubah jadi jasa, stoknya akan "hilang" tanpa mutasi — tolak, minta
   // dikosongkan dulu lewat Opname supaya ada jejaknya.
@@ -295,6 +340,7 @@ export async function updateProduct(
       photo_url: photoUrl || null,
       is_active: input.is_active,
       is_extra_charge: input.is_extra_charge ?? false,
+      ...customPrice.fields,
     })
     .eq("id", input.id)
     .select("id")
@@ -310,7 +356,7 @@ export async function updateProduct(
 
     return {
       success: false,
-      error: error.message,
+      error: isMissingCustomPriceColumn(error.message) ? MIGRATION_055_HINT : error.message,
     };
   }
 

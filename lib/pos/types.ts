@@ -22,6 +22,10 @@ export interface Product {
   is_service: boolean;
   /** Migration 045: tampil di modal Biaya Tambahan Kasir walau bukan Jasa (stok tetap dihitung). */
   is_extra_charge?: boolean;
+  /** Migration 055: harga diisi kasir saat transaksi (hanya JASA). sell_price jadi harga acuan. */
+  is_custom_price?: boolean;
+  /** Migration 055: harga satuan terendah untuk produk harga bebas, null = tanpa batas. */
+  min_price?: number | null;
   category_id: string | null;
   unit: string | null;
   sell_price: number; // BIGINT rupiah, tanpa desimal
@@ -54,6 +58,11 @@ export interface Category {
 // Item di dalam keranjang Kasir — Product + qty, dipisah dari tipe Product murni
 // supaya lib/pos/cartLogic.ts tidak bergantung pada state React apa pun.
 export interface CartItem {
+  /** Untuk baris harga bebas, sell_price sudah berisi harga yang diisi kasir. */
   product: Product;
   qty: number;
+  /** Hanya baris harga bebas: kunci unik, karena produk yang sama boleh muncul berkali-kali. */
+  lineId?: string;
+  /** Hanya baris harga bebas: deskripsi pesanan. */
+  note?: string;
 }

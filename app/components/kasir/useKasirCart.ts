@@ -14,10 +14,14 @@ import { useCallback, useState, type Dispatch, type SetStateAction } from "react
 import type { CartItem } from "@/lib/pos/types";
 import type { ProductWithCategory } from "@/hooks/useProducts";
 import {
+  addCustomLine,
   addToCart,
   clearCart,
+  isCustomPriceProduct,
+  newLineId,
   removeFromCart,
   updateQty,
+  type CustomLineInput,
 } from "@/lib/pos/cartLogic";
 import { resolveBarcodeScan, resolvePcCode } from "@/lib/pos/kasirLogic";
 import type { ScanFeedback } from "./BarcodeScanModal";
@@ -25,6 +29,12 @@ import type { ScanFeedback } from "./BarcodeScanModal";
 interface Params {
   products: ProductWithCategory[];
   setTransactionError: Dispatch<SetStateAction<string | null>>;
+}
+
+/** Produk harga bebas yang sedang menunggu kasir mengisi harga dan deskripsi. */
+export interface CustomPriceTarget {
+  product: ProductWithCategory;
+  qty: number;
 }
 
 export function useKasirCart({ products, setTransactionError }: Params) {
@@ -41,22 +51,47 @@ export function useKasirCart({ products, setTransactionError }: Params) {
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<ScanFeedback | null>(null);
 
+  // Produk harga bebas: semua jalur tambah (tap, kode PC, scan, Biaya Tambahan)
+  // membuka isian harga dulu, tidak langsung masuk keranjang.
+  const [customPriceTarget, setCustomPriceTarget] =
+    useState<CustomPriceTarget | null>(null);
+
+  const closeCustomPrice = () => setCustomPriceTarget(null);
+
+  const confirmCustomPrice = (input: CustomLineInput) => {
+    if (!customPriceTarget) return;
+    const lineId = newLineId();
+    setTransactionError(null);
+    setCart((prev) => addCustomLine(prev, customPriceTarget.product, input, lineId));
+    setPcSelectedProductId(lineId);
+    setCustomPriceTarget(null);
+  };
+
+  // `lineKey` = id produk, atau lineId untuk baris harga bebas (cartLineKey).
   const handleAddToCart = (product: ProductWithCategory) => {
     setTransactionError(null);
+    if (isCustomPriceProduct(product)) {
+      setCustomPriceTarget({ product, qty: 1 });
+      return;
+    }
     setCart((prev) => addToCart(prev, product));
   };
-  const handleUpdateQty = (productId: string, delta: number) => {
+  const handleUpdateQty = (lineKey: string, delta: number) => {
     setTransactionError(null);
-    setCart((prev) => updateQty(prev, productId, delta));
+    setCart((prev) => updateQty(prev, lineKey, delta));
   };
-  const handleRemoveFromCart = (productId: string) => {
+  const handleRemoveFromCart = (lineKey: string) => {
     setTransactionError(null);
-    setCart((prev) => removeFromCart(prev, productId));
+    setCart((prev) => removeFromCart(prev, lineKey));
   };
 
   // Modal Biaya Tambahan: tambah 1 item ke keranjang TANPA menghapus pesan
   // "Transaksi gagal" (perilaku asli modal ini, beda dari tap produk biasa).
   const handleAddExtraCharge = (product: ProductWithCategory) => {
+    if (isCustomPriceProduct(product)) {
+      setCustomPriceTarget({ product, qty: 1 });
+      return;
+    }
     setCart((prev) => addToCart(prev, product));
   };
 
@@ -65,6 +100,10 @@ export function useKasirCart({ products, setTransactionError }: Params) {
   const handlePcAddProduct = (product: ProductWithCategory, qty: number) => {
     setPcCodeError(null);
     setTransactionError(null);
+    if (isCustomPriceProduct(product)) {
+      setCustomPriceTarget({ product, qty });
+      return;
+    }
     setCart((prev) => {
       let next = addToCart(prev, product);
       if (qty > 1) next = updateQty(next, product.id, qty - 1);
@@ -101,6 +140,12 @@ export function useKasirCart({ products, setTransactionError }: Params) {
         cart,
         rawCode,
       );
+      if (productToAdd && isCustomPriceProduct(productToAdd)) {
+        setTransactionError(null);
+        setIsScanModalOpen(false);
+        setCustomPriceTarget({ product: productToAdd, qty: 1 });
+        return;
+      }
       if (productToAdd) {
         setTransactionError(null);
         setCart((prev) => addToCart(prev, productToAdd));
@@ -139,5 +184,8 @@ export function useKasirCart({ products, setTransactionError }: Params) {
     openScanModal,
     closeScanModal,
     handleBarcodeScanned,
+    customPriceTarget,
+    closeCustomPrice,
+    confirmCustomPrice,
   };
 }

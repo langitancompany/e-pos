@@ -43,9 +43,9 @@ export default function KasirProductGrid({
         // lalu naik lagi ke 3-4 kolom seiring layar makin lebar.
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           {products.map((product) => {
-            const inCartQty =
-              cart.find((item) => item.product.id === product.id)
-                ?.qty || 0;
+            const inCartQty = cart
+              .filter((item) => item.product.id === product.id)
+              .reduce((sum, item) => sum + item.qty, 0);
             const outOfStock = isOutOfStock(product);
             const isMaxReached =
               inCartQty >= getAvailableStock(product);
@@ -87,7 +87,9 @@ export default function KasirProductGrid({
                 </h3>
                 <div className="mt-auto pt-2 flex items-end justify-between w-full">
                   <span className="font-mono font-semibold text-lco-teal text-sm tabular-nums">
-                    {formatRupiah(product.sell_price)}
+                    {product.is_custom_price
+                      ? "Harga bebas"
+                      : formatRupiah(product.sell_price)}
                   </span>
                   <span
                     className={`text-[10px] uppercase tracking-[0.12em] font-semibold font-mono tabular-nums ${outOfStock ? "text-lco-coral" : "text-zinc-500"}`}
