@@ -69,6 +69,7 @@ import { reloadBranches, useBranchScope } from "@/hooks/useActiveBranch";
 import { isMissingBranchInventoryError } from "@/lib/pos/productBranch";
 import { branchFilter } from "@/lib/pos/branches";
 import { chunk, dateKey } from "@/lib/pos/dateRange";
+import { describeClockSkew, measureClockSkewMs } from "@/lib/pos/clockSkew";
 // ── Logika hitung dipindahkan ke lib/pos/dashboardLogic.ts (fungsi murni, ada
 // testnya). Hook ini hanya mengambil data dari Supabase lalu menyerahkannya ke
 // sana. Tipe & konstanta di-ekspor ulang supaya import lama tetap jalan.
@@ -151,16 +152,25 @@ export function useDashboard(): UseDashboardResult {
   // penyebabnya (tombol "Muat Ulang" tetap bisa dipakai).
   useEffect(() => {
     if (!isLoading) return;
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      // Jam perangkat yang meleset adalah penyebab umum sesi dianggap
+      // kedaluwarsa (lihat lib/pos/clockSkew.ts), jadi diperiksa lebih dulu.
+      const skewMessage = describeClockSkew(await measureClockSkewMs());
+      if (cancelled) return;
       setError(
-        branchError ??
+        skewMessage ??
+          branchError ??
           (ready
             ? "Server tidak merespons saat memuat ringkasan dashboard. Periksa koneksi internet lalu tekan Muat Ulang."
             : "Daftar outlet belum termuat. Periksa koneksi internet atau login ulang."),
       );
       setIsLoading(false);
     }, 25_000);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [isLoading, reloadToken, ready, branchError]);
 
   useEffect(() => {

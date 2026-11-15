@@ -82,8 +82,10 @@ export async function middleware(request: NextRequest) {
 // ── TAMBAHAN (PWA install) ── manifest.json dan sw.js dikecualikan dari
 // matcher: browser mengambilnya TANPA cookie login, jadi kalau lewat
 // middleware ini keduanya dialihkan ke /login dan aplikasi tidak bisa dipasang.
+// /api/health (healthcheck + pengukur selisih jam perangkat) juga dikecualikan
+// supaya bisa dibuka tanpa login dan tidak memanggil getUser() tiap pengecekan.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest\\.json|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|api/health|manifest\\.json|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
