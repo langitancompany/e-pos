@@ -1,6 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DB_SCHEMA } from "./config";
+import { DB_SCHEMA, authCookieOptions } from "./config";
 
 /**
  * ── KOREKSI (bug: "selalu rendering" / risiko rate limit auth) ──
@@ -28,16 +28,43 @@ import { DB_SCHEMA } from "./config";
 let cachedClient: SupabaseClient | undefined;
 
 /**
+ * ── TAMBAHAN (perbaikan "Refresh Token Not Found" di perangkat lain) ──
+ * Sebelum cookie login memakai domain lintas subdomain, e-pos menyimpannya
+ * sebagai cookie host-only (hanya pos.langitan.co). Cookie lama itu masih
+ * tertinggal di browser dan kini bertabrakan dengan cookie lintas subdomain
+ * yang namanya sama. Menghapus cookie TANPA atribut Domain hanya mengenai
+ * cookie host-only, jadi cookie lintas subdomain (login unit lain) aman.
+ * Konsekuensi: perangkat yang masih memakai cookie lama harus login sekali lagi.
+ */
+function removeLegacyHostOnlyAuthCookies(): void {
+  if (typeof document === "undefined" || !authCookieOptions()) return;
+  try {
+    const names = new Set(
+      document.cookie
+        .split(";")
+        .map((c) => c.split("=")[0].trim())
+        .filter((n) => /^sb-.+-auth-token(\.\d+)?$/.test(n)),
+    );
+    names.forEach((name) => {
+      document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
+    });
+  } catch {
+    // cookie tidak bisa diakses — abaikan
+  }
+}
+
+/**
  * Client Supabase untuk dipakai di Client Component ("use client").
  * Baca env NEXT_PUBLIC_SUPABASE_URL & NEXT_PUBLIC_SUPABASE_ANON_KEY —
  * pastikan dua ini ada di .env.local (lihat catatan di bawah).
  */
 export function createClient(): SupabaseClient {
   if (!cachedClient) {
+    removeLegacyHostOnlyAuthCookies();
     cachedClient = createBrowserClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { db: { schema: DB_SCHEMA } },
+      { db: { schema: DB_SCHEMA }, cookieOptions: authCookieOptions() },
     ) as unknown as SupabaseClient;
   }
   return cachedClient;

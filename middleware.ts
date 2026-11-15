@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { authCookieOptions } from "@/lib/supabase/config";
 
 // Route yang boleh diakses TANPA login.
 // /cek-struk sengaja publik sesuai PRD §4.9 (halaman cek struk untuk pelanggan).
@@ -36,6 +37,8 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Scope cookie HARUS sama dengan browser client (lib/supabase/config.ts).
+      cookieOptions: authCookieOptions(),
       cookies: {
         getAll() {
           return request.cookies.getAll();
