@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
+import InstallPrompt from "@/app/components/misc/InstallPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,12 @@ export const metadata: Metadata = {
   description:
     "Aplikasi kasir toko Langitan.co — transaksi, stok, laporan, dan shift kasir dalam satu aplikasi.",
   manifest: "/manifest.json",
+  // iOS: mode aplikasi penuh saat dibuka dari layar utama.
+  appleWebApp: {
+    capable: true,
+    title: "LCO POS",
+    statusBarStyle: "default",
+  },
   icons: {
     icon: [{ url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
     // `apple-touch-icon` WAJIB tanpa transparansi & TANPA maskable-safe-zone
@@ -93,7 +100,11 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        {/* Ajakan "Pasang aplikasi" — hanya muncul jika belum terpasang */}
+        <InstallPrompt />
+      </body>
     </html>
   );
 }

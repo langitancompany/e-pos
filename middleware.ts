@@ -79,8 +79,11 @@ export async function middleware(request: NextRequest) {
   return supabaseResponse;
 }
 
+// ── TAMBAHAN (PWA install) ── manifest.json dan sw.js dikecualikan dari
+// matcher: browser mengambilnya TANPA cookie login, jadi kalau lewat
+// middleware ini keduanya dialihkan ke /login dan aplikasi tidak bisa dipasang.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest\\.json|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
