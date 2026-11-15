@@ -26,6 +26,7 @@ import {
   type Branch,
 } from "@/lib/pos/branches";
 import { selectBranchRows } from "@/lib/pos/branchQuery";
+import { collectSessionDiagnostics } from "@/lib/pos/sessionDiagnostics";
 
 const supabase = createClient();
 
@@ -92,19 +93,22 @@ function withTimeout<T>(work: PromiseLike<T>, ms: number, message: string): Prom
 
 async function fetchBranches(): Promise<void> {
   try {
-    const { data: sessionData } = await withTimeout(
+    const { data: sessionData, error: sessionError } = await withTimeout(
       supabase.auth.getSession(),
       SESSION_TIMEOUT_MS,
       "Sesi login tidak terbaca dalam 10 detik.",
     );
     if (!sessionData.session) {
       // Belum login: jangan tandai loaded, nanti dimuat ulang saat login.
+      // Pesan error dari getSession() (mis. refresh token ditolak) dan kondisi
+      // browser disertakan supaya penyebabnya terlihat tanpa DevTools.
+      const detail = sessionError?.message ? ` Detail: ${sessionError.message}.` : "";
       emit({
         ...state,
         branches: [],
         activeId: null,
         loaded: false,
-        error: "Sesi login tidak ditemukan di perangkat ini. Muat ulang halaman atau login ulang.",
+        error: `Sesi login tidak ditemukan di perangkat ini.${detail} Info teknis: ${collectSessionDiagnostics()}.`,
       });
       return;
     }
