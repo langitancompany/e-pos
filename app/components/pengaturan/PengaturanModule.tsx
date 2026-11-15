@@ -1,0 +1,190 @@
+"use client";
+
+// app/components/pengaturan/PengaturanModule.tsx
+// ── TAMBAHAN ── Modul Pengaturan Admin (PRD §17 T-10, §4.1 "Pengaturan
+// Admin", §5 baris `settings` = admin only). Tiga sub-tab:
+// - (migration 048) "Toko & Struk" DIPINDAHKAN ke menu Outlet. Pengaturan
+//                        tinggal "Pengguna" dan "Printer".
+// - "Pengaturan Admin" — daftar user dari `profiles`, ubah role, aktifkan/
+//                        nonaktifkan, reset password, lewat
+//                        PengaturanAdminTab.tsx.
+// - (migration 038) Tab "Role" DIHAPUS. "Pengaturan Admin" kini berisi daftar
+//                        user + hak akses per user (PengaturanAdminTab.tsx).
+//
+// Sub-tab dipisah jadi komponen sendiri (bukan ditulis inline di sini) supaya
+// file ini tetap jadi "shell" tipis (gate akses + tab switcher), sama seperti
+// pola LaporanModule.tsx yang memisah isi tiap sub-tab.
+//
+// ── REVISI (migration 028_dynamic_roles.sql, "sistem role dinamis") ──
+// Sebelumnya modul ini gate akses tunggal `user?.role === "admin" ||
+// user?.role === "supervisor"` (migration 018) untuk SEMUA sub-tab sekaligus.
+// Enum `user_role` & kolom `profiles.role` SUDAH DIHAPUS TOTAL — sekarang
+// setiap sub-tab punya permission_key SENDIRI-SENDIRI
+// (pengaturan_toko/pengaturan_admin/pengaturan_role, lihat katalog di
+// migration 028) dan dicek lewat `hasPermission(user, key)`, BUKAN lagi satu
+// gate besar. Konsekuensinya:
+// - Tab switcher sekarang MENYARING tab mana saja yang MUNCUL sesuai
+//   permission user login — bukan lagi daftar tetap 2 tab yang selalu sama
+//   untuk admin & supervisor. Seorang user custom bisa saja cuma punya akses
+//   "Pengaturan Admin" tanpa "Role", atau sebaliknya (lihat catatan header
+//   migration 028 kenapa pengaturan_role sengaja dipisah dari
+//   pengaturan_admin — aksi paling sensitif, tidak otomatis nempel di
+//   permission kelola user).
+// - `canAccessSettings` (gate utama, sebelum tab switcher dirender sama
+//   sekali) sekarang berarti "minimal punya SATU dari 3 permission itu",
+//   bukan lagi cek role tetap.
+// - Tab aktif WAJIB selalu salah satu tab yang memang terlihat oleh user ini
+//   (tidak boleh "nyangkut" di tab yang izin aksesnya baru saja hilang,
+//   mis. gara-gara role-nya diubah admin lain sementara dia masih login) —
+//   makanya ada useEffect kecil di bawah yang menyinkronkan ulang setiap
+//   kali daftar tab yang terlihat berubah.
+//
+// Pola gate: cabang isAuthLoading dulu, baru cabang !canAccessSettings,
+// KEDUANYA setelah semua hook (useState/useEffect) dipanggil sesuai Rules of
+// Hooks — sama seperti sebelumnya, supaya tidak mengulang bug "kedipan" yang
+// sudah pernah diperbaiki di modul-modul lain (LogAktivitasModule.tsx dkk).
+
+import { useEffect, useState } from "react";
+import { Loader2, Printer, ShieldAlert, Store, Users } from "lucide-react";
+import { hasPermission, useAuth } from "@/hooks/useAuth";
+import PengaturanAdminTab from "./PengaturanAdminTab";
+import PengaturanPrinterTab from "./PengaturanPrinterTab";
+import TabSwitcher from "@/app/components/ui/TabSwitcher";
+
+type PengaturanTab = "admin" | "printer";
+
+// ── REVISI (migration 028) ── Tiap tab sekarang bawa permission_key
+// sendiri (katalog `permissions`, migration 028) — dipakai `visibleTabs`
+// di bawah buat menyaring, GANTI gate tunggal admin/supervisor lama.
+const TABS: {
+  key: PengaturanTab;
+  label: string;
+  icon: typeof Store;
+  permission: string;
+}[] = [
+  // ── REVISI (migration 038) ── Tab "Pengaturan Admin" + tab "Role" digabung
+  // jadi satu tab "Pengguna": daftar user + hak akses PER USER (bukan lagi per
+  // role). Permission key tetap `pengaturan_admin`.
+  {
+    key: "admin",
+    label: "Pengguna",
+    icon: Users,
+    permission: "pengaturan_admin",
+  },
+];
+
+// ── TAMBAHAN (Setting Printer) ── SENGAJA di luar array TABS di atas —
+// tab ini TIDAK dicek lewat hasPermission seperti 3 tab lain. Printer adalah
+// pengaturan PER-DEVICE (localStorage, lihat catatan header
+// hooks/usePrinterProfiles.ts), bukan data toko yang perlu RLS admin-only.
+// Siapa pun yang sudah lolos gate `canAccessSettings` di bawah (sudah punya
+// minimal satu dari 3 permission Pengaturan) boleh mengatur printer di
+// device yang sedang dia pakai — termasuk kasir yang cuma punya akses ke
+// salah satu dari 3 tab lain.
+const PRINTER_TAB: { key: PengaturanTab; label: string; icon: typeof Store } = {
+  key: "printer",
+  label: "Printer",
+  icon: Printer,
+};
+
+export default function PengaturanModule() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+
+  const [activeTab, setActiveTab] = useState<PengaturanTab | null>(null);
+
+  // ── REVISI (migration 028) ── Dihitung tiap render (bukan disimpan di
+  // state) — murni turunan dari `user.permissions`, tidak ada alasan
+  // disimpan terpisah dan berisiko basi.
+  const visiblePermissionTabs = TABS.filter((tab) =>
+    hasPermission(user, tab.permission),
+  );
+  // ── PERUBAHAN (migration 048) ── Tab "Toko & Struk" pindah ke Outlet, tapi
+  // gate halaman tetap menerima pemegang `pengaturan_toko` supaya mereka masih
+  // bisa membuka tab Printer seperti sebelumnya.
+  const canAccessSettings =
+    visiblePermissionTabs.length > 0 || hasPermission(user, "pengaturan_toko");
+  // ── TAMBAHAN (Setting Printer) ── PRINTER_TAB ditempel manual di akhir
+  // (bukan ikut TABS.filter di atas) — lihat komentar di deklarasinya.
+  // Cuma muncul kalau user sudah lolos gate 3 permission lain, supaya user
+  // yang benar-benar 0 akses Pengaturan tetap kena "Akses Ditolak" seperti
+  // sebelumnya (bukan celah baru buat lihat tab Printer sendirian).
+  const visibleTabs = canAccessSettings
+    ? [...visiblePermissionTabs, PRINTER_TAB]
+    : [];
+
+  // ── TAMBAHAN (migration 028) ── Jaga activeTab selalu salah satu tab yang
+  // memang terlihat — inisialisasi ke tab pertama yang terlihat begitu user
+  // termuat, dan pindah otomatis kalau tab yang lagi aktif hilang dari
+  // daftar (mis. permission-nya baru saja dicabut). Dipanggil tanpa syarat
+  // (hook tidak boleh di dalam if) — no-op lewat early return di badan
+  // effect kalau belum ada tab yang terlihat sama sekali.
+  useEffect(() => {
+    if (visibleTabs.length === 0) return;
+    const stillVisible = visibleTabs.some((tab) => tab.key === activeTab);
+    if (!stillVisible) {
+      setActiveTab(visibleTabs[0].key);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  if (isAuthLoading) {
+    return (
+      <div className="flex h-full items-center justify-center bg-zinc-100 dark:bg-zinc-950">
+        <div className="flex items-center gap-2 text-sm text-zinc-500">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Memuat...
+        </div>
+      </div>
+    );
+  }
+
+  if (!canAccessSettings) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center bg-zinc-100 p-6 text-center dark:bg-zinc-950">
+        <div className="mb-3 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+          <ShieldAlert className="h-6 w-6 text-lco-coral" />
+        </div>
+        <h3 className="text-sm font-semibold">Akses Ditolak</h3>
+        <p className="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
+          Akun Anda tidak punya akses ke satu pun menu Pengaturan. Hubungi admin
+          kalau ini seharusnya tidak terjadi.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col overflow-y-auto bg-zinc-100 p-4 dark:bg-zinc-950 md:p-6">
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+          Pengaturan
+        </h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Kelola user & hak akses dan kelola printer. Pengaturan toko, pajak,
+          dan struk ada di menu Outlet.
+        </p>
+      </div>
+
+      {/* Tab switcher — cuma render tab yang memang terlihat untuk role
+          user ini (lihat visibleTabs di atas). Gaya "segmented control":
+          dibungkus kontainer beruas (bg-zinc-100/bg-zinc-900) supaya
+          kelihatan seperti sekelompok tombol, bukan cuma teks bergaris
+          bawah — tab aktif dapat latar putih + sedikit shadow untuk kesan
+          "terangkat", mirip pola toggle switch lain di aplikasi ini. */}
+      <TabSwitcher
+        tabs={visibleTabs}
+        value={activeTab ?? ""}
+        onChange={(key: string) => setActiveTab(key as PengaturanTab)}
+        className="mb-4"
+      />
+
+      {/* Render sub-tab sungguhan. Dirender kondisional dengan && (bukan
+          CSS hidden), jadi tab yang tidak aktif memang UNMOUNT — state
+          form di tiap tab otomatis reset tiap kali tab dibuka lagi.
+          Konsisten dengan pola tab lain di project ini. */}
+      {activeTab === "admin" && <PengaturanAdminTab />}
+      {/* ── TAMBAHAN (Setting Printer) ── */}
+      {activeTab === "printer" && <PengaturanPrinterTab />}
+    </div>
+  );
+}

@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+/* ── TAMBAHAN (dark mode toggle, sidebar) ── Default Tailwind v4 tanpa baris
+   ini: SEMUA class `dark:` di seluruh komponen (22 file, sudah lama dipakai)
+   otomatis ikut `prefers-color-scheme` OS/browser kasir — tidak bisa
+   dikontrol dari aplikasi sama sekali. Baris ini mengganti strateginya jadi
+   berbasis CLASS: `dark:` baru aktif kalau ada elemen leluhur (di sini:
+   <html>) yang punya class "dark" — persis yang ditempel/dilepas oleh
+   hooks/useThemePreference.ts saat kasir menekan tombol di Sidebar.
+   Tidak ada satu pun class `dark:` yang sudah ada di komponen manapun yang
+   perlu diubah — semuanya otomatis ikut strategi baru ini. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* --- WARNA UTAMA LCO (BRAND) --- */
+  --color-lco-teal: #49bfb4;
+  --color-lco-green: #124540;
+  --color-lco-green-hover: #0d332f;
+
+  /* --- WARNA KOMBINASI / AKSEN TAMBAHAN --- */
+  --color-lco-coral: #f4435e;
+  --color-lco-mustard: #E45742;
+}
+
+/* 
+  Aturan dasar untuk body 
+*/
+@layer base {
+  body {
+    @apply bg-zinc-100 text-zinc-900;
+  }
+  
+  /* Mode Gelap otomatis mengikuti sistem atau class */
+  .dark body {
+    @apply bg-zinc-950 text-zinc-100;
+  }
+}
+
+@layer base {
+  a[href],
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not(:disabled),
+  summary,
+  select:not(:disabled),
+  label[for],
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* 
+  CATATAN PENTING DARI PRD:
+  Tidak boleh ada @media print global di sini karena struk akan 
+  dicetak via iframe tersembunyi.
+*/
+
+/* Toast.tsx: animasi masuk (slide+fade dari bawah) dan garis countdown. Hanya
+   menggeser sumbu Y; jangan digabung dengan class translate Tailwind v4,
+   offset-nya menumpuk. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-countdown {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 200ms ease-out;
+}
+
+.animate-toast-countdown {
+  animation-name: toast-countdown;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-toast-in {
+    animation: none;
+  }
+}
+/* ── TAMBAHAN (dropdown/select seragam) ── Panah bawaan browser menempel di
+   tepi kanan. Di sini panah bawaan dimatikan dan diganti ikon chevron
+   sendiri dengan jarak dari tepi kanan, berlaku untuk SEMUA <select> di
+   aplikasi. Sengaja ditulis di luar @layer agar menang atas utilitas
+   padding Tailwind (px-2.5, px-3, dst.) pada padding-right. */
+select:not([multiple]):not([size]) {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 2.5rem;
+  background-repeat: no-repeat;
+  background-position: right 0.875rem center;
+  background-size: 1rem 1rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+.dark select:not([multiple]):not([size]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+select:not([multiple]):not([size]):disabled {
+  opacity: 0.6;
+}
