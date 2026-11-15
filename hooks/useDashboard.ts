@@ -65,7 +65,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useBranchScope } from "@/hooks/useActiveBranch";
+import { reloadBranches, useBranchScope } from "@/hooks/useActiveBranch";
 import { isMissingBranchInventoryError } from "@/lib/pos/productBranch";
 import { branchFilter } from "@/lib/pos/branches";
 import { chunk, dateKey } from "@/lib/pos/dateRange";
@@ -137,9 +137,31 @@ export function useDashboard(): UseDashboardResult {
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
-  const refetch = useCallback(() => setReloadToken((t) => t + 1), []);
   // ── TAMBAHAN (migration 047) ── Statistik penjualan & shift untuk cabang terpilih.
-  const { branchId, ready } = useBranchScope();
+  const { branchId, ready, error: branchError } = useBranchScope();
+
+  // "Muat Ulang" juga mencoba memuat ulang daftar cabang bila itu yang macet.
+  const refetch = useCallback(() => {
+    if (!ready) void reloadBranches();
+    setReloadToken((t) => t + 1);
+  }, [ready]);
+
+  // ── TAMBAHAN (loading tak berujung di perangkat lain) ── Pengaman: kalau
+  // pemuatan tak selesai dalam 25 detik, hentikan spinner dan tampilkan
+  // penyebabnya (tombol "Muat Ulang" tetap bisa dipakai).
+  useEffect(() => {
+    if (!isLoading) return;
+    const timer = setTimeout(() => {
+      setError(
+        branchError ??
+          (ready
+            ? "Server tidak merespons saat memuat ringkasan dashboard. Periksa koneksi internet lalu tekan Muat Ulang."
+            : "Daftar outlet belum termuat. Periksa koneksi internet atau login ulang."),
+      );
+      setIsLoading(false);
+    }, 25_000);
+    return () => clearTimeout(timer);
+  }, [isLoading, reloadToken, ready, branchError]);
 
   useEffect(() => {
     if (!ready) return;
@@ -253,6 +275,7 @@ export function useDashboard(): UseDashboardResult {
         setCategories(sales.categories);
         setActions(actionGroups);
         setLastUpdatedAt(new Date());
+        setError(null);
         setIsLoading(false);
       } catch (err) {
         if (isCancelled) return;

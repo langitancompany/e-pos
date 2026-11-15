@@ -66,27 +66,74 @@ function writeStoredId(id: string | null) {
   }
 }
 
+// ── TAMBAHAN (loading tak berujung di perangkat lain) ── Dashboard menunggu
+// `loaded` jadi true. Kalau getSession()/query cabang tidak pernah kembali
+// (jaringan putus, server Supabase tidak terjangkau, kunci sesi macet), dulu
+// spinner berputar selamanya tanpa pesan apa pun. Sekarang tiap langkah punya
+// batas waktu dan kegagalannya dicatat sebagai `error` yang bisa ditampilkan.
+const SESSION_TIMEOUT_MS = 10_000;
+const BRANCH_QUERY_TIMEOUT_MS = 15_000;
+
+function withTimeout<T>(work: PromiseLike<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    Promise.resolve(work).then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 async function fetchBranches(): Promise<void> {
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session) {
-    // Belum login: jangan tandai loaded, nanti dimuat ulang saat login.
-    emit({ ...state, branches: [], activeId: null, loaded: false, error: null });
-    return;
+  try {
+    const { data: sessionData } = await withTimeout(
+      supabase.auth.getSession(),
+      SESSION_TIMEOUT_MS,
+      "Sesi login tidak terbaca dalam 10 detik.",
+    );
+    if (!sessionData.session) {
+      // Belum login: jangan tandai loaded, nanti dimuat ulang saat login.
+      emit({
+        ...state,
+        branches: [],
+        activeId: null,
+        loaded: false,
+        error: "Sesi login tidak ditemukan di perangkat ini. Muat ulang halaman atau login ulang.",
+      });
+      return;
+    }
+
+    // Migration 053/048 yang belum dijalankan ditangani selectBranchRows (kolom cadangan).
+    const { rows, errorMessage } = await withTimeout(
+      selectBranchRows(supabase),
+      BRANCH_QUERY_TIMEOUT_MS,
+      "Server tidak merespons saat memuat daftar outlet (15 detik).",
+    );
+
+    if (errorMessage) {
+      // Paling sering: migration 047 belum dijalankan -> app tetap jalan tanpa mode cabang.
+      emit({ branches: [], activeId: null, loaded: true, error: errorMessage });
+      return;
+    }
+
+    const branches: Branch[] = rows.map(normalizeBranch);
+    const activeId = resolveActiveBranchId(branches, state.activeId ?? readStoredId());
+    writeStoredId(activeId);
+    emit({ branches, activeId, loaded: true, error: null });
+  } catch (err) {
+    console.error("useActiveBranch: gagal memuat cabang:", err);
+    emit({
+      ...state,
+      loaded: false,
+      error: err instanceof Error ? err.message : "Gagal memuat daftar outlet.",
+    });
   }
-
-  // Migration 053/048 yang belum dijalankan ditangani selectBranchRows (kolom cadangan).
-  const { rows, errorMessage } = await selectBranchRows(supabase);
-
-  if (errorMessage) {
-    // Paling sering: migration 047 belum dijalankan -> app tetap jalan tanpa mode cabang.
-    emit({ branches: [], activeId: null, loaded: true, error: errorMessage });
-    return;
-  }
-
-  const branches: Branch[] = rows.map(normalizeBranch);
-  const activeId = resolveActiveBranchId(branches, state.activeId ?? readStoredId());
-  writeStoredId(activeId);
-  emit({ branches, activeId, loaded: true, error: null });
 }
 
 function watchAuthOnce() {
@@ -99,7 +146,7 @@ function watchAuthOnce() {
       emit({ branches: [], activeId: null, loaded: false, error: null });
     } else if (event === "SIGNED_IN") {
       loadPromise = null;
-      emit({ ...state, loaded: false });
+      emit({ ...state, loaded: false, error: null });
       ensureLoaded();
     }
   });
@@ -165,7 +212,11 @@ export function useActiveBranch() {
  * `ready` false = daftar cabang belum selesai dimuat (tunda query supaya tidak
  * sempat menarik data semua cabang lalu di-refetch).
  */
-export function useBranchScope(): { branchId: string | null; ready: boolean } {
+export function useBranchScope(): {
+  branchId: string | null;
+  ready: boolean;
+  error: string | null;
+} {
   const snap = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  return { branchId: snap.activeId, ready: snap.loaded };
+  return { branchId: snap.activeId, ready: snap.loaded, error: snap.error };
 }
